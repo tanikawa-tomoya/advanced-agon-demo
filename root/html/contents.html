@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTORY2 | コンテンツ管理</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="js/entrypoint.js?v=1"></script>						
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="screen-intro">
+        <div class="screen-intro__title-row">
+          <h1 class="screen-intro__title">コンテンツ管理</h1>
+          <button
+            type="button"
+            class="screen-help-button"
+            id="contents-help-button"
+            aria-haspopup="dialog"
+            aria-controls="contents-help-modal"
+            aria-expanded="false"
+            aria-label="コンテンツ管理のヘルプを開く"
+          >
+            <span class="screen-help-icon" aria-hidden="true">?</span>
+            <span class="visually-hidden">コンテンツ管理のヘルプ</span>
+          </button>
+        </div>
+      </section>
+      <section class="screen-preview" id="content-library">
+        <div class="content-library" data-cp-root>
+          <div class="tabs" data-cp-tabs>
+            <div class="tabs__header">
+              <div class="tabs__list" role="tablist" aria-label="コンテンツ表示切替">
+                <button
+                  type="button"
+                  class="tabs__tab is-active"
+                  id="content-library-tab-list"
+                  data-cp-tab="list"
+                  aria-selected="true"
+                  aria-controls="content-library-panel-list"
+                >
+                  コンテンツ一覧
+                </button>
+                <button
+                  type="button"
+                  class="tabs__tab"
+                  id="content-library-tab-upload-file"
+                  data-cp-tab="upload-file"
+                  aria-selected="false"
+                  aria-controls="content-library-panel-upload-file"
+                  tabindex="-1"
+                >
+                  ファイルアップロード
+                </button>
+                <button
+                  type="button"
+                  class="tabs__tab"
+                  id="content-library-tab-upload-youtube"
+                  data-cp-tab="upload-youtube"
+                  aria-selected="false"
+                  aria-controls="content-library-panel-upload-youtube"
+                  tabindex="-1"
+                >
+                  YouTube動画
+                </button>
+              </div>
+            </div>
+            <div
+              class="tabs__panel is-active"
+              id="content-library-panel-list"
+              data-cp-panel="list"
+              role="tabpanel"
+              aria-labelledby="content-library-tab-list"
+            >
+              <section class="content-library__section content-library__section--list">
+                <div class="content-library__list-header content-library__controls" data-cp="toolbar">
+                  <div class="content-library__filter-group">
+                    <input
+                      type="search"
+                      class="content-library__search"
+                      data-cp-search
+                      placeholder="コンテンツを検索"
+                      aria-label="検索"
+                    />
+                    <select class="content-library__filter" data-cp-filter-kind aria-label="種別で絞り込み">
+                      <option value="">すべての種別</option>
+                      <option value="movie">動画</option>
+                      <option value="image">画像</option>
+                      <option value="audio">音声</option>
+                      <option value="pdf">PDF</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="file">その他のファイル</option>
+                    </select>
+                    <select
+                      class="content-library__filter content-library__filter--visibility"
+                      data-cp-filter-visibility
+                      aria-label="表示状態で絞り込み"
+                    >
+                      <option value="all">表示・非表示すべて</option>
+                      <option value="visible" selected>表示のみ</option>
+                      <option value="hidden">非表示のみ</option>
+                    </select>
+                    <div class="content-library__view-toggle" role="group" aria-label="表示モード">
+                      <button type="button" class="content-library__view-toggle-button is-active" data-cp-view-mode="list" aria-pressed="true">リスト</button>
+                      <button type="button" class="content-library__view-toggle-button" data-cp-view-mode="panel" aria-pressed="false">パネル</button>
+                    </div>
+                  </div>
+                  <div class="content-library__toolbar" data-cp="toolbar-actions">
+                    <button type="button" class="btn btn--secondary" data-cp-refresh>再読み込み</button>
+                  </div>
+                </div>
+                <p class="content-library__status" data-cp="status" role="status" aria-live="polite"></p>
+                <p class="content-library__empty" data-cp-empty hidden>
+                  表示できるコンテンツがありません。
+                </p>
+                <div class="content-library__table-wrapper" data-cp-list-wrapper role="region" aria-label="コンテンツ一覧 (リスト表示)">
+                  <table class="content-library__table">
+                    <caption class="visually-hidden">登録済みコンテンツ一覧</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" class="content-library__table-header content-library__table-header--preview">サムネイル</th>
+                        <th scope="col" class="content-library__table-header content-library__table-header--details">コンテンツ情報</th>
+                        <th scope="col" class="content-library__table-header content-library__table-header--visibility">表示</th>
+                        <th scope="col" class="content-library__table-header content-library__table-header--actions">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody class="content-library__list" data-cp="list"></tbody>
+                  </table>
+                </div>
+                <div
+                  class="content-library__panel-wrapper"
+                  data-cp-panel-wrapper
+                  role="region"
+                  aria-label="コンテンツ一覧 (パネル表示)"
+                  hidden
+                >
+                  <ul class="content-library__panel-list" data-cp="panel-list"></ul>
+                </div>
+              </section>
+            </div>
+            <div
+              class="tabs__panel"
+              id="content-library-panel-upload-file"
+              data-cp-panel="upload-file"
+              role="tabpanel"
+              aria-labelledby="content-library-tab-upload-file"
+              hidden="hidden"
+            >
+              <section class="content-library__section content-library__section--upload" data-cp="upload-section">
+                <div class="content-upload-service" data-content-upload-host></div>
+              </section>
+            </div>
+            <div
+              class="tabs__panel"
+              id="content-library-panel-upload-youtube"
+              data-cp-panel="upload-youtube"
+              role="tabpanel"
+              aria-labelledby="content-library-tab-upload-youtube"
+              hidden="hidden"
+            >
+              <section class="content-library__section content-library__section--upload" data-cp="upload-youtube-section">
+                <form class="content-uploader__youtube-form" data-cp-youtube-form novalidate="novalidate">
+                  <h4 class="content-uploader__youtube-title">YouTube動画を追加</h4>
+                  <div class="content-uploader__youtube-fields">
+                    <label class="content-uploader__youtube-label">
+                      <span>タイトル (任意)</span>
+                      <input
+                        type="text"
+                        class="user-management__input content-uploader__youtube-input"
+                        data-cp-youtube-title
+                        maxlength="120"
+                        placeholder="例: イントロダクション動画"
+                      />
+                    </label>
+                    <label class="content-uploader__youtube-label">
+                      <span>YouTubeのURL</span>
+                      <input
+                        type="url"
+                        class="user-management__input content-uploader__youtube-input"
+                        data-cp-youtube-url
+                        placeholder="https://www.youtube.com/watch?v=XXXXXXX"
+                        required="required"
+                      />
+                    </label>
+                  </div>
+                  <div class="content-uploader__youtube-actions">
+                    <button type="submit" class="content-uploader__youtube-submit btn btn--primary" data-cp-youtube-submit>
+                      YouTube動画を登録
+                    </button>
+                  </div>
+                  <div
+                    class="user-management__feedback content-uploader__youtube-feedback"
+                    data-cp-youtube-feedback
+                    role="status"
+                    aria-live="polite"
+                  ></div>
+                </form>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <div
+      class="screen-modal"
+      id="contents-upload-modal"
+      data-cp-upload-modal
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contents-upload-modal-title"
+      aria-describedby="contents-upload-modal-summary"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="screen-modal__overlay" aria-hidden="true"></div>
+      <section class="screen-modal__content" role="document">
+        <header class="screen-modal__header">
+          <h2 class="screen-modal__title" id="contents-upload-modal-title" tabindex="-1">アップロードの進行状況</h2>
+          <p class="screen-modal__summary" id="contents-upload-modal-summary">
+            ファイルやYouTube動画の登録状況を確認できます。
+          </p>
+        </header>
+        <div class="screen-modal__body content-upload-progress-modal">
+          <p class="content-upload-progress-modal__status" data-cp-upload-modal-status>
+            アップロードを開始すると進行状況が表示されます。
+          </p>
+          <div
+            class="content-upload-progress-modal__progress content-uploader__progress"
+            data-cp-upload-modal-progress
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div class="content-uploader__progress-bar" data-cp-upload-modal-progress-bar style="width: 0%"></div>
+          </div>
+          <p class="content-upload-progress-modal__summary" data-cp-upload-modal-summary>0 / 0 件完了</p>
+          <p class="content-upload-progress-modal__empty" data-cp-upload-modal-empty>
+            現在表示できるアップロードがありません。
+          </p>
+          <ul class="content-upload-progress-modal__list" data-cp-upload-modal-list aria-live="polite"></ul>
+        </div>
+        <div class="screen-modal__footer">
+          <button type="button" class="btn btn--primary" data-cp-upload-modal-complete disabled="disabled">完了</button>
+        </div>
+      </section>
+    </div>
+    <div
+      class="c-help-modal"
+      id="contents-help-modal"
+      data-help-modal
+      role="dialog"
+      aria-modal="true"
+      aria-label="コンテンツ管理の使い方"
+      aria-describedby="contents-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="contents-help-modal-title">コンテンツ管理の使い方</h2>
+          <p class="c-help-modal__summary" id="contents-help-modal-summary">
+            自分が管理する教材をブックマークし、配布やレビューにすぐ使えるよう整理します。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="contents-help-modal-body">
+          <p>
+            コンテンツ管理では自分専用のライブラリを構築できます。タグやメモで整理し、必要な教材をすぐに呼び出せる状態に保ちましょう。
+          </p>
+          <ul>
+            <li>フィルターを使ってジャンルやタグで絞り込み、目的に合った教材だけを表示できます。</li>
+            <li>カードのプレビューから詳細や添付ファイルを確認し、配布や共有にそのまま利用できます。</li>
+            <li>不要になった教材はから削除し、常に最新のラインアップを維持します。</li>
+          </ul>
+          <p>チームと共有したい教材はタグやコメントを整えておくと、配布時の説明がスムーズになります。</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

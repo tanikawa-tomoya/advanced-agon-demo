@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTORY2 | ログイン</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="js/entrypoint.js?v=1"></script>									
+  </head>
+  <body class="login-page">
+    <header class="site-header site-header--simple" data-disable-account-ui>
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+    </header>
+
+    <main class="login-layout">
+      <section class="login-intro">
+        <h1 class="login-intro__title" style="font-size: 50px;">大阪府私立幼稚園連盟</h1>
+		<h2 class="login-intro__title" style="font-size: 50px;">南海支部</h2>
+		<p class="login-intro__summary">
+          ログインして配信された動画や資料をご確認ください。<br />アンケートの回答も行うことができます。
+        </p>
+      </section>
+
+      <section class="login-card">
+        <form class="login-form" id="login-form">
+          <h2 class="login-form__title">サインイン</h2>
+          <p class="login-form__hint">認証情報を入力してログインを開始します。</p>
+          <label class="login-field">
+            <span class="login-field__label">ユーザーコードまたはメールアドレス</span>
+            <input
+			  id="userCode"			  
+              class="login-field__control"
+              type="text"
+              name="user-code"
+              placeholder="USER-0001 または user@example.com"
+              required
+            />
+          </label>
+          <label class="login-field">
+            <span class="login-field__label">パスワード</span>
+            <div class="login-field__stack">
+              <input class="login-field__control" type="password" name="password" id="login-password" placeholder="••••••••" required />
+              <button class="login-field__toggle" type="button" id="toggle-password">表示</button>
+            </div>
+          </label>
+          <button class="btn btn--primary login-submit" type="submit">ログイン</button>
+          <p class="login-support">
+            <button class="login-support__link" type="button" data-action="open-password-reset">パスワードをお忘れの場合はこちら</button>
+          </p>
+          <p class="login-message" id="login-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+
+    <div class="login-reset-modal" id="password-reset-modal" aria-hidden="true" role="dialog" aria-labelledby="password-reset-title">
+      <div class="login-reset-modal__backdrop" data-action="close-password-reset"></div>
+      <div class="login-reset-modal__dialog" role="document">
+        <div class="login-reset-modal__header">
+          <h3 class="login-reset-modal__title" id="password-reset-title">パスワードを再設定</h3>
+          <button class="login-reset-modal__close" type="button" aria-label="閉じる" data-action="close-password-reset">×</button>
+        </div>
+        <div class="login-reset-modal__body">
+          <p class="login-reset-modal__summary">登録済みのメールアドレスにリセット手順を送信します。</p>
+          <form class="login-reset-modal__form" id="password-reset-form">
+            <label class="login-reset-modal__field" for="password-reset-mail">
+              <span class="login-reset-modal__label">メールアドレス</span>
+              <input
+                class="login-reset-modal__input"
+                type="email"
+                id="password-reset-mail"
+                name="password-reset-mail"
+                placeholder="user@example.com"
+                required
+              />
+            </label>
+            <label class="login-reset-modal__field" for="password-reset-check">
+              <span class="login-reset-modal__label">確認用ひらがな（6文字）</span>
+              <input
+                class="login-reset-modal__input"
+                type="text"
+                id="password-reset-check"
+                name="password-reset-check"
+                placeholder="ひらがなを6文字入力してください"
+                autocomplete="off"
+                required
+              />
+            </label>
+            <p class="login-reset-modal__feedback" id="password-reset-feedback" role="status" aria-live="polite"></p>
+            <div class="login-reset-modal__actions">
+              <button class="btn btn--ghost" type="button" data-action="close-password-reset">キャンセル</button>
+              <button class="btn btn--primary" type="submit" id="password-reset-submit">送信する</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <footer class="login-footer">
+      <p>&copy; 2025 MEDIAPULS. All rights reserved.</p>
+    </footer>
+  </body>
+</html>

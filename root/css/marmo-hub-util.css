@@ -1,0 +1,39 @@
+.save-message {
+    position: fixed;
+    top: -50px; /* 最初は画面外 */
+    left: 0;
+    width: 100%;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.8) 0px,
+        rgba(0, 0, 0, 0.8) 10px,
+        rgba(25, 25, 25, 0.8) 10px,
+        rgba(25, 25, 25, 0.8) 20px
+    ); /* 黒系の斜めストライプ */
+    color: white;
+    text-align: center;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+    z-index: 9999; /* 他の要素よりも前面に表示 */
+    display: none; /* 初期状態では非表示 */
+    transition: top 0.5s ease; /* スライドインアニメーション */
+}
+
+.save-message.show {
+    top: 0; /* 表示時には画面上部に固定 */
+}
+
+.save-message .close-btn {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    font-size: 20px;
+    color: white;
+    cursor: pointer;
+}
+
+.save-message .close-btn:hover {
+    color: #e74c3c; /* ホバー時の色を赤に */
+}

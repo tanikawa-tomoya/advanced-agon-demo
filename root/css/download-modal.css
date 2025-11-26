@@ -1,0 +1,207 @@
+:root {
+  --download-modal-backdrop: rgba(3, 10, 22, 0.82);
+  --download-modal-surface: #0f1b2e;
+  --download-modal-surface-alt: #152544;
+  --download-modal-border: rgba(255, 255, 255, 0.08);
+  --download-modal-text: #f5f8ff;
+  --download-modal-muted: rgba(245, 248, 255, 0.72);
+  --download-modal-radius: 24px;
+  --download-modal-shadow: 0 30px 80px rgba(5, 11, 24, 0.55);
+  --download-modal-progress: linear-gradient(90deg, #2d9cff, #23e5ff);
+}
+
+.c-download-modal-region {
+  pointer-events: none;
+}
+
+.c-download-modal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  font-family: "Noto Sans JP", "Hanken Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--download-modal-text);
+  pointer-events: none;
+}
+
+.c-download-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--download-modal-backdrop);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.c-download-modal__panel {
+  position: relative;
+  width: min(640px, 100%);
+  max-height: min(760px, 100%);
+  background: linear-gradient(140deg, var(--download-modal-surface), var(--download-modal-surface-alt));
+  border-radius: var(--download-modal-radius);
+  border: 1px solid var(--download-modal-border);
+  box-shadow: var(--download-modal-shadow);
+  padding: 28px 32px 32px;
+  z-index: 1;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.c-download-modal__panel::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: calc(var(--download-modal-radius) - 8px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+.c-download-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.c-download-modal__title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.c-download-modal__close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--download-modal-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.c-download-modal__close:hover,
+.c-download-modal__close:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.c-download-modal__body {
+  position: relative;
+  z-index: 1;
+}
+
+.c-download-modal__subtitle {
+  margin: 0 0 20px;
+  font-size: 0.95rem;
+  color: var(--download-modal-muted);
+}
+
+.c-download-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.c-download-modal__item {
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.c-download-modal__file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.c-download-modal__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+}
+
+.c-download-modal__size {
+  font-size: 0.9rem;
+  color: var(--download-modal-muted);
+  white-space: nowrap;
+}
+
+.c-download-modal__progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.c-download-modal__progress-bar {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--download-modal-progress);
+  transition: width 200ms ease;
+}
+
+.c-download-modal__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--download-modal-muted);
+}
+
+.c-download-modal__percent {
+  font-weight: 600;
+  color: var(--download-modal-text);
+}
+
+.c-download-modal__rate {
+  font-family: "Hanken Grotesk", "Noto Sans JP", system-ui, sans-serif;
+}
+
+.c-download-modal__empty {
+  padding: 32px 20px;
+  text-align: center;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  color: var(--download-modal-muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+@media (max-width: 599px) {
+  .c-download-modal {
+    padding: 20px 12px;
+  }
+
+  .c-download-modal__panel {
+    padding: 24px 20px 24px;
+  }
+
+  .c-download-modal__header {
+    flex-direction: row;
+  }
+
+  .c-download-modal__list {
+    max-height: 65vh;
+  }
+}

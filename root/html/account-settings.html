@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTORY2 | アカウント 設定</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="js/entrypoint.js?v=1"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <!-- ここから設定画面の固定DOM（JSで生成しません） -->
+      <section class="screen-preview" id="screen-mockup">
+        <div class="account-settings-screen" data-settings-root>
+          <section class="screen-intro account-settings-screen__header">
+            <div class="screen-intro__title-row">
+              <h1 class="screen-intro__title">アカウント設定</h1>
+              <button
+                type="button"
+                class="screen-help-button"
+                id="account-settings-help-button"
+                data-help="account-settings"
+                data-help-modal-trigger="#account-settings-help-modal"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                aria-controls="account-settings-help-modal"
+              >
+                <span class="screen-help-icon" aria-hidden="true">?</span>
+                <span class="visually-hidden">設定画面のヒント</span>
+              </button>
+            </div>
+            <p class="screen-intro__summary">プロフィールやアバターを編集し、保存して設定を更新できます。</p>
+          </section>
+
+          <div class="mock-app mock-app--student">
+            <div class="mock-app__body">
+              <div class="mock-app__main">
+                <form id="account-settings-form" novalidate>
+                  <div class="tabs account-settings-screen__tabs">
+                    <div class="tabs__header">
+                      <div class="tabs__list" role="tablist" aria-label="設定カテゴリ">
+                        <button
+                          type="button"
+                          class="tabs__tab is-active"
+                          id="account-settings-tab-profile"
+                          data-tab="profile"
+                          aria-selected="true"
+                          aria-controls="account-settings-panel-profile"
+                        >
+                          プロフィール
+                        </button>
+                        <button
+                          type="button"
+                          class="tabs__tab"
+                          id="account-settings-tab-notifications"
+                          data-tab="notifications"
+                          aria-selected="false"
+                          aria-controls="account-settings-panel-notifications"
+                          tabindex="-1"
+                          hidden
+                          aria-hidden="true"
+                        >
+                          通知
+                        </button>
+                        <button
+                          type="button"
+                          class="tabs__tab"
+                          id="account-settings-tab-avatar"
+                          data-tab="avatar"
+                          aria-selected="false"
+                          aria-controls="account-settings-panel-avatar"
+                          tabindex="-1"
+                        >
+                          アバター
+                        </button>
+                      </div>
+                      <span class="account-settings-screen__dirty-badge" data-dirty-indicator hidden>未保存の変更あり</span>
+                    </div>
+
+                    <div
+                      class="tabs__panel is-active account-settings-screen__panel"
+                      id="account-settings-panel-profile"
+                      data-tab-panel="profile"
+                      role="tabpanel"
+                      aria-labelledby="account-settings-tab-profile"
+                    >
+                      <div class="mock-section">
+                        <h3 class="mock-section__title">プロフィール</h3>
+                        <div class="mock-form mock-form--stacked">
+                          <div class="mock-form__field" data-field>
+                            <label class="mock-form__label" for="settings-display-name">氏名</label>
+                            <div class="mock-control">
+                              <input
+                                id="settings-display-name"
+                                class="mock-control__input"
+                                type="text"
+                                name="displayName"
+                                autocomplete="name"
+                                placeholder="例: 山田太郎"
+                                data-setting="profile.displayName"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="mock-form__field" data-field>
+                            <label class="mock-form__label" for="settings-role">ロール</label>
+                            <div class="mock-control">
+                              <input
+                                id="settings-role"
+                                class="mock-control__input"
+                                type="text"
+                                name="role"
+                                autocomplete="organization-title"
+                                placeholder="例: 部長"
+                                data-setting="profile.role"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="mock-form__field" data-field>
+                            <label class="mock-form__label" for="settings-mail">メールアドレス</label>
+                            <div class="mock-control">
+                              <input
+                                id="settings-mail"
+                                class="mock-control__input"
+                                type="mail"
+                                name="mail"
+                                autocomplete="mail"
+                                placeholder="例: student@example.com"
+                                data-setting="profile.mail"
+                              />
+                              <div class="profile-mail-check">
+                                <p class="profile-mail-check__status" data-mail-status>メールアドレスは未確認です。</p>
+                                <div class="profile-mail-check__actions" data-mail-actions>
+                                  <button
+                                    type="button"
+                                    class="mock-avatar__upload-btn"
+                                    data-action="send-mail-check"
+                                    data-button-type="account-settings-mail-send"
+                                  >
+                                    確認メールを送信
+                                  </button>
+                                  <button
+                                    type="button"
+                                    class="mock-avatar__upload-btn mock-avatar__upload-btn--secondary-action"
+                                    data-action="mark-mail-verified"
+                                    data-button-type="account-settings-mail-verify"
+                                  >
+                                    確認済みにする
+                                  </button>
+                                </div>
+                                <p class="profile-mail-check__helper" data-mail-helper>メールを入力すると確認プロセスを開始できます。</p>
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+                      <div class="account-settings-screen__panel-actions">
+                        <div class="account-settings-screen__actions">
+                          <button
+                            id="account-settings-profile-save"
+                            type="button"
+                            data-action="save-profile"
+                            data-button-type="account-settings-save-profile"
+                            disabled
+                          >
+                            保存する
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      class="tabs__panel account-settings-screen__panel"
+                      id="account-settings-panel-notifications"
+                      data-tab-panel="notifications"
+                      role="tabpanel"
+                      aria-labelledby="account-settings-tab-notifications"
+                      aria-hidden="true"
+                      hidden
+                    >
+                      <div class="mock-section">
+                        <h3 class="mock-section__title">通知設定</h3>
+                        <div class="mock-form mock-form--stacked">
+                          <div class="mock-form__field" data-field>
+                            <label class="mock-control mock-control--toggle">
+                              <span>メール通知を受け取る</span>
+                              <input type="checkbox" class="user-search-modal__checkbox" data-setting="notifications.mail" />
+                            </label>
+                          </div>
+                          <div class="mock-form__field" data-field>
+                            <label class="mock-control mock-control--toggle">
+                              <span>プッシュ通知を受け取る</span>
+                              <input type="checkbox" class="user-search-modal__checkbox" data-setting="notifications.push" />
+                            </label>
+                          </div>
+                          <div class="mock-form__field" data-field>
+                            <label class="mock-control mock-control--toggle">
+                              <span>ニュースレターを購読する</span>
+                              <input type="checkbox" class="user-search-modal__checkbox" data-setting="notifications.newsletter" />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="account-settings-screen__panel-actions">
+                        <div class="account-settings-screen__actions">
+                          <button
+                            id="account-settings-notifications-save"
+                            type="button"
+                            data-action="save-notifications"
+                            data-button-type="account-settings-save-notifications"
+                            disabled
+                          >
+                            保存する
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <div
+                      class="tabs__panel account-settings-screen__panel"
+                      id="account-settings-panel-avatar"
+                      data-tab-panel="avatar"
+                      role="tabpanel"
+                      aria-labelledby="account-settings-tab-avatar"
+                      aria-hidden="true"
+                    >
+                      <div class="mock-section">
+                        <h3 class="mock-section__title">アバター</h3>
+                        <div class="mock-control mock-control--avatar" id="account-settings-avatar-setting">
+                          <div class="mock-avatar">
+                            <div class="mock-avatar__preview">
+                              <img data-avatar-preview data-role="avatar-img" src="" alt="アバタープレビュー" hidden />
+                              <span class="mock-avatar__placeholder" data-avatar-placeholder>YOU</span>
+                            </div>
+                            <div class="mock-avatar__content">
+                              <p class="mock-avatar__filename" data-avatar-filename>選択されていません</p>
+                              <div class="mock-avatar__actions">
+                                <button
+                                  type="button"
+                                  class="mock-avatar__upload-btn"
+                                  data-action="choose-avatar"
+                                  data-button-type="account-settings-avatar-choose"
+                                >
+                                  画像を選択
+                                </button>
+                                <button
+                                  type="button"
+                                  class="mock-avatar__upload-btn mock-avatar__upload-btn--secondary"
+                                  data-action="delete-avatar"
+                                  data-button-type="delete"
+                                  data-label="アバターを削除"
+                                  aria-label="アバターを削除"
+                                >
+                                  削除
+                                </button>
+                              </div>
+                              <p class="mock-avatar__hint">推奨サイズ: 512×512px 以上の正方形画像。</p>
+                              <input type="file" accept="image/*" name="imageFile" data-role="avatar-input" hidden />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="account-settings-screen__panel-actions">
+                        <div class="account-settings-screen__actions">
+                          <button
+                            id="account-settings-avatar-save"
+                            type="button"
+                            data-action="save-avatar"
+                            data-button-type="account-settings-save-avatar"
+                            disabled
+                          >
+                            保存する
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- 固定DOMここまで -->
+    </main>
+
+    <!-- ヘルプモーダル（固定DOM・JSは開閉処理のみ） -->
+    <div
+      class="c-help-modal"
+      id="account-settings-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="設定画面のヒント"
+      aria-describedby="account-settings-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="account-settings-help-modal-title">設定画面のヒント</h2>
+          <p class="c-help-modal__summary" id="account-settings-help-modal-summary">
+            プロフィール情報とアバターを整えて、コーチとのコミュニケーションをスムーズにしましょう。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="account-settings-help-modal-body">
+          <p>
+            設定画面ではプロフィール編集とアバター変更をまとめて行えます。入力内容は即時プレビューで確認しながら保存できます。
+          </p>
+          <ul>
+            <li>氏名や必要に応じてメールアドレスを編集すると、保存後に他の画面でも最新の表示へ更新されます（メールアドレスは空欄のままでも保存できます）。</li>
+            <li>「アバターを変更」から画像をアップロードし、ズームやドラッグで表示位置を調整できます。</li>
+            <li>パスワード欄は空のまま保存すると現状維持、入力すると新しいパスワードに更新されます。</li>
+          </ul>
+          <p>保存後に成功メッセージが表示されない場合は、入力内容を再確認しもう一度お試しください。</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

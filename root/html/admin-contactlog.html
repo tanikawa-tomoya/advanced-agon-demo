@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTORY2 | 管理者 | 問い合わせ管理</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="js/entrypoint.js?v=1"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="screen-intro">
+        <div class="screen-intro__title-row">
+          <h1 class="screen-intro__title">問い合わせ管理</h1>
+          <button
+            type="button"
+            class="screen-help-button"
+            id="contact-log-help-button"
+            aria-haspopup="dialog"
+            aria-controls="contact-log-help-modal"
+            aria-expanded="false"
+            aria-label="問い合わせ管理のヘルプを開く"
+          >
+            <span class="screen-help-icon" aria-hidden="true">?</span>
+            <span class="visually-hidden">問い合わせ管理のヘルプ</span>
+          </button>
+        </div>
+        <p class="screen-intro__summary">
+          サイトへ届いた問い合わせを一覧し、期間・送信元・キーワードで絞り込めます。
+        </p>
+      </section>
+
+      <section class="screen-preview" id="contact-log">
+        <div class="user-management contact-log" data-contactlog-root>
+          <div class="user-management__header">
+            <div>
+              <h2 class="user-management__title">問い合わせ一覧</h2>
+              <p class="user-management__summary" data-contactlog-summary>全0件中 0件を表示</p>
+              <p class="queue-monitor__updated" data-contactlog-updated aria-live="polite"></p>
+            </div>
+            <div class="user-management__controls admin-users__controls">
+              <button type="button" class="btn btn--ghost dashboard__refresh" data-contactlog-refresh>最新の状態を取得</button>
+            </div>
+          </div>
+
+          <form class="user-management__controls admin-users__filter" data-contactlog-filter-form>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">キーワード</span>
+              <input
+                type="search"
+                name="keyword"
+                placeholder="名前・メール・内容で検索"
+                class="user-management__input"
+                data-contactlog-keyword
+              />
+            </label>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">送信元</span>
+              <select name="source" class="user-management__select" data-contactlog-source>
+                <option value="all" selected>すべて</option>
+                <option value="member">登録ユーザー</option>
+                <option value="guest">ゲスト</option>
+              </select>
+            </label>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">期間</span>
+              <select name="period" class="user-management__select" data-contactlog-period>
+                <option value="7d">直近7日</option>
+                <option value="30d" selected>直近30日</option>
+                <option value="90d">直近90日</option>
+                <option value="all">すべて</option>
+              </select>
+            </label>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">並び順</span>
+              <div class="user-management__field-inline">
+                <select name="sort" class="user-management__select" data-contactlog-sort>
+                  <option value="date" selected>受信日時</option>
+                  <option value="name">名前</option>
+                  <option value="mail">メール</option>
+                </select>
+                <select name="order" class="user-management__select" data-contactlog-order>
+                  <option value="desc" selected>新しい順</option>
+                  <option value="asc">古い順</option>
+                </select>
+              </div>
+            </label>
+            <div class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label" aria-hidden="true"></span>
+              <button type="submit" class="btn btn--ghost">絞り込む</button>
+            </div>
+          </form>
+
+          <div class="user-management__table-wrapper">
+            <table class="user-table" data-contactlog-table>
+              <thead>
+                <tr>
+                  <th scope="col">受信日時</th>
+                  <th scope="col">名前</th>
+                  <th scope="col">メール</th>
+                  <th scope="col">内容</th>
+                  <th scope="col">区分</th>
+                </tr>
+              </thead>
+              <tbody data-contactlog-tbody>
+                <tr>
+                  <td colspan="5">読み込み中…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="user-management__feedback hidden" data-contactlog-feedback aria-live="polite" hidden></p>
+          <p class="admin-users__empty hidden" data-contactlog-empty hidden>問い合わせがまだありません。</p>
+        </div>
+      </section>
+    </main>
+
+    <div
+      class="c-help-modal"
+      id="contact-log-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="問い合わせ管理のポイント"
+      aria-describedby="contact-log-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="contact-log-help-modal-title">問い合わせ管理のポイント</h2>
+          <p class="c-help-modal__summary" id="contact-log-help-modal-summary">
+            受信日時や送信元別に問い合わせを素早く絞り込み、対応漏れを防ぎます。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="contact-log-help-modal-body">
+          <ul>
+            <li>「送信元」で登録ユーザーからの問い合わせだけ、またはゲストのみを抽出できます。</li>
+            <li>キーワードは名前・メール・本文に対して部分一致で検索されます。</li>
+            <li>並び順で最新／過去の問い合わせを切り替え、期間指定と組み合わせて対応範囲を絞ってください。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

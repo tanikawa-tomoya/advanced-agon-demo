@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="mh-token" content="" />
+    <meta name="mh-cache-version" content="" />
+    <title>CASTORY2 | 管理者 | ダッシュボード</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="js/entrypoint.js?v=1"></script>	
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="dashboard" id="dashboard-root">
+        <header class="dashboard__header">
+          <div class="dashboard__intro">
+            <p class="dashboard__eyebrow">リアルタイム統計</p>
+            <div class="dashboard__title-row">
+              <h1 class="dashboard__title">ダッシュボード</h1>
+              <button
+                type="button"
+                class="screen-help-button dashboard__help-button"
+                id="dashboard-help-button"
+                aria-haspopup="dialog"
+                aria-controls="dashboard-help-modal"
+                aria-expanded="false"
+                aria-label="ダッシュボードのヘルプを開く"
+              >
+                <span class="screen-help-icon" aria-hidden="true">?</span>
+                <span class="visually-hidden">ダッシュボードのヘルプ</span>
+              </button>
+            </div>
+            <p class="dashboard__description">
+              進捗・レビュー状況・期限を横断して把握し、次のアクションにつなげましょう。
+            </p>
+          </div>
+          <div class="dashboard__controls">
+            <label class="dashboard__control">
+              <span>表示期間</span>
+              <select id="range-filter" class="dashboard__select" aria-label="集計期間を選択">
+                <option value="7">7日間</option>
+                <option value="14" selected>14日間</option>
+                <option value="30">30日間</option>
+              </select>
+            </label>
+            <button type="button" class="dashboard__refresh" id="dashboard-refresh">最新のデータを取得</button>
+          </div>
+        </header>
+
+        <div class="dashboard__feedback" id="dashboard-feedback"></div>
+
+        <section class="dashboard__metrics" id="metric-cards" aria-label="主要指標"></section>
+
+        <section class="dashboard__charts" aria-label="グラフ分析">
+          <article class="chart-card chart-card--wide">
+            <header class="chart-card__header">
+              <div>
+                <h2 class="chart-card__title">提出数の推移</h2>
+                <p class="chart-card__subtitle">選択期間内の提出件数を可視化します。</p>
+              </div>
+              <div class="chart-card__summary" id="trend-summary"></div>
+            </header>
+            <div class="chart-card__canvas" id="trend-canvas" role="img" aria-label="提出数の推移グラフ"></div>
+            <ul class="chart-card__legend" id="trend-legend"></ul>
+          </article>
+
+          <article class="chart-card">
+            <header class="chart-card__header">
+              <div>
+                <h2 class="chart-card__title">ターゲット進行ステータス</h2>
+                <p class="chart-card__subtitle">ステータス比率をドーナツチャートで表示します。</p>
+              </div>
+              <div class="chart-card__summary" id="status-summary"></div>
+            </header>
+            <div class="chart-card__canvas chart-card__canvas--square" id="status-canvas" role="img" aria-label="ターゲットステータスの比率"></div>
+            <ul class="chart-card__legend" id="status-legend"></ul>
+          </article>
+
+        </section>
+
+        <section class="dashboard__lists" aria-label="リストビュー">
+          <article class="list-card">
+            <header class="list-card__header">
+              <h2 class="list-card__title">迫っている期限</h2>
+              <p class="list-card__subtitle">期限が近いまたは超過しているターゲットを表示します。</p>
+            </header>
+            <div class="list-card__body" id="due-list"></div>
+          </article>
+
+          <article class="list-card">
+            <header class="list-card__header">
+              <h2 class="list-card__title">レビュー待ちキュー</h2>
+              <p class="list-card__subtitle">レビュー対応が必要な提出を優先度順に確認します。</p>
+            </header>
+            <div class="list-card__body" id="queue-list"></div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <div
+      class="c-help-modal dashboard-help-modal"
+      id="dashboard-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="ダッシュボードの使い方"
+      aria-describedby="dashboard-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="dashboard-help-modal-title">ダッシュボードの使い方</h2>
+          <p class="c-help-modal__summary" id="dashboard-help-modal-summary">
+            集計期間と主要指標の見方を押さえて、チームの状況を素早く把握できます。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="dashboard-help-modal-body">
+          <p>
+            ダッシュボードは提出状況・ターゲットの進行度・レビュー待ち案件を横断的に可視化します。優先度の高い対応や異常値を発見し、次のアクションへつなげましょう。
+          </p>
+          <ul>
+            <li>表示期間を切り替えると、全てのカードとグラフが同じ期間で再計算されます。</li>
+            <li>グラフ上に表示される指標や凡例を確認し、期間内の傾向やステータス比率を比較できます。</li>
+            <li>リストビューでは迫っている期限やレビュー待ちの提出が優先度順に並びます。</li>
+          </ul>
+          <p>最新の状態を確認したいときは「最新のデータを取得」を押して再集計してください。</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

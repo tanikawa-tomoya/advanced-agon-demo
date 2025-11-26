@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTORY2 | 管理者 | ユーザー管理</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="js/entrypoint.js?v=1"></script>				
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="screen-intro">
+        <div class="screen-intro__title-row">
+          <h1 class="screen-intro__title">ユーザー管理</h1>
+          <button
+            type="button"
+            class="screen-help-button"
+            id="user-management-help-button"
+            aria-haspopup="dialog"
+            aria-controls="user-management-help-modal"
+            aria-expanded="false"
+            aria-label="ユーザー管理のヘルプを開く"
+          >
+            <span class="screen-help-icon" aria-hidden="true">?</span>
+            <span class="visually-hidden">ユーザー管理のヘルプ</span>
+          </button>
+        </div>
+      </section>
+      <section class="screen-preview" id="user-management">
+        <div class="user-management" data-admin-users-root>
+          <div class="user-management__header">
+            <div>
+              <h2 class="user-management__title">ユーザー一覧</h2>
+              <p class="user-management__summary" data-admin-users-summary>
+                全0件中 0件を表示
+              </p>
+            </div>
+            <div class="user-management__controls admin-users__controls" data-admin-users-actions></div>
+          </div>
+
+          <form class="user-management__controls admin-users__filter" data-admin-users-filter-form>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">キーワード</span>
+              <input
+                type="search"
+                name="keyword"
+                placeholder="氏名・ユーザーコード・メールで検索"
+                class="user-management__input"
+                data-admin-users-keyword
+              />
+            </label>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">ロール</span>
+              <select name="role" class="user-management__select" data-admin-users-role>
+                <option value="" selected>すべて</option>
+              </select>
+            </label>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">削除状態</span>
+              <select name="deleted" class="user-management__select" data-admin-users-deleted>
+                <option value="active" selected>削除されていないユーザーのみ</option>
+                <option value="deleted">削除されたユーザーのみ</option>
+                <option value="all">すべて</option>
+              </select>
+            </label>
+            <div class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label" aria-hidden="true"></span>
+              <button type="submit" class="btn btn--ghost">絞り込む</button>
+            </div>
+          </form>
+
+          <div class="user-management__table-wrapper">
+            <table class="user-table" data-admin-users-table>
+              <thead>
+                <tr>
+                  <th scope="col">氏名 / コード</th>
+                  <th scope="col">メール</th>
+                  <th scope="col">所属</th>
+                  <th scope="col">ロール</th>
+                  <th scope="col">選択可能ユーザー</th>
+                  <th scope="col">操作</th>
+                </tr>
+              </thead>
+              <tbody data-admin-users-tbody>
+                <tr>
+                  <td colspan="6">読み込み中…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="user-management__feedback hidden" data-admin-users-feedback aria-live="polite" hidden></p>
+          <p class="admin-users__empty hidden" data-admin-users-empty hidden>ユーザーがまだ登録されていません。</p>
+
+          <div class="admin-users__form-host hidden" data-admin-users-form-host hidden></div>
+        </div>
+      </section>
+    </main>
+    <div
+      class="c-help-modal"
+      id="user-management-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="ユーザー管理のポイント"
+      aria-describedby="user-management-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="user-management-help-modal-title">ユーザー管理のポイント</h2>
+          <p class="c-help-modal__summary" id="user-management-help-modal-summary">
+            権限や所属グループでユーザーを検索し、アカウントの登録・更新・削除を安全に運用できます。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="user-management-help-modal-body">
+          <p>
+            ユーザー管理ではアカウントの登録や権限変更、利用停止などをまとめて操作できます。検索条件を組み合わせ、対象ユーザーを素早く特定してください。
+          </p>
+          <ul>
+            <li>キーワード、所属、権限、削除フラグを組み合わせて一覧を絞り込めます。</li>
+            <li>「ユーザーを追加」から新規登録を行い、必要に応じて所属グループや権限を設定します。</li>
+            <li>各行のメニューから詳細表示・編集・削除が可能です。削除すると一覧から除外され、再表示にはフィルターで「削除済み」を選択します。</li>
+          </ul>
+          <p>定期的に権限と所属を棚卸しし、不要なアカウントを整理しましょう。</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

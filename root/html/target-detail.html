@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTORY2 | 管理者 | ターゲット詳細</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/target-detail.css" />
+    <link rel="stylesheet" href="css/guidance-creator.css" />
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="js/entrypoint.js?v=1"></script>		
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <nav class="screen-breadcrumbs" aria-label="パンくずリスト">
+        <ol class="screen-breadcrumbs__list">
+          <li class="screen-breadcrumbs__item"><a href="dashboard.html">ダッシュボード</a></li>
+          <li class="screen-breadcrumbs__item"><a href="targets.html">ターゲット管理</a></li>
+          <li class="screen-breadcrumbs__item" aria-current="page" data-breadcrumb-current>ターゲット詳細</li>
+        </ol>
+      </nav>
+      <section class="screen-intro">
+        <div class="screen-intro__title-row">
+          <h1 class="screen-intro__title">ターゲット詳細</h1>
+        </div>
+        <p class="screen-intro__summary">
+          ターゲットの配信設定、提出状況、参考資料、レビュー履歴を一つの画面で管理できます。
+        </p>
+      </section>
+      <section class="screen-preview" id="target-detail"></section>
+    </main>
+    <div
+      class="c-help-modal"
+      id="target-detail-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="ターゲット詳細のヒント"
+      aria-describedby="target-detail-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="target-detail-help-modal-title">ターゲット詳細のヒント</h2>
+          <p class="c-help-modal__summary" id="target-detail-help-modal-summary">
+            ステータス更新と提出レビューを組み合わせ、滞留の早期解消につなげましょう。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="target-detail-help-modal-body">
+          <p>
+            ここではターゲットの公開設定、担当者、提出物、レビュー履歴、バッジ連携を確認・更新できます。変更内容は即時に他画面へ反映されます。
+          </p>
+          <ul>
+            <li>概要カードで公開ステータスや優先度を切り替え、必要に応じて担当コーチやグループを再割り当てできます。</li>
+            <li>提出タブから各提出を開き、レビュー画面へ移動してフィードバックや差し戻しを実施できます。</li>
+            <li>参考資料タブにドキュメントや動画を追加し、参加者へ最新のガイドラインを共有しましょう。</li>
+          </ul>
+          <p>重大な変更を行った際は、コメント機能を使って担当者へ周知しておくと伝達漏れを防げます。</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

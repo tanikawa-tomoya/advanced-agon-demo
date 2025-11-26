@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="mh-token" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTORY2 | 管理者 | キュー管理</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="js/entrypoint.js?v=1"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="queue-monitor" id="queue-root">
+        <header class="queue-monitor__header">
+          <div class="queue-monitor__intro">
+            <div class="queue-monitor__title-row">
+              <h1 class="queue-monitor__title">キュー管理</h1>
+              <button
+                type="button"
+                class="queue-monitor__help-button"
+                id="queue-help-button"
+                aria-haspopup="dialog"
+                aria-controls="queue-help-modal"
+                aria-expanded="false"
+                aria-label="キュー管理のヘルプを開く"
+              >
+                <span class="queue-monitor__help-icon" aria-hidden="true">?</span>
+                <span class="visually-hidden">キュー管理のヘルプ</span>
+              </button>
+            </div>
+          </div>
+          <div class="queue-monitor__controls">
+            <label class="queue-monitor__filter">
+              <span>ステータス</span>
+              <select id="queue-filter" class="queue-monitor__select" aria-label="ステータスでフィルタ">
+                <option value="all">すべて</option>
+                <option value="queued">待機中</option>
+                <option value="running">実行中</option>
+                <option value="error">エラー</option>
+                <option value="success">完了</option>
+              </select>
+            </label>
+            <button type="button" class="queue-monitor__refresh dashboard__refresh" id="queue-refresh">最新の状態を取得</button>
+            <p class="queue-monitor__updated" id="queue-updated" aria-live="polite"></p>
+          </div>
+        </header>
+
+        <div class="queue-monitor__feedback dashboard__feedback" id="queue-feedback"></div>
+
+        <section class="queue-monitor__list" aria-label="ジョブ一覧">
+          <div class="queue-table" id="queue-table" role="region" aria-live="polite"></div>
+        </section>
+      </section>
+    </main>
+    <div
+      class="c-help-modal queue-help-modal"
+      id="queue-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="キュー管理について"
+      aria-describedby="queue-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content queue-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="queue-help-modal-title">キュー管理について</h2>
+          <p class="c-help-modal__summary" id="queue-help-modal-summary">トランスコードジョブの監視ポイントを確認できます。</p>
+        </div>
+        <div class="c-help-modal__body queue-help-modal__body" id="queue-help-modal-body">
+          <p>queue.sqlite に記録されているジョブの状態を確認し、滞留やエラーの早期検知につなげます。</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

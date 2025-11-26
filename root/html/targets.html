@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="mh-token" content="" />
+    <meta name="mh-cache-version" content="" />
+    <title>CASTORY2 | 管理者 | ターゲット管理</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/guidance-creator.css" />
+    <link rel="stylesheet" href="css/targets.css" />
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="js/entrypoint.js?v=1"></script>			
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="screen-intro">
+        <div class="screen-intro__title-row">
+          <h1 class="screen-intro__title">ターゲット管理</h1>
+          <button
+            type="button"
+            class="screen-help-button"
+            id="target-help-button"
+            data-targets-help
+            data-action="open-help"
+            data-topic="overview"
+            aria-haspopup="dialog"
+            aria-controls="target-help-modal"
+            aria-expanded="false"
+            aria-label="ターゲット管理のヘルプを開く"
+          >
+            <span class="screen-help-icon" aria-hidden="true">?</span>
+            <span class="visually-hidden">ターゲット管理のヘルプ</span>
+          </button>
+        </div>
+      </section>
+      <section class="screen-preview" id="target-management">
+        <div class="targets" data-targets-root>
+          <div class="targets__header">
+            <div class="targets__search">
+              <label for="target-search" class="visually-hidden">ターゲット検索</label>
+              <input
+                id="target-search"
+                type="search"
+                placeholder="タイトル・作成者で検索"
+                data-targets-search
+              />
+            </div>
+            <div class="targets__filters" data-targets-filters>
+              <label class="targets__filter">
+                <span>ステータス</span>
+                <select name="filter.status">
+                  <option value="">すべて</option>
+                  <option value="draft">非公開</option>
+                  <option value="active">公開</option>
+                  <option value="completed">完了</option>
+                  <option value="cancelled">キャンセル</option>
+                </select>
+              </label>
+            </div>
+            <div class="targets__actions">
+              <button type="button" class="btn btn--ghost" data-action="new-target" data-targets-new>
+                新規作成
+              </button>
+            </div>
+          </div>
+
+          <div class="targets__list" aria-live="polite">
+            <table class="targets__table" id="targets-table">
+              <thead>
+                <tr>
+                  <th scope="col">タイトル</th>
+                  <th scope="col">作成者</th>
+                  <th scope="col">対象者</th>
+                  <th scope="col">期限</th>
+                  <th scope="col">操作</th>
+                </tr>
+              </thead>
+              <tbody data-targets-list>
+                <tr>
+                  <td colspan="5">読み込み中…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="targets__pagination" data-targets-pagination></div>
+
+        </div>
+      </section>
+    </main>
+
+    <div
+      class="screen-modal targets__form-modal"
+      data-targets-form-modal
+      aria-hidden="true"
+      hidden
+    >
+      <div class="screen-modal__overlay" data-action="close-target-modal"></div>
+      <section
+        class="screen-modal__content targets__form-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="targets-form-title"
+        aria-describedby="targets-form-summary"
+        tabindex="-1"
+      >
+        <button
+          type="button"
+          class="screen-modal__close targets__form-modal-close"
+          data-action="close-target-modal"
+          aria-label="ターゲットフォームを閉じる"
+        >
+          ×
+        </button>
+        <header class="screen-modal__header targets__form-header">
+          <h2 class="screen-modal__title targets__form-title" id="targets-form-title">ターゲット追加 / 編集</h2>
+          <p class="screen-modal__summary" id="targets-form-summary">
+            ターゲットの基本情報を追加または編集して保存します。
+          </p>
+        </header>
+        <div class="screen-modal__body targets__form-body">
+          <form class="targets__form" data-targets-form>
+            <div class="targets__form-grid">
+              <label>
+                <span>タイトル</span>
+                <input type="text" name="title" required data-initial-focus />
+                <span class="form-error" data-error-for="title" hidden></span>
+              </label>
+              <div class="targets__image-field">
+                <div class="targets__image-label">イメージ画像</div>
+                <div class="targets__image-control">
+                  <div class="targets__image-preview" data-target-image-preview-wrap hidden>
+                    <img src="" alt="ターゲットのイメージ画像" data-target-image-preview hidden />
+                  </div>
+                  <p class="targets__image-filename" data-target-image-filename>画像が選択されていません。</p>
+                  <div class="targets__image-actions">
+                    <label class="btn btn--ghost targets__image-upload-label">
+                      画像を選択
+                      <input type="file" name="imageFile" accept="image/*" data-target-image-input hidden />
+                    </label>
+                    <button type="button" class="btn btn--ghost" data-action="clear-target-image" disabled>
+                      クリア
+                    </button>
+                  </div>
+                  <p class="targets__image-hint">推奨: 1200×630px 以上の画像を登録してください。</p>
+                </div>
+              </div>
+              <label>
+                <span>ステータス</span>
+                <select name="status">
+                  <option value="draft">非公開</option>
+                  <option value="active">公開</option>
+                  <option value="completed">完了</option>
+                  <option value="cancelled">キャンセル</option>
+                </select>
+              </label>
+              <label>
+                <span>開始日</span>
+                <div class="targets__date-control">
+                  <input
+                    type="date"
+                    name="startDate"
+                    class="targets__date-input"
+                    aria-label="開始日"
+                  />
+                  <button
+                    type="button"
+                    class="targets__calendar-button"
+                    aria-label="開始日のカレンダーを開く"
+                  >
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <rect
+                        x="4"
+                        y="5"
+                        width="16"
+                        height="15"
+                        rx="2"
+                        ry="2"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                      ></rect>
+                      <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="1.6"></line>
+                      <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="1.6"></line>
+                      <line x1="4" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.6"></line>
+                      <circle cx="8.5" cy="15.5" r="1.25" fill="currentColor"></circle>
+                      <circle cx="12" cy="15.5" r="1.25" fill="currentColor"></circle>
+                      <circle cx="15.5" cy="15.5" r="1.25" fill="currentColor"></circle>
+                    </svg>
+                    <span class="site-header__sr-only">開始日のカレンダーを開く</span>
+                  </button>
+                </div>
+              </label>
+              <label>
+                <span>終了日</span>
+                <div class="targets__date-control">
+                  <input
+                    type="date"
+                    name="endDate"
+                    class="targets__date-input"
+                    aria-label="終了日"
+                  />
+                  <button
+                    type="button"
+                    class="targets__calendar-button"
+                    aria-label="終了日のカレンダーを開く"
+                  >
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <rect
+                        x="4"
+                        y="5"
+                        width="16"
+                        height="15"
+                        rx="2"
+                        ry="2"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                      ></rect>
+                      <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="1.6"></line>
+                      <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="1.6"></line>
+                      <line x1="4" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.6"></line>
+                      <circle cx="8.5" cy="15.5" r="1.25" fill="currentColor"></circle>
+                      <circle cx="12" cy="15.5" r="1.25" fill="currentColor"></circle>
+                      <circle cx="15.5" cy="15.5" r="1.25" fill="currentColor"></circle>
+                    </svg>
+                    <span class="site-header__sr-only">終了日のカレンダーを開く</span>
+                  </button>
+                </div>
+              </label>
+              <label>
+                <span>期限</span>
+                <div class="targets__date-control">
+                  <input
+                    type="date"
+                    name="dueDate"
+                    class="targets__date-input"
+                    aria-label="期限"
+                  />
+                  <button
+                    type="button"
+                    class="targets__calendar-button"
+                    aria-label="期限のカレンダーを開く"
+                  >
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <rect
+                        x="4"
+                        y="5"
+                        width="16"
+                        height="15"
+                        rx="2"
+                        ry="2"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                      ></rect>
+                      <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="1.6"></line>
+                      <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="1.6"></line>
+                      <line x1="4" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.6"></line>
+                      <circle cx="8.5" cy="15.5" r="1.25" fill="currentColor"></circle>
+                      <circle cx="12" cy="15.5" r="1.25" fill="currentColor"></circle>
+                      <circle cx="15.5" cy="15.5" r="1.25" fill="currentColor"></circle>
+                    </svg>
+                    <span class="site-header__sr-only">期限のカレンダーを開く</span>
+                  </button>
+                </div>
+              </label>
+              <label class="targets__full">
+                <span>説明</span>
+                <textarea name="description" rows="3"></textarea>
+              </label>
+              <div class="targets__creator-field targets__full" data-target-creator-field>
+                <span class="targets__creator-label">作成者</span>
+                <div class="targets__creator-display">
+                  <p class="targets__creator-empty" data-target-creator-empty>
+                    作成者が選択されていません。
+                  </p>
+                  <div class="targets__creator-summary" data-target-creator-summary hidden>
+                    <span data-target-creator-name></span>
+                    <span class="targets__creator-code" data-target-creator-code></span>
+                  </div>
+                </div>
+                <input type="hidden" name="createdByUserCode" data-target-creator-input />
+                <div class="targets__creator-actions">
+                  <button type="button" class="btn btn--ghost" data-action="select-target-creator">
+                    作成者を選ぶ
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn--ghost"
+                    data-action="clear-target-creator"
+                    disabled
+                  >
+                    クリア
+                  </button>
+                </div>
+                <span class="form-error" data-error-for="createdByUserCode" hidden></span>
+              </div>
+              <div class="targets__participants-field targets__full" data-target-participants-field>
+                <div class="targets__participants-header">
+                  <span class="targets__participants-label">参加者</span>
+                  <span class="targets__participants-hint">作成者が選択できるユーザーのみ表示されます。</span>
+                </div>
+                <div class="targets__participants-display">
+                  <p class="targets__participants-empty" data-target-participants-empty>
+                    参加者が選択されていません。
+                  </p>
+                  <ul class="targets__participants-list" data-target-participants-list></ul>
+                </div>
+                <input type="hidden" name="assignedUserCodes" data-target-participants-input />
+                <div class="targets__participants-actions" data-target-participants-actions>
+                  <button type="button" class="btn btn--ghost" data-action="select-target-participants">
+                    参加者を選ぶ
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn--ghost"
+                    data-action="clear-target-participants"
+                    disabled
+                  >
+                    クリア
+                  </button>
+                </div>
+              </div>
+              <div class="targets__display-settings targets__full">
+                <div class="targets__display-settings-header">
+                  <p class="targets__display-settings-title">表示項目設定</p>
+                  <p class="targets__display-settings-desc">
+                    ターゲット詳細に表示するセクションを切り替えます。
+                  </p>
+                </div>
+                <div class="targets__display-settings-grid">
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">ガイダンスコンテンツ</span>
+                      <span class="targets__display-toggle-desc">ガイダンスの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayGuidance" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">ガイダンスコンテンツの表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">目標</span>
+                      <span class="targets__display-toggle-desc">目標セクションの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayGoals" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">目標の表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">規約</span>
+                      <span class="targets__display-toggle-desc">規約セクションの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayAgreements" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">規約の表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">お知らせ</span>
+                      <span class="targets__display-toggle-desc">お知らせの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayAnnouncements" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">お知らせの表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">参考資料</span>
+                      <span class="targets__display-toggle-desc">参考資料の表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayResources" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">参考資料の表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">チャット</span>
+                      <span class="targets__display-toggle-desc">チャットの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayChat" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">チャットの表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">提出</span>
+                      <span class="targets__display-toggle-desc">提出セクションの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displaySubmissions" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">提出の表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">レビュー</span>
+                      <span class="targets__display-toggle-desc">レビューの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayReviews" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">レビューの表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">バッジ</span>
+                      <span class="targets__display-toggle-desc">バッジセクションの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayBadges" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">バッジの表示を切り替える</span>
+                    </label>
+                  </div>
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">アンケート</span>
+                      <span class="targets__display-toggle-desc">アンケートセクションの表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displaySurvey" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">アンケートの表示を切り替える</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="targets__form-actions">
+              <button type="submit" class="btn btn--primary">保存</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+    <div
+      class="c-help-modal"
+      id="target-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="ターゲット管理のヒント"
+      aria-describedby="target-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="target-help-modal-title">ターゲット管理のヒント</h2>
+          <p class="c-help-modal__summary" id="target-help-modal-summary">
+            テンプレや配布中ターゲットの進行状況を一元管理し、ステータス更新や担当者の割り当てを効率化します。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="target-help-modal-body">
+          <p>
+            ターゲット管理ではテンプレ作成から配布状況の確認、担当者の割り当てまでを一つの画面で行えます。検索や列表示をカスタマイズし、必要な情報に素早くアクセスしてください。
+          </p>
+          <ul>
+            <li>ヘッダーの検索・絞り込みで対象グループやステータス、担当者に応じた一覧を表示できます。</li>
+            <li>「表示列」メニューでテーブルの列を切り替え、運用に合わせたレイアウトに調整できます。</li>
+            <li>カードやテーブルの操作からステータス更新・担当者割り当て・テンプレ修正を行えます。</li>
+          </ul>
+          <p>滞留が疑われる場合はステータス順に並べ替え、優先度の高いターゲットを確認しましょう。</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

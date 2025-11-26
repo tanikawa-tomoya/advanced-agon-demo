@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CASTORY2 | 管理者 | システム管理</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="js/entrypoint.js?v=1"></script>	
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__logo" href="index.html" data-logo-label="CASTORY2">CASTORY2</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="screen-intro">
+        <div class="screen-intro__title-row">
+          <h1 class="screen-intro__title">システム管理</h1>
+          <button
+            type="button"
+            class="screen-help-button"
+            id="system-management-help-button"
+            aria-haspopup="dialog"
+            aria-controls="system-management-help-modal"
+            aria-expanded="false"
+            aria-label="システム管理のヘルプを開く"
+          >
+            <span class="screen-help-icon" aria-hidden="true">?</span>
+            <span class="visually-hidden">システム管理のヘルプ</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="system-settings" id="system-settings-root">
+        <div class="system-settings__tabs tabs" data-tab-root>
+          <div
+            class="system-settings__tablist tabs__list"
+            role="tablist"
+            aria-label="システム管理のメニュー"
+          >
+            <button
+              type="button"
+              class="system-settings__tab tabs__tab is-active"
+              id="system-tab-settings"
+              role="tab"
+              aria-selected="true"
+              aria-controls="system-panel-settings"
+              data-tab="settings"
+            >
+              サイト設定
+            </button>
+            <button
+              type="button"
+              class="system-settings__tab tabs__tab"
+              id="system-tab-storage"
+              role="tab"
+              aria-selected="false"
+              aria-controls="system-panel-storage"
+              tabindex="-1"
+              data-tab="storage"
+            >
+              ストレージ
+            </button>
+            <button
+              type="button"
+              class="system-settings__tab tabs__tab"
+              id="system-tab-software"
+              role="tab"
+              aria-selected="false"
+              aria-controls="system-panel-software"
+              tabindex="-1"
+              data-tab="software"
+            >
+              ソフトウェア
+            </button>
+          </div>
+          <div class="system-settings__panels">
+            <section
+              class="system-settings__panel tabs__panel is-active"
+              id="system-panel-settings"
+              role="tabpanel"
+              aria-labelledby="system-tab-settings"
+              data-tab-panel="settings"
+            >
+              <div class="system-settings__panel-controls">
+                <button
+                  type="button"
+                  id="system-settings-refresh"
+                  class="btn btn--ghost system-refresh-button"
+                  aria-label="サイト設定を再読み込み"
+                  title="再読み込み"
+                >
+                  再読み込み
+                </button>
+              </div>
+              <div class="system-settings__table-wrapper">
+                <table class="system-settings__table" id="system-settings-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">項目名</th>
+                      <th scope="col">値</th>
+                      <th scope="col" class="visually-hidden">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="system-settings-table-body"
+                    aria-live="polite"
+                    aria-busy="false"
+                  ></tbody>
+                </table>
+              </div>
+            </section>
+            <section
+              class="system-settings__panel tabs__panel"
+              id="system-panel-storage"
+              role="tabpanel"
+              aria-labelledby="system-tab-storage"
+              data-tab-panel="storage"
+              hidden
+            >
+              <div class="system-storage__header">
+                <p class="system-storage__total-label">合計サイズ</p>
+                <p class="system-storage__total-value" id="system-storage-total">—</p>
+                <button
+                  type="button"
+                  id="system-storage-refresh"
+                  class="btn btn--ghost system-refresh-button"
+                  aria-label="ストレージ使用量を再読み込み"
+                  title="再読み込み"
+                  data-refresh-target="storage"
+                >
+                  再読み込み
+                </button>
+              </div>
+              <div id="system-storage-feedback" class="system-settings__feedback"></div>
+              <div class="system-storage__table-wrapper">
+                <table class="system-storage__table">
+                  <thead>
+                    <tr>
+                      <th scope="col">UserData</th>
+                      <th scope="col">使用量</th>
+                    </tr>
+                  </thead>
+                  <tbody id="system-storage-userDatas" aria-live="polite"></tbody>
+                </table>
+              </div>
+              <div class="system-storage__pagination" id="system-storage-pagination" aria-live="polite"></div>
+            </section>
+            <section
+              class="system-settings__panel tabs__panel"
+              id="system-panel-software"
+              role="tabpanel"
+              aria-labelledby="system-tab-software"
+              data-tab-panel="software"
+              hidden
+            >
+              <div class="system-software__header">
+                <p class="system-software__description">
+                  サーバー上で利用可能な主要ソフトウェアのバージョン情報です。
+                </p>
+                <button
+                  type="button"
+                  id="system-software-refresh"
+                  class="btn btn--ghost system-refresh-button"
+                  aria-label="ソフトウェア情報を再読み込み"
+                  title="再読み込み"
+                  data-refresh-target="software"
+                >
+                  再読み込み
+                </button>
+              </div>
+              <div id="system-software-feedback" class="system-settings__feedback"></div>
+              <div class="system-settings__table-wrapper">
+                <table class="system-settings__table" id="system-software-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">ソフトウェア</th>
+                      <th scope="col">バージョン情報</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="system-software-table-body"
+                    aria-live="polite"
+                    aria-busy="false"
+                  ></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+    <div
+      class="c-help-modal"
+      id="system-management-help-modal"
+      data-help-modal
+      role="dialog"
+      aria-modal="true"
+      aria-label="システム管理のポイント"
+      aria-describedby="system-management-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="system-management-help-modal-title">システム管理のポイント</h2>
+          <p class="c-help-modal__summary" id="system-management-help-modal-summary">
+            日次運用で確認すべき作業と復旧フローをまとめました。設定変更前のバックアップと検証を忘れずに。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="system-management-help-modal-body">
+          <section class="c-help-modal__section">
+            <h3>サイト設定のメンテナンス</h3>
+            <p>「サイト設定」タブでは <code>siteSettings</code> テーブルの値を直接編集します。保存前に現行値を控え、差分が意図通りか確認してください。</p>
+            <ul>
+              <li>JSON を保存するキーは整形済みの文字列で入力し、保存後にフォーマット崩れが無いか確認します。</li>
+              <li>通知先メール・Webhook など外部連携の値を変更した際は、テスト送信や疎通確認をその場で実施します。</li>
+              <li>保存ボタンは変更があった行のみ有効になります。保存後にハイライトされる行で更新結果を再チェックしてください。</li>
+            </ul>
+          </section>
+          <section class="c-help-modal__section">
+            <h3>ストレージ使用量の監視</h3>
+            <p>ストレージタブでは最新のディスク使用状況を <code>du</code> の結果から確認できます。大容量のアップロードやログ肥大化が続く場合は定期的に再計測してください。</p>
+            <ul>
+              <li>「再計測」ボタンで一覧を更新します。測定中は進捗メッセージが表示されるので完了まで待機してください。</li>
+              <li>UserData ごとの使用量はバイト換算も併記されます。急増が見られた場合は運用担当へ連絡し、不要データを整理します。</li>
+              <li>ページネーションを活用して全体の傾向を把握し、しきい値を越える前にアラート運用へ引き継ぎます。</li>
+            </ul>
+          </section>
+          <section class="c-help-modal__section">
+            <h3>ソフトウェア情報の確認</h3>
+            <p>サーバーで稼働している主要ソフトウェアのバージョンを一覧表示します。障害調査やアップデート計画時の基礎情報として利用してください。</p>
+            <ul>
+              <li>再取得ボタンで API から最新情報を読み込みます。取得に失敗した場合は権限とネットワーク状態を確認してください。</li>
+              <li>表示されるバージョンはミドルウェアごとにソート済みです。アップデート履歴との突き合わせに利用できます。</li>
+              <li>バージョン差異を確認したら、変更履歴ページや運用ノートへ記録し、チーム内で共有します。</li>
+            </ul>
+          </section>
+          <section class="c-help-modal__section">
+            <h3>トラブルシューティング</h3>
+            <p>操作後に想定通りの結果が得られない場合は以下を確認してください。</p>
+            <ul>
+              <li>値の保存や再取得が失敗した場合は、モーダル下部のフィードバックメッセージを確認し、必要に応じて再操作またはサポートへ連絡します。</li>
+              <li>通信エラー時は再ログイン後に同じ操作を試し、それでも改善しない場合はネットワーク機器や API のステータスを確認します。</li>
+              <li>設定変更で想定外の挙動が出た場合は、控えておいた元の値へ戻し、影響範囲を調査したうえで改めて申請します。</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

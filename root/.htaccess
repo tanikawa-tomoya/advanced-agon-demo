@@ -1,0 +1,154 @@
+# --- Directory listing を完全に抑止 ---
+Options -Indexes
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
+<IfModule mod_autoindex.c>
+    IndexIgnore *
+</IfModule>
+
+# --- センシティブ拡張子の遮断 ---
+<Files ~ "^.(htpasswd|htaccess|sqlite|json|mp4|sqlite)$">
+    Order allow,deny
+    Deny from all
+    Satisfy All
+</Files>
+
+<Files *.md>
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files *.py>
+    Order allow,deny
+    Deny from all
+</Files>
+<Files *.sh>
+    Order allow,deny
+    Deny from all
+</Files>
+
+RedirectMatch 404 ^/\.git
+
+# --- PHP リソース制限 ---
+php_value upload_max_filesize 10240M
+php_value post_max_size 10240M
+php_value memory_limit 10240M
+php_value max_input_time 0
+php_value max_execution_time 0
+
+# --- キャッシュ抑止（HTML/JS） ---
+<IfModule mod_headers.c>
+    <FilesMatch "\.(html|htm)$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+    <FilesMatch "\.(js)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+        Header set Expires "Thu, 31 Dec 2037 23:55:55 GMT"
+    </FilesMatch>
+</IfModule>
+
+FileETag MTime Size
+
+# --- セッション ---
+php_value session.gc_maxlifetime 86400
+php_value session.cookie_lifetime 86400
+
+# --- メインエントリ ---
+DirectoryIndex html/login.html
+
+# =========================
+# Rewrite rules
+# =========================
+RewriteEngine On
+RewriteBase /
+
+# HTTPS へ正規化
+RewriteCond %{HTTPS} off 
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# ルート（/）はログインページへリダイレクト
+RewriteRule ^$ /login [L,R=302]
+
+# 明示的に /html/index.html を叩いたときは /login へ正規化
+#   ※ 末尾の空白/クエリ検出は (\s|\?) に変更（リテラル空白を使わない）
+RewriteCond %{THE_REQUEST} \s/+html/index\.html(\s|\?) [NC]
+RewriteRule ^html/index\.html$ /login [R=301,L]
+
+# 旧パスの正規化（/index, /index.html を /login へ寄せる）
+RewriteCond %{THE_REQUEST} \s+/index(\.html)?(\s|\?) [NC]
+RewriteRule ^index(\.html)?$ /login [R=301,L]
+
+# 旧 .html 直叩きを拡張子なしへ寄せる（/foo.html -> /foo）
+RewriteCond %{THE_REQUEST} \s+/([a-zA-Z0-9_-]+)\.html(\s|\?) [NC]
+RewriteCond %{REQUEST_URI} !^/index\.html$ [NC]
+RewriteRule ^([a-zA-Z0-9_-]+)\.html$ /$1 [R=301,L]
+
+# 拡張子なしURLを /html/*.html に内部リライトして配信
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/html/ [NC]
+RewriteCond %{REQUEST_URI} !^/(extpage|extpage-ext|app|image|movie|audio|data|roomPublish|scripts|assets|css|js|public|config|i18n|html-partial)(/|$) [NC]
+RewriteRule ^([a-zA-Z0-9_-]+)/?$ html/$1.html [L,QSA]
+
+# =========================
+# extpage 系
+# =========================
+
+# extpage-ext は素通し
+RewriteCond %{REQUEST_URI} ^/extpage-ext/ [NC]
+RewriteRule ^ - [L]
+
+RewriteCond %{REQUEST_URI} ^/extpage/
+RewriteCond %{REQUEST_URI} \.[a-zA-Z0-9]+$ [NC]
+RewriteRule ^extpage/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9_\-]+)\.([a-zA-Z]+)$ extpage/$1/$2.$3 [L,QSA]
+
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^extpage/([a-zA-Z0-9_\-\.]+)/file/(.+)$ extpage/$1/$2 [L,QSA]
+
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^extpage/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9_\.]+)/([a-zA-Z0-9]+)$ extpage/$1/$2/$3 [L,QSA]
+
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^extpage/([a-zA-Z0-9_\-\.]+)/prefecture/([a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=ExtPage&token=1234ABCDabcd&type=PageGet&groupCode=$1&pageId=prefecture&pid=$2 [L,QSA]
+
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^extpage/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9_\-\.]+)$ scripts/request.php?requestType=ExtPage&token=1234ABCDabcd&type=PageGet&groupCode=$1&pageId=$2 [L,QSA]
+
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^extpage/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9]+)$ extpage/$1/$2 [L,QSA]
+
+# =========================
+# その他の個別ルーティング
+# =========================
+RewriteRule ^login$ html/login.html [L,QSA]
+RewriteRule ^app/([a-zA-Z0-9]+)/([a-zA-Z0-9_\.]+)$ app/$1/$2 [L,QSA]
+
+RewriteRule ^image/([-a-zA-Z0-9]+)/([-a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=MarmoHub&token=1234ABCDabcd&type=AssetGet&kind=image&roomCode=$1&file=$2 [L,QSA]
+RewriteRule ^movie/([-a-zA-Z0-9]+)/([-a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=MarmoHub&token=1234ABCDabcd&type=AssetGet&kind=movie&roomCode=$1&file=$2 [L,QSA]
+RewriteRule ^audio/([-a-zA-Z0-9]+)/([-a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=MarmoHub&token=1234ABCDabcd&type=AssetGet&kind=audio&roomCode=$1&file=$2 [L,QSA]
+RewriteRule ^html/([-a-zA-Z0-9]+)/([-a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=MarmoHub&token=1234ABCDabcd&type=AssetGet&kind=html&roomCode=$1&file=$2 [L,QSA]
+RewriteRule ^data/([-a-zA-Z0-9]+)/([-a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=MarmoHub&token=1234ABCDabcd&type=AssetGet&kind=data&roomCode=$1&file=$2 [L,QSA]
+
+RewriteRule ^roomPublish/([0-9]+)/(.+)$ roomPublish/$1/$2 [L,QSA]
+
+RewriteRule ^([a-zA-Z0-9_-]+)/portal/(.+)$ html/portal.html?r=$1&tag=$2 [L,QSA]
+RewriteRule ^([a-zA-Z0-9_-]+)/portal$ html/portal.html?r=$1 [L,QSA]
+
+RewriteRule ^internal/([a-zA-Z0-9_-]+)/([0-9a-z]+)/(.+)$ html/publish-internal.html?r=$1&p=$2&tag=$3 [L,QSA]
+
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteCond %{REQUEST_URI} !^/extpage/
+RewriteCond %{REQUEST_URI} !^/js-page/ [NC]
+RewriteCond %{REQUEST_URI} !\.js$ [NC]
+RewriteRule ^([a-zA-Z0-9_-]+)/([0-9a-z]+)/(.+)$ html/publish.html?r=$1&p=$2&tag=$3 [L,QSA]
+
+RewriteRule ^([a-zA-Z0-9_-]+)/room$ html/room.html?r=$1&id=room [L,QSA]
+RewriteRule ^internal$ html/internal.html [L,QSA]
+RewriteRule ^([a-zA-Z0-9_-]+)/portal-internal/(.+)$ html/portal-internal.html?r=$1 [L,QSA]
+
+RewriteCond %{REQUEST_URI} !^/extpage/
+RewriteRule ^([a-zA-Z0-9_-]+)/([0-9a-z]+)$ html/item.html?r=$1&id=$2 [L,QSA]

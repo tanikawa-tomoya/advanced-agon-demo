@@ -1,0 +1,178 @@
+/* 旧仕様のトーンに寄せた最低限の上書き。必要に応じて数値調整してください。 */
+
+/* レイアウトと色味 */
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--color-bg-elev, #0f172a);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.site-header__logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  text-decoration: none;
+  color: #e6f0ff;
+  font-weight: 800;
+}
+.site-header__logo canvas {
+  position: absolute;
+  left: 0; top: 0;
+  pointer-events: none;
+}
+
+/* メニュー */
+.site-header__links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 0 auto;
+}
+.site-header__link {
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(255,255,255,0.82);
+  padding: 8px 2px;
+}
+.site-header__link[aria-current="page"],
+.site-header__link:hover { color: #fff; }
+
+.site-header__account {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 16px;
+}
+
+@media (max-width: 959px) {
+  .site-header__cta,
+  .site-header__account {
+    margin-left: auto;
+  }
+}
+
+.site-header__account-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: #e6f0ff;
+  border: 1px solid transparent;
+  cursor: pointer;
+  min-height: 40px;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.site-header__account-btn:hover,
+.site-header__account-btn:focus-visible {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.2);
+  outline: none;
+}
+
+.site-header__account-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255,255,255,0.16);
+}
+
+.site-header__account-icon--has-avatar {
+  background: rgba(255,255,255,0.22);
+}
+
+.site-header__account-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.site-header__account-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #e6f0ff;
+}
+
+.site-header__account-text .site-header__user-role {
+  font-size: 12px;
+  color: rgba(230, 240, 255, 0.7);
+}
+
+.site-header__account-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 180px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 60;
+}
+
+.site-header__account.is-open .site-header__account-menu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.site-header__account-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #f8fbff;
+  text-decoration: none;
+  font-size: 14px;
+  background: transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.site-header__account-item:hover,
+.site-header__account-item:focus {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  outline: none;
+}
+
+.site-header__account-item--button {
+  cursor: pointer;
+}
+
+/* 右側 CTA or ユーザー */
+.site-header__user { display: flex; align-items: center; gap: 10px; }
+.site-header__avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  object-fit: cover; background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.site-header__user-name { font-weight: 700; font-size: 13px; color: #e6f0ff; }
+.site-header__user-role { font-size: 12px; color: rgba(255,255,255,0.6); }
+
+/* モバイル開閉（簡易） */
+.site-header.is-open .site-header__nav { display: block; }
+.site-header__nav { display: none; }
+@media (min-width: 960px) {
+  .site-header__nav { display: block; }
+}
