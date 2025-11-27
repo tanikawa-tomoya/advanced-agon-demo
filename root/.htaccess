@@ -57,7 +57,7 @@ php_value session.gc_maxlifetime 86400
 php_value session.cookie_lifetime 86400
 
 # --- メインエントリ ---
-DirectoryIndex html/login.html
+DirectoryIndex html/index.html
 
 # =========================
 # Rewrite rules
@@ -70,17 +70,7 @@ RewriteCond %{HTTPS} off
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# ルート（/）はログインページへリダイレクト
-RewriteRule ^$ /login [L,R=302]
 
-# 明示的に /html/index.html を叩いたときは /login へ正規化
-#   ※ 末尾の空白/クエリ検出は (\s|\?) に変更（リテラル空白を使わない）
-RewriteCond %{THE_REQUEST} \s/+html/index\.html(\s|\?) [NC]
-RewriteRule ^html/index\.html$ /login [R=301,L]
-
-# 旧パスの正規化（/index, /index.html を /login へ寄せる）
-RewriteCond %{THE_REQUEST} \s+/index(\.html)?(\s|\?) [NC]
-RewriteRule ^index(\.html)?$ /login [R=301,L]
 
 # 旧 .html 直叩きを拡張子なしへ寄せる（/foo.html -> /foo）
 RewriteCond %{THE_REQUEST} \s+/([a-zA-Z0-9_-]+)\.html(\s|\?) [NC]
