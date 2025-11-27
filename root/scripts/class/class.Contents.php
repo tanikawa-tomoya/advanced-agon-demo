@@ -408,6 +408,9 @@ class Contents extends Base
                 if ($this->appendReferenceUsage($pdoTarget, $contentCode, $usageMap) === false) {
                         return;
                 }
+                if ($this->appendScheduleUsage($pdoTarget, $contentCode, $usageMap) === false) {
+                        return;
+                }				
                 if ($this->appendSubmissionUsage($pdoTarget, $contentCode, $usageMap) === false) {
                         return;
                 }
@@ -543,6 +546,35 @@ class Contents extends Base
                 }
                 return true;
         }
+		
+        protected function appendScheduleUsage(PDO $pdo, $contentCode, array &$usageMap)
+        {
+                $stmt = $pdo->prepare(
+                        'SELECT DISTINCT rm.targetCode, t.title '
+                        . 'FROM targetScheduleMaterialContents rc '
+                        . 'JOIN targetScheduleMaterials rm ON rc.materialCode = rm.materialCode '
+                        . 'JOIN targets t ON rm.targetCode = t.targetCode '
+                        . 'WHERE rc.contentCode = ? '
+                        . 'AND (rm.isDeleted IS NULL OR rm.isDeleted = 0) '
+                        . 'AND (t.isDeleted IS NULL OR t.isDeleted = 0)'
+                );
+                if ($stmt === false || $stmt->execute(array($contentCode)) === false) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'database_error';
+                        $this->response = array('message' => 'コンテンツの使用箇所を取得できませんでした。');
+                        return false;
+                }
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                        $this->appendUsageEntry(
+                                $usageMap,
+                                isset($row['targetCode']) ? $row['targetCode'] : '',
+                                isset($row['title']) ? $row['title'] : '',
+                                'schedule'
+                        );
+                }
+                return true;
+        }		
 
         protected function appendSubmissionUsage(PDO $pdo, $contentCode, array &$usageMap)
         {

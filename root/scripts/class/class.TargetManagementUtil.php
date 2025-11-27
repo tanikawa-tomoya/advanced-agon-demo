@@ -2,6 +2,9 @@
 
 class TargetManagementUtil
 {
+	//
+	// Reference
+	//
         public static function fetchTargetReferenceMaterials($targetCode, $userCode, $pdoTarget, $pdoContents, $siteId)
         {
                 if ($targetCode === null || $targetCode === '') {
@@ -291,6 +294,301 @@ class TargetManagementUtil
                                          'clipTimesUpdatedAt' => $clipTimesUpdatedAt
                                          );
         }
+	// Reference
+
+	//
+	// Schedule
+	//
+        public static function fetchTargetScheduleMaterials($targetCode, $userCode, $pdoTarget, $pdoContents, $siteId)
+        {
+                if ($targetCode === null || $targetCode === '') {
+                        return array();
+                }
+
+		$stmt = $pdoTarget->prepare(
+									'SELECT m.*, u.displayName AS ownerDisplayName FROM targetScheduleMaterials m '
+									. 'LEFT JOIN common.user u ON m.ownerUserCode = u.userCode '
+                                                                        . 'WHERE m.targetCode = ? AND (m.isDeleted IS NULL OR m.isDeleted = 0) '
+                                                                        . 'ORDER BY m.displayOrder ASC, m.updatedAt DESC, m.createdAt DESC, m.id DESC'
+                                                                        );
+                $stmt->execute(array($targetCode));
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                return TargetManagementUtil::buildScheduleMaterialCollection($rows, $userCode, $pdoTarget, $pdoContents, $siteId);
+        }
+
+        public static function buildScheduleMaterialCollection($rows, $userCode, $pdoTarget, $pdoContents, $siteId)
+        {
+                if (!is_array($rows) || count($rows) === 0) {
+                        return array();
+                }
+
+		$materialCodes = array();
+		foreach ($rows as $row) {
+			if ($row == null) {
+				continue;
+			}
+			$code = isset($row['materialCode']) ? $row['materialCode'] : null;
+			if ($code === null || $code === '') {
+				continue;
+			}
+			if (in_array($code, $materialCodes, true) == false) {
+				$materialCodes[] = $code;
+			}
+		}
+
+                $contentMap = TargetManagementUtil::fetchScheduleContentsForMaterials($materialCodes, $userCode, $pdoTarget, $pdoContents);
+                $materials = array();
+
+		foreach ($rows as $row) {
+			if ($row == null) {
+				continue;
+			}
+			$code = isset($row['materialCode']) ? $row['materialCode'] : null;
+                        if ($code === null || $code === '') {
+                                continue;
+                        }
+                        $contentRow = array_key_exists($code, $contentMap) ? $contentMap[$code] : null;
+                        $materials[] = TargetManagementUtil::buildScheduleMaterialPayload($row, $siteId, $contentRow);
+                }
+
+                return $materials;
+        }
+
+        public static function fetchScheduleContentsForMaterials($materialCodes, $clipUserCode, $pdoTarget, $pdoContents)
+        {
+                $map = array();
+
+		if (!is_array($materialCodes) || count($materialCodes) === 0) {
+			return $map;
+		}
+
+		$codes = array();
+		foreach ($materialCodes as $code) {
+			if ($code === null || $code === '') {
+				continue;
+			}
+			if (in_array($code, $codes, true) == false) {
+				$codes[] = $code;
+			}
+		}
+
+		if (count($codes) === 0) {
+			return $map;
+		}
+
+		$placeholders = implode(', ', array_fill(0, count($codes), '?'));
+
+                $stmt = $pdoTarget->prepare(
+                                                                        'SELECT materialCode, contentCode, contentType, createdAt '
+                                                                        . 'FROM targetScheduleMaterialContents '
+                                                                        . 'WHERE materialCode IN (' . $placeholders . ') ORDER BY id ASC'
+                                                                        );
+                if ($stmt === false) {
+                        return $map;
+                }
+                $stmt->execute($codes);
+                $contentRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if ($clipUserCode === null) {
+                        $clipUserCode = '';
+                }
+
+                $contentCodes = array();
+                foreach ($contentRows as $row) {
+                        if ($row == null || !isset($row['contentCode'])) {
+                                continue;
+                        }
+                        $code = trim($row['contentCode']);
+                        if ($code === '') {
+                                continue;
+                        }
+                        if (in_array($code, $contentCodes, true) == false) {
+                                $contentCodes[] = $code;
+                        }
+                }
+
+                $contentDetails = array();
+                if ($pdoContents !== null && count($contentCodes) > 0) {
+                        $contentPlaceholders = implode(', ', array_fill(0, count($contentCodes), '?'));
+                        $contentStmt = $pdoContents->prepare(
+                                                                                                'SELECT ucp.contentCode, ucp.contentType, ucp.fileName, ucp.filePath, ucp.mimeType, '
+                                                                                                . 'ucp.fileSize, ucp.userCode, '
+                                                                                                . 'ucp.bitrate, '
+                                                                                                . 'ccb.clipTimes AS clipTimesJson, ccb.updatedAt AS clipUpdatedAt '
+                                                                                                . 'FROM userContents ucp '
+                                                                                                . 'LEFT JOIN userContentClipBookmarks ccb ON ccb.contentCode = ucp.contentCode AND ccb.userCode = ? '
+                                                                                                . 'WHERE ucp.contentCode IN (' . $contentPlaceholders . ')'
+                                                                                                );
+                        if ($contentStmt !== false) {
+                                $params = array_merge(array($clipUserCode), $contentCodes);
+                                $contentStmt->execute($params);
+
+                                while ($contentRow = $contentStmt->fetch(PDO::FETCH_ASSOC)) {
+                                        $contentCode = isset($contentRow['contentCode']) ? trim($contentRow['contentCode']) : '';
+                                        if ($contentCode === '') {
+                                                continue;
+                                        }
+                                        if (array_key_exists($contentCode, $contentDetails) == false) {
+                                                $contentDetails[$contentCode] = $contentRow;
+                                        }
+                                }
+                        }
+                }
+
+                foreach ($contentRows as $row) {
+                        $materialCode = isset($row['materialCode']) ? $row['materialCode'] : null;
+                        if ($materialCode === null || $materialCode === '') {
+                                continue;
+                        }
+                        if (array_key_exists($materialCode, $map)) {
+                                continue;
+                        }
+
+                        $contentCode = isset($row['contentCode']) ? trim($row['contentCode']) : '';
+                        if ($contentCode !== '' && array_key_exists($contentCode, $contentDetails)) {
+                                $map[$materialCode] = array_merge($row, $contentDetails[$contentCode]);
+                        } else {
+                                $map[$materialCode] = $row;
+                        }
+                }
+
+                return $map;
+        }
+
+        public static function buildScheduleMaterialPayload($row, $siteId, $contentRow = null)
+        {
+                if ($row == null) {
+                        return null;
+                }
+
+		$materialCode = isset($row['materialCode']) ? $row['materialCode'] : null;
+		if ($materialCode === null || $materialCode === '') {
+			return null;
+		}
+
+                $category = isset($row['category']) ? $row['category'] : null;
+                $linkUrl = isset($row['linkUrl']) ? trim($row['linkUrl']) : '';
+                $downloadUrl = isset($row['downloadUrl']) ? trim($row['downloadUrl']) : '';
+                $fileName = isset($row['fileName']) ? $row['fileName'] : null;
+                $fileSize = isset($row['fileSize']) ? $row['fileSize'] : null;
+                $bitrate = null;
+                $contentCode = isset($row['contentCode']) ? $row['contentCode'] : null;
+                $contentType = null;
+                $filePath = null;
+                $mimeType = null;
+                $storageFileName = null;
+
+		if ($contentRow != null) {
+			if (isset($contentRow['contentCode']) && $contentRow['contentCode'] !== '') {
+				$contentCode = $contentRow['contentCode'];
+                        }
+                        if (isset($contentRow['contentType']) && $contentRow['contentType'] !== '') {
+                                $contentType = $contentRow['contentType'];
+                        }
+                        if (($category === null || $category === '' || $category === 'other') && $contentType !== null) {
+                                $category = TargetManagementUtil::mapContentTypeToCategory($contentType);
+                        }
+                        if (($fileName === null || $fileName === '') && isset($contentRow['fileName'])) {
+                                $fileName = $contentRow['fileName'];
+                        }
+                        if ($fileSize === null && isset($contentRow['fileSize'])) {
+                                $fileSize = $contentRow['fileSize'];
+                        }
+                        if (isset($contentRow['bitrate'])) {
+                                $bitrate = $contentRow['bitrate'];
+                        }
+                        $filePath = isset($contentRow['filePath']) ? $contentRow['filePath'] : null;
+                        $mimeType = isset($contentRow['mimeType']) ? $contentRow['mimeType'] : null;
+                        $storageFileName = Util::extractStoredFileName($filePath);
+                }
+
+		if ($linkUrl === null) {
+			$linkUrl = '';
+		}
+
+		if ($downloadUrl === null || $downloadUrl === '') {
+			$downloadUrl = $linkUrl;
+		}
+
+                if ($fileSize !== null) {
+                        $fileSize = (int)$fileSize;
+                }
+
+                if ($bitrate !== null) {
+                        $bitrate = (int)$bitrate;
+                }
+
+                $previewImage = isset($row['previewImage']) ? $row['previewImage'] : null;
+                $siteId = isset($siteId) ? trim($siteId) : '';
+                $normalizedCategory = strtolower((string) $category);
+                $isVideoContent = ($normalizedCategory === 'video');
+		if ($isVideoContent === false) {
+			$normalizedContentType = strtolower((string) $contentType);
+			if ($normalizedContentType === 'video' || strpos($normalizedContentType, 'video/') === 0) {
+				$isVideoContent = true;
+			}
+		}
+		if ($isVideoContent === false) {
+			$extensionSource = $storageFileName !== null ? $storageFileName : $fileName;
+			$extension = strtolower((string) pathinfo((string) $extensionSource, PATHINFO_EXTENSION));
+			if (Util::isVideoFile((string) $mimeType, $extension)) {
+				$isVideoContent = true;
+			}
+		}
+		$clipTimesPayload = array();
+		$clipTimesUpdatedAt = null;
+		$clipSource = null;
+		if ($contentRow != null && isset($contentRow['clipTimesJson']) && $contentRow['clipTimesJson'] !== null) {
+			$clipSource = $contentRow;
+		} elseif ($row != null && isset($row['clipTimesJson']) && $row['clipTimesJson'] !== null) {
+			$clipSource = $row;
+		}
+
+		if ($clipSource != null) {
+			$rawClips = isset($clipSource['clipTimesJson']) ? $clipSource['clipTimesJson'] : null;
+			if ($rawClips !== null && $rawClips !== '') {
+				$normalizedClips = $this->normalizeClipTimeList($rawClips);
+				if (is_array($normalizedClips) && !empty($normalizedClips)) {
+					$clipTimesPayload = array_map(static function ($value) {
+							return round((float) $value, 3);
+						}, $normalizedClips);
+				}
+			}
+			if (isset($clipSource['clipUpdatedAt']) && $clipSource['clipUpdatedAt'] !== null && $clipSource['clipUpdatedAt'] !== '') {
+				$clipTimesUpdatedAt = trim((string) $clipSource['clipUpdatedAt']);
+			} elseif (isset($clipSource['updatedAt']) && $clipSource['updatedAt'] !== null && $clipSource['updatedAt'] !== '') {
+				$clipTimesUpdatedAt = trim((string) $clipSource['updatedAt']);
+			}
+		}
+
+		return array(
+					 'materialCode' => $materialCode,
+					 'targetCode' => isset($row['targetCode']) ? $row['targetCode'] : null,
+					 'title' => isset($row['title']) ? $row['title'] : null,
+					 'description' => isset($row['description']) ? $row['description'] : null,
+					 'category' => $category,
+					 'linkUrl' => $linkUrl,
+					 'downloadUrl' => $downloadUrl,
+					 'previewImage' => $previewImage,
+                                         'fileName' => $fileName,
+                                         'fileSize' => $fileSize,
+                                         'bitrate' => $bitrate,
+                                         'ownerUserCode' => isset($row['ownerUserCode']) ? $row['ownerUserCode'] : null,
+                                         'ownerDisplayName' => isset($row['ownerDisplayName']) ? $row['ownerDisplayName'] : (isset($row['ownerUserCode']) ? $row['ownerUserCode'] : null),
+                                         'createdAt' => isset($row['createdAt']) ? $row['createdAt'] : null,
+                                         'updatedAt' => isset($row['updatedAt']) ? $row['updatedAt'] : null,
+					 'uploadedAt' => isset($row['createdAt']) ? $row['createdAt'] : null,
+					 'contentCode' => $contentCode,
+					 'contentType' => $contentType,
+					 'filePath' => $filePath,
+					 'mimeType' => $mimeType,
+					 'clipTimes' => $clipTimesPayload,
+					 'clipCount' => count($clipTimesPayload),
+                                         'clipTimesUpdatedAt' => $clipTimesUpdatedAt
+                                         );
+        }
+	// Schedule				
 
         private static function mapContentTypeToCategory($contentType)
         {

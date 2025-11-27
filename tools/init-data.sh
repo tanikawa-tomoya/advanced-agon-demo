@@ -501,6 +501,7 @@ CREATE TABLE IF NOT EXISTS targets (
     displayAgreements INTEGER DEFAULT 1,
     displayAnnouncements INTEGER DEFAULT 1,
     displayReferences INTEGER DEFAULT 1,
+    displaySchedules INTEGER DEFAULT 1,
     displayChat INTEGER DEFAULT 1,
     displayBbs INTEGER DEFAULT 1,
     displaySubmissions INTEGER DEFAULT 1,
@@ -578,6 +579,51 @@ CREATE TABLE IF NOT EXISTS targetReferenceMaterialContents (
     UNIQUE(materialCode, contentCode)
 );
 CREATE INDEX IF NOT EXISTS idx_targetReferenceMaterialContents_material ON targetReferenceMaterialContents(materialCode);
+CREATE TABLE IF NOT EXISTS targetGuidanceContents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guidanceCode VARCHAR(32) NOT NULL UNIQUE,
+    targetCode VARCHAR(32) NOT NULL,
+    contentsId INTEGER,
+    contentCode VARCHAR(32),
+    title VARCHAR(256),
+    category VARCHAR(32),
+    fileName VARCHAR(256),
+    fileSize INTEGER,
+    ownerUserCode VARCHAR(32),
+    createdAt VARCHAR(32),
+    updatedAt VARCHAR(32),
+    displayOrder INTEGER DEFAULT 0,
+    isDeleted INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS targetScheduleMaterials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    materialCode VARCHAR(32) NOT NULL UNIQUE,
+    targetCode VARCHAR(32) NOT NULL,
+    contentsId INTEGER,
+    contentCode VARCHAR(32),
+    title VARCHAR(256),
+    description TEXT,
+    category VARCHAR(32),
+    linkUrl VARCHAR(512),
+    downloadUrl VARCHAR(512),
+    fileName VARCHAR(256),
+    fileSize INTEGER,
+    ownerUserCode VARCHAR(32),
+    createdAt VARCHAR(32),
+    updatedAt VARCHAR(32),
+    displayOrder INTEGER DEFAULT 0,
+    isDeleted INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_targetScheduleMaterials_target ON targetScheduleMaterials(targetCode);
+CREATE TABLE IF NOT EXISTS targetScheduleMaterialContents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    materialCode VARCHAR(32) NOT NULL,
+    contentCode VARCHAR(32) NOT NULL,
+    contentType VARCHAR(32),
+    createdAt VARCHAR(32),
+    UNIQUE(materialCode, contentCode)
+);
+CREATE INDEX IF NOT EXISTS idx_targetScheduleMaterialContents_material ON targetScheduleMaterialContents(materialCode);
 CREATE TABLE IF NOT EXISTS targetGuidanceContents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     guidanceCode VARCHAR(32) NOT NULL UNIQUE,
@@ -1659,7 +1705,7 @@ INSERT OR REPLACE INTO targets (
     targetCode, title, description, imageFile, status, priority, dueDate,
     startDate, endDate, assignedUserCode, assignedGroupCode,
     displayGuidance, displayGoals, displayAgreements, displayAnnouncements,
-    displayReferences, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
+    displayReferences, displaySchedule, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
     createdByUserCode, createdAt, updatedAt, isDeleted
 )
 VALUES (
@@ -1900,6 +1946,59 @@ VALUES
         '${creator}', datetime('now','localtime'), datetime('now','localtime'), 0, 0),
     ('${target_code}-guidance-02', '${target_code}', ${support_content_id:-NULL}, '${support_content_code}', '${title}FAQリンク', 'document', '${target_code}-faq.html', 0,
         '${creator}', datetime('now','localtime'), datetime('now','localtime'), 1, 0);
+INSERT OR REPLACE INTO targetScheduleMaterials (
+    materialCode, targetCode, contentsId, contentCode, title, description, category,
+    linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt,
+    displayOrder, isDeleted
+)
+VALUES (
+    '${doc_material_code}',
+    '${target_code}',
+    ${doc_content_id:-NULL},
+    '${doc_content_code}',
+    '${title}ガイド',
+    '${description}の詳細資料',
+    'documentation',
+    '${doc_url}',
+    '${doc_url}.pdf',
+    '${target_code}-guide.pdf',
+    4096,
+    '${creator}',
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    0,
+    0
+), (
+    '${support_material_code}',
+    '${target_code}',
+    ${support_content_id:-NULL},
+    '${support_content_code}',
+    '${support_title}',
+    '${support_description}',
+    'faq',
+    '${support_url}',
+    NULL,
+    '${target_code}-faq.html',
+    0,
+    '${creator}',
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    1,
+    0
+);
+INSERT OR REPLACE INTO targetScheduleMaterialContents (materialCode, contentCode, contentType, createdAt)
+VALUES
+    ('${doc_material_code}', '${doc_content_code}', 'document', datetime('now','localtime')),
+    ('${support_material_code}', '${support_content_code}', 'link', datetime('now','localtime'));
+INSERT OR REPLACE INTO targetGuidanceContents (
+    guidanceCode, targetCode, contentsId, contentCode, title, category, fileName, fileSize,
+    ownerUserCode, createdAt, updatedAt, displayOrder, isDeleted
+)
+VALUES
+    ('${target_code}-guidance-01', '${target_code}', ${doc_content_id:-NULL}, '${doc_content_code}', '${title}ガイドステップ', 'document', '${target_code}-guide.pdf', 4096,
+        '${creator}', datetime('now','localtime'), datetime('now','localtime'), 0, 0),
+    ('${target_code}-guidance-02', '${target_code}', ${support_content_id:-NULL}, '${support_content_code}', '${title}FAQリンク', 'document', '${target_code}-faq.html', 0,
+        '${creator}', datetime('now','localtime'), datetime('now','localtime'), 1, 0);
 SQL
 
 sqlite3 "$db_path" <<SQL
@@ -2022,6 +2121,30 @@ VALUES (
     0
 );
 INSERT OR REPLACE INTO targetReferenceMaterialContents (materialCode, contentCode, contentType, createdAt)
+VALUES ('${video_material_code}', '${video_content_code}', 'video', datetime('now','localtime'));
+INSERT OR REPLACE INTO targetScheduleMaterials (
+    materialCode, targetCode, contentCode, title, description, category,
+    linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt,
+    displayOrder, isDeleted
+)
+VALUES (
+    '${video_material_code}',
+    '${target_code}',
+    '${video_content_code}',
+    '${title}動画チュートリアル',
+    '重要なポイントを動画で復習できます。',
+    'video',
+    '${video_embed_url}',
+    '${video_watch_url}',
+    'youtube-${video_id}.html',
+    0,
+    '${creator}',
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    2,
+    0
+);
+INSERT OR REPLACE INTO targetScheduleMaterialContents (materialCode, contentCode, contentType, createdAt)
 VALUES ('${video_material_code}', '${video_content_code}', 'video', datetime('now','localtime'));
 SQL
         fi
