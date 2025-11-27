@@ -2904,10 +2904,7 @@
 }
 
 .target-bbs__thread-participants {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+  display: none;
 }
 
 .target-bbs__thread-participant {
@@ -3255,7 +3252,7 @@
   max-width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   padding: 8px 10px;
   border-radius: var(--radius-md);
   background: rgba(7, 15, 27, 0.6);
@@ -3269,22 +3266,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .target-bbs__message-body {
-  padding-left: 6px;
+  padding-left: 2px;
 }
 
 .target-bbs__message-author {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .target-bbs__message-author-name {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
 }
 
 .target-bbs__bubble {
@@ -3342,8 +3340,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex: 0 0 auto;
 }
 
@@ -3390,10 +3388,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   background: var(--surface);
   padding: 0;
   overflow: hidden;
@@ -3404,6 +3402,13 @@
 .target-bbs__message-avatar:focus-visible {
   outline: 2px solid rgba(120, 206, 255, 0.65);
   outline-offset: 2px;
+}
+
+.target-bbs__message-divider {
+  margin: 8px 0 0;
+  border: 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  width: 100%;
 }
 
 .target-bbs__message-avatar img {
@@ -3553,6 +3558,125 @@
   color: rgba(170, 186, 204, 0.85);
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.target-bbs__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 10, 18, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1500;
+}
+
+.target-bbs__modal {
+  width: min(520px, 100%);
+  background: linear-gradient(180deg, rgba(12, 24, 42, 0.96), rgba(7, 14, 26, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  padding: 20px 22px;
+  color: var(--text);
+}
+
+.target-bbs__modal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.target-bbs__modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.target-bbs__modal-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.target-bbs__modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.target-bbs__modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.target-bbs__modal-label {
+  font-size: 0.95rem;
+}
+
+.target-bbs__modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.target-bbs__modal-input:focus-visible {
+  outline: 2px solid rgba(79, 139, 255, 0.6);
+  border-color: rgba(79, 139, 255, 0.6);
+}
+
+.target-bbs__modal-error {
+  margin: 0;
+  min-height: 18px;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.target-bbs__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.target-bbs__modal-button {
+  min-width: 96px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.target-bbs__modal-button--primary {
+  background: linear-gradient(135deg, #4f8bff, #83b0ff);
+  color: #0b1020;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.target-bbs__modal-button--primary:hover,
+.target-bbs__modal-button--primary:focus-visible {
+  box-shadow: 0 12px 26px rgba(79, 139, 255, 0.35);
+}
+
+.target-bbs__modal-button--ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.target-bbs__modal-button--ghost:hover,
+.target-bbs__modal-button--ghost:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .target-bbs__attachments {
