@@ -30,7 +30,7 @@ print_installed_software() {
     log_action "Checking installed software availability"
 
     local cmd
-    for cmd in ffmpeg convert sqlite3; do
+    for cmd in ffmpeg convert sqlite3 gs; do
         local version_output=""
         case "$cmd" in
             ffmpeg)
@@ -41,6 +41,9 @@ print_installed_software() {
                 ;;
             sqlite3)
                 version_output=$(sqlite3 --version 2>/dev/null | head -n 1)
+                ;;
+            gs)
+                version_output=$(gs --version 2>/dev/null | head -n 1)
                 ;;
         esac
 
@@ -85,6 +88,7 @@ INCLUDE_FULL_TEST_DATA=false
 require_command "ffmpeg"
 require_command "convert"
 require_command "sqlite3"
+require_command "gs"
 
 print_installed_software
 
@@ -364,6 +368,9 @@ generate_sample_video() {
 
     ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 3 "${target_path}" >/dev/null 2>&1
 
+    local thumbnail_path="${target_path}_thumbnail"
+    ffmpeg -y -i "${target_path}" -vframes 1 -vf "thumbnail,scale=min(320\\,iw):-2" -f image2 -vcodec mjpeg "${thumbnail_path}" >/dev/null 2>&1 || true
+
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
     else
@@ -400,8 +407,12 @@ generate_sample_pdf() {
         return
     fi
 
-    convert -size 1240x1754 xc:white -gravity center -pointsize 36 \
-        -annotate 0 "Sample PDF\nUser: ${user_code}" "${target_path}" >/dev/null 2>&1
+    gs -o "${target_path}" -sDEVICE=pdfwrite -g5950x8420 \
+        -c "<</PageSize[595 842]>> setpagedevice" \
+        -c "/Helvetica findfont 28 scalefont setfont" \
+        -c "72 760 moveto (Sample PDF - ${user_code}) show" \
+        -c "72 720 moveto (${relative_path}) show" \
+        -c showpage >/dev/null 2>&1
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
