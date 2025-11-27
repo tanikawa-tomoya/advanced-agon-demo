@@ -194,6 +194,12 @@
       return false;
     }
 
+    isSupervisorRole(user)
+    {
+      return this._normalizeRoleFlag(user && user.isSupervisor)
+        || this._hasRoleName(user, ['supervisor']);
+    }
+
     _cloneMenu(items) {
       if (this.jobMenu && typeof this.jobMenu.cloneMenu === 'function') {
         return this.jobMenu.cloneMenu(items);
@@ -330,8 +336,7 @@
     resolveMenuByRole(user)
     {
       const presets = this.MENU_PRESETS || {};
-      const isSupervisor = this._normalizeRoleFlag(user && user.isSupervisor)
-        || this._hasRoleName(user, ['supervisor']);
+      const isSupervisor = this.isSupervisorRole(user);
       const isOperator = this._normalizeRoleFlag(user && user.isOperator)
         || this._hasRoleName(user, ['operator'])
         || isSupervisor;

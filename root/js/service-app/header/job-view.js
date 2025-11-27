@@ -97,6 +97,9 @@
       if (!service) { return; }
       const menuJob = service.jobMenu;
       if (!menuJob) { return; }
+      const $root = service._$root;
+      const isSupervisor = service.isSupervisorRole(profile);
+      this.toggleSupervisorLayout($root, isSupervisor);
       const allowContents = service._isContentsManagementEnabled(profile);
       let menuItems = service.config && service.config.menu ? menuJob.cloneMenu(service.config.menu) : [];
       if (!service._hasCustomMenu) {
@@ -119,6 +122,16 @@
             : service.normalizeUserProfile(null);
       this.applyMenuForProfile(targetProfile);
       service.jobUserArea.renderLoginArea($root, service.SELECTORS, service._loginLinkTemplateHtml);
+    }
+
+    toggleSupervisorLayout($root, isSupervisor)
+    {
+      if (!$root || $root.length === 0) { return; }
+      if (isSupervisor) {
+        $root.addClass('site-header--supervisor');
+        return;
+      }
+      $root.removeClass('site-header--supervisor');
     }
     }
    

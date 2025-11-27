@@ -1040,6 +1040,7 @@ body.is-modal-open {
   align-items: center;
   gap: 18px;
 }
+.site-header--supervisor .site-header__links { gap: 2px; }
 
 .site-header__link {
   color: var(--text-muted);
