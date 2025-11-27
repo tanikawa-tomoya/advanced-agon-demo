@@ -913,7 +913,7 @@ class TargetManagementUtil
 								 'readAt' => isset($messageRow['readAt']) ? $messageRow['readAt'] : null,
 								 'createdAt' => isset($messageRow['createdAt']) ? $messageRow['createdAt'] : null,
 								 'updatedAt' => isset($messageRow['updatedAt']) ? $messageRow['updatedAt'] : null,
-								 'replyToMessageCode' => isset($messageRow['replyToMessageCode']) ? $messageRow['replyToMessageCode'] : null,
+                                                                 'replyToMessageCode' => isset($messageRow['replyToMessageCode']) ? $messageRow['replyToMessageCode'] : null,
 								 'metadata' => isset($messageRow['metadata']) ? $messageRow['metadata'] : null,
 								 'attachments' => array(),
 								 );
@@ -1062,6 +1062,250 @@ class TargetManagementUtil
 		return $result;
 	}
 
+	public static function fetchTargetBbsData($targetCode, $viewerUserCode, $options, $dependencies)
+		{
+		$result = array('threads' => array(), 'participants' => array(), 'pagination' => array());
+		
+		if ($targetCode === null || $targetCode === '') {
+		return $result;
+		}
+		
+		$pdo = $dependencies['pdo'];
+		$buildParticipant = isset($dependencies['buildParticipant']) ? $dependencies['buildParticipant'] : null;
+		$buildAttachment = isset($dependencies['buildAttachment']) ? $dependencies['buildAttachment'] : null;
+		
+		$threadsLimit = isset($options['threadsLimit']) ? (int)$options['threadsLimit'] : 20;
+		$threadsOffset = isset($options['threadsOffset']) ? (int)$options['threadsOffset'] : 0;
+		$messagesLimit = isset($options['messagesLimit']) ? (int)$options['messagesLimit'] : 50;
+		$messagesOffset = isset($options['messagesOffset']) ? (int)$options['messagesOffset'] : 0;
+		$messageOffsets = isset($options['messageOffsets']) && is_array($options['messageOffsets']) ? $options['messageOffsets'] : array();
+		$threadCodesFilter = isset($options['threadCodes']) && is_array($options['threadCodes']) ? $options['threadCodes'] : array();
+		
+		$threads = array();
+		$threadCodes = array();
+		
+		$threadSql = 'SELECT threadCode, targetCode, threadType, title, description, createdByUserCode, createdAt, updatedAt, lastMessageAt, lastMessageSnippet, lastMessageSenderCode '
+		. 'FROM targetBbsThreads WHERE targetCode = ? AND (isArchived IS NULL OR isArchived = 0)';
+		$threadParams = array($targetCode);
+		
+		if (count($threadCodesFilter) > 0) {
+		$placeholders = implode(', ', array_fill(0, count($threadCodesFilter), '?'));
+		$threadSql .= ' AND threadCode IN (' . $placeholders . ')';
+		foreach ($threadCodesFilter as $code) {
+		$threadParams[] = $code;
+		}
+		}
+		
+		$threadSql .= ' ORDER BY COALESCE(lastMessageAt, updatedAt, createdAt) DESC, id DESC';
+		if (count($threadCodesFilter) === 0) {
+		$threadSql .= ' LIMIT ? OFFSET ?';
+		$threadParams[] = $threadsLimit;
+		$threadParams[] = $threadsOffset;
+		}
+		
+		$threadStmt = $pdo->prepare($threadSql);
+		$threadStmt->execute($threadParams);
+		
+		while ($row = $threadStmt->fetch(PDO::FETCH_ASSOC)) {
+		$threadCode = isset($row['threadCode']) ? $row['threadCode'] : null;
+		if ($threadCode === null || $threadCode === '') {
+		continue;
+		}
+		$threads[$threadCode] = $row;
+		$threadCodes[] = $threadCode;
+		}
+		
+		if (count($threads) === 0) {
+		return $result;
+		}
+		
+		$membersByThread = array();
+		$memberSql = 'SELECT threadCode, userCode, joinedAt FROM targetBbsThreadMembers WHERE threadCode IN (' . implode(', ', array_fill(0, count($threadCodes), '?')) . ') ORDER BY joinedAt ASC, id ASC';
+		$memberStmt = $pdo->prepare($memberSql);
+		$memberStmt->execute($threadCodes);
+		while ($memberRow = $memberStmt->fetch(PDO::FETCH_ASSOC)) {
+		$threadCode = isset($memberRow['threadCode']) ? $memberRow['threadCode'] : null;
+		$userCode = isset($memberRow['userCode']) ? $memberRow['userCode'] : null;
+		if ($threadCode === null || $threadCode === '' || $userCode === null || $userCode === '') {
+		continue;
+		}
+		if (array_key_exists($threadCode, $membersByThread) == false) {
+		$membersByThread[$threadCode] = array();
+		}
+		if (in_array($userCode, $membersByThread[$threadCode], true) == false) {
+		$membersByThread[$threadCode][] = $userCode;
+		}
+		}
+		
+		$threadMessages = array();
+		$allMessageCodes = array();
+		foreach ($threadCodes as $threadCode) {
+		$offset = $messagesOffset;
+		if (array_key_exists($threadCode, $messageOffsets)) {
+		$candidateOffset = (int)$messageOffsets[$threadCode];
+		if ($candidateOffset >= 0) {
+		$offset = $candidateOffset;
+		}
+		}
+		
+		$messageStmt = $pdo->prepare('SELECT messageCode, threadCode, senderUserCode, content, sentAt, createdAt, updatedAt, replyToMessageCode FROM targetBbsMessages WHERE threadCode = ? AND (isDeleted IS NULL OR isDeleted = 0) ORDER BY COALESCE(sentAt, createdAt, updatedAt) ASC, id ASC LIMIT ? OFFSET ?');
+		$messageStmt->execute(array($threadCode, $messagesLimit, $offset));
+		while ($messageRow = $messageStmt->fetch(PDO::FETCH_ASSOC)) {
+		$messageCode = isset($messageRow['messageCode']) ? $messageRow['messageCode'] : null;
+		if ($messageCode === null || $messageCode === '') {
+		continue;
+		}
+		if (array_key_exists($threadCode, $threadMessages) == false) {
+		$threadMessages[$threadCode] = array();
+		}
+		$threadMessages[$threadCode][] = $messageRow;
+		$allMessageCodes[] = $messageCode;
+		}
+		}
+		
+		$attachmentsByMessage = array();
+		if (count($allMessageCodes) > 0) {
+		$attachmentSql = 'SELECT * FROM targetBbsMessageAttachments WHERE messageCode IN (' . implode(', ', array_fill(0, count($allMessageCodes), '?')) . ')';
+		$attachmentStmt = $pdo->prepare($attachmentSql);
+		$attachmentStmt->execute($allMessageCodes);
+		while ($attachmentRow = $attachmentStmt->fetch(PDO::FETCH_ASSOC)) {
+		$messageCode = isset($attachmentRow['messageCode']) ? $attachmentRow['messageCode'] : null;
+		if ($messageCode === null || $messageCode === '') {
+		continue;
+		}
+		if (array_key_exists($messageCode, $attachmentsByMessage) == false) {
+		$attachmentsByMessage[$messageCode] = array();
+		}
+		$attachmentsByMessage[$messageCode][] = $attachmentRow;
+		}
+		}
+		
+		$participantMap = array();
+		$buildParticipantPayload = function($userCode) use (&$participantMap, $buildParticipant) {
+		if ($userCode === null || $userCode === '') {
+		return null;
+		}
+		$normalized = trim((string)$userCode);
+		if ($normalized === '') {
+		return null;
+		}
+		if (array_key_exists($normalized, $participantMap)) {
+		return $participantMap[$normalized];
+		}
+		$payload = null;
+		if (is_callable($buildParticipant)) {
+		$payload = call_user_func($buildParticipant, $normalized, null);
+		}
+		if ($payload === null) {
+		$payload = array('userCode' => $normalized, 'displayName' => $normalized);
+		}
+		$participantMap[$normalized] = $payload;
+		return $payload;
+		};
+		
+		$threadsPayload = array();
+		foreach ($threads as $threadCode => $threadRow) {
+		$threadParticipantCodes = array();
+		if (array_key_exists($threadCode, $membersByThread)) {
+		$threadParticipantCodes = $membersByThread[$threadCode];
+		}
+		if (isset($threadRow['createdByUserCode']) && $threadRow['createdByUserCode'] !== '') {
+		$threadParticipantCodes[] = $threadRow['createdByUserCode'];
+		}
+		
+		$messagesPayload = array();
+		if (array_key_exists($threadCode, $threadMessages)) {
+		foreach ($threadMessages[$threadCode] as $messageRow) {
+		$senderUserCode = isset($messageRow['senderUserCode']) ? $messageRow['senderUserCode'] : null;
+		if ($senderUserCode !== null && $senderUserCode !== '') {
+		$threadParticipantCodes[] = $senderUserCode;
+		}
+		
+		$messageCode = isset($messageRow['messageCode']) ? $messageRow['messageCode'] : null;
+		$attachments = array();
+		if ($messageCode !== null && array_key_exists($messageCode, $attachmentsByMessage)) {
+		foreach ($attachmentsByMessage[$messageCode] as $attachmentRow) {
+		$builtAttachment = null;
+		if (is_callable($buildAttachment)) {
+		$builtAttachment = call_user_func($buildAttachment, $attachmentRow);
+		}
+		if ($builtAttachment === null) {
+		$builtAttachment = $attachmentRow;
+		}
+		$attachments[] = $builtAttachment;
+		}
+		}
+		
+		$messagesPayload[] = array(
+		'messageCode' => $messageCode,
+		'threadCode' => isset($messageRow['threadCode']) ? $messageRow['threadCode'] : null,
+		'senderUserCode' => $senderUserCode,
+		'content' => isset($messageRow['content']) ? $messageRow['content'] : null,
+		'sentAt' => isset($messageRow['sentAt']) ? $messageRow['sentAt'] : (isset($messageRow['createdAt']) ? $messageRow['createdAt'] : null),
+		'createdAt' => isset($messageRow['createdAt']) ? $messageRow['createdAt'] : null,
+		'updatedAt' => isset($messageRow['updatedAt']) ? $messageRow['updatedAt'] : null,
+'replyToMessageCode' => isset($messageRow['replyToMessageCode']) ? $messageRow['replyToMessageCode'] : null,
+		'attachments' => $attachments,
+		);
+		}
+		}
+		
+		$participantPayloads = array();
+		foreach ($threadParticipantCodes as $code) {
+		$payload = $buildParticipantPayload($code);
+		if ($payload !== null) {
+		$participantPayloads[] = $payload;
+		}
+		}
+		
+		$lastActivityAt = null;
+		if (count($messagesPayload) > 0) {
+		$lastMessage = $messagesPayload[count($messagesPayload) - 1];
+		$lastActivityAt = isset($lastMessage['sentAt']) ? $lastMessage['sentAt'] : (isset($lastMessage['createdAt']) ? $lastMessage['createdAt'] : null);
+		} else if (isset($threadRow['lastMessageAt']) && $threadRow['lastMessageAt'] !== null) {
+		$lastActivityAt = $threadRow['lastMessageAt'];
+		} else {
+		$lastActivityAt = isset($threadRow['updatedAt']) ? $threadRow['updatedAt'] : (isset($threadRow['createdAt']) ? $threadRow['createdAt'] : null);
+		}
+		
+		$threadsPayload[] = array(
+		'threadCode' => $threadCode,
+		'threadType' => isset($threadRow['threadType']) ? $threadRow['threadType'] : null,
+		'title' => isset($threadRow['title']) ? $threadRow['title'] : null,
+		'description' => isset($threadRow['description']) ? $threadRow['description'] : null,
+		'createdByUserCode' => isset($threadRow['createdByUserCode']) ? $threadRow['createdByUserCode'] : null,
+		'lastMessageSnippet' => isset($threadRow['lastMessageSnippet']) ? $threadRow['lastMessageSnippet'] : null,
+		'lastMessageSenderCode' => isset($threadRow['lastMessageSenderCode']) ? $threadRow['lastMessageSenderCode'] : null,
+		'createdAt' => isset($threadRow['createdAt']) ? $threadRow['createdAt'] : null,
+		'updatedAt' => isset($threadRow['updatedAt']) ? $threadRow['updatedAt'] : null,
+		'lastActivityAt' => $lastActivityAt,
+		'messages' => $messagesPayload,
+		'participants' => $participantPayloads,
+		'unreadCount' => 0,
+		);
+		}
+		
+		$participantsPayload = array_values($participantMap);
+		$viewerPayload = null;
+		if ($viewerUserCode !== null && $viewerUserCode !== '') {
+		$viewerPayload = $buildParticipantPayload($viewerUserCode);
+		}
+		
+		$result['threads'] = $threadsPayload;
+		$result['participants'] = $participantsPayload;
+		$result['pagination'] = array(
+		'threadsLimit' => $threadsLimit,
+		'threadsOffset' => $threadsOffset,
+		'messagesLimit' => $messagesLimit,
+		'messagesOffset' => $messagesOffset,
+		);
+		if ($viewerPayload !== null) {
+		$result['viewer'] = $viewerPayload;
+		}
+		
+		return $result;
+		}
+		
 	public static function fetchActiveTargetByCode($targetCode, $loginUserCode, $pdoTarget, $userInfo, $pdoCommon)
 	{
 		$stmt = $pdoTarget->prepare('SELECT * FROM targets WHERE targetCode = ? AND (isDeleted IS NULL OR isDeleted = 0) LIMIT 1');
