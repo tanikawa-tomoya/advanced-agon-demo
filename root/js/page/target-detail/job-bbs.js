@@ -732,6 +732,12 @@
       header.appendChild(this.renderThreadParticipants(thread));
 
       var info = createElement('div', 'target-bbs__thread-info');
+      var nameRow = createElement('div', 'target-bbs__thread-name-row');
+      var name = createElement('p', 'target-bbs__thread-name');
+      name.textContent = thread.title || 'スレッド';
+      nameRow.appendChild(name);
+      info.appendChild(nameRow);
+
       var metaRow = createElement('div', 'target-bbs__thread-meta-row');
       var meta = createElement('time', 'target-bbs__thread-meta');
       if (thread.lastActivityAt)
@@ -740,6 +746,21 @@
       }
       meta.textContent = formatThreadMeta(thread) || '—';
       metaRow.appendChild(meta);
+
+      var metaActions = createElement('div', 'target-bbs__thread-meta-actions');
+      var editButton = this.createRoundActionButton('edit', {
+        label: '',
+        hoverLabel: 'スレッド名を編集',
+        ariaLabel: 'このスレッドを編集',
+        srLabel: 'スレッドを編集'
+      }, 'target-bbs__thread-edit-inline');
+      editButton.addEventListener('click', (event) =>
+      {
+        event.stopPropagation();
+        event.preventDefault();
+        this.handleThreadRename(thread, editButton);
+      });
+      metaActions.appendChild(editButton);
 
       if (this.canDeleteThread(thread))
       {
@@ -755,8 +776,9 @@
           event.preventDefault();
           this.handleDeleteThread(thread, deleteButton);
         });
-        metaRow.appendChild(deleteButton);
+        metaActions.appendChild(deleteButton);
       }
+      metaRow.appendChild(metaActions);
       info.appendChild(metaRow);
 
       header.appendChild(info);
@@ -1826,7 +1848,7 @@
       }
     }
 
-    async handleThreadRename(thread)
+    async handleThreadRename(thread, sourceButton)
     {
       if (!thread)
       {
@@ -1837,10 +1859,18 @@
       {
         return;
       }
-      if (this.refs.threadEditButton)
+      var editButton = sourceButton || this.refs.threadEditButton;
+      var shouldUpdateLabel = editButton && editButton === this.refs.threadEditButton;
+      var originalLabel = shouldUpdateLabel && typeof editButton.textContent === 'string'
+        ? editButton.textContent
+        : null;
+      if (editButton)
       {
-        this.refs.threadEditButton.disabled = true;
-        this.refs.threadEditButton.textContent = '更新中…';
+        editButton.disabled = true;
+        if (shouldUpdateLabel)
+        {
+          editButton.textContent = '更新中…';
+        }
       }
       try
       {
@@ -1861,10 +1891,13 @@
       }
       finally
       {
-        if (this.refs.threadEditButton)
+        if (editButton)
         {
-          this.refs.threadEditButton.disabled = false;
-          this.refs.threadEditButton.textContent = 'スレッドを編集';
+          editButton.disabled = false;
+          if (shouldUpdateLabel && originalLabel != null)
+          {
+            editButton.textContent = originalLabel;
+          }
         }
       }
     }
