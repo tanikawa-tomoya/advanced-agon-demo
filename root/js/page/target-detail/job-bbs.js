@@ -404,7 +404,7 @@
       }
       addButton.addEventListener('click', () =>
       {
-        this.openUserSelectModal();
+        this.handleThreadCreate();
       });
       this.refs.threadAddButton = addButton;
       threadActions.appendChild(addButton);
@@ -755,9 +755,20 @@
       }
       if (thread && Array.isArray(thread.participants))
       {
-        return thread.participants.filter(isActiveParticipant);
+        recipients = thread.participants.filter(isActiveParticipant);
       }
-      return [];
+      if (recipients.length)
+      {
+        return recipients;
+      }
+      var fallbackParticipants = Array.isArray(this.state.participants) ? this.state.participants : [];
+      var viewerCode = this.state && this.state.viewer && this.state.viewer.userCode
+        ? this.state.viewer.userCode
+        : '';
+      return fallbackParticipants.filter(function (participant)
+      {
+        return isActiveParticipant(participant) && normalizeText(participant.userCode) !== viewerCode;
+      });
     }
 
     buildThreadParticipantNames(thread)
@@ -960,9 +971,12 @@
       {
         return;
       }
-      var recipients = resolveThreadParticipants(thread, this.state.viewer);
+      var recipients = this.getThreadParticipantsForDisplay(thread);
       if (!recipients.length)
       {
+        var placeholder = createElement('p', 'target-bbs__recipient-empty');
+        placeholder.textContent = 'ターゲットの参加者全員が投稿できます';
+        this.refs.recipientContainer.appendChild(placeholder);
         return;
       }
       var avatarService = this.getAvatarService();
@@ -1133,7 +1147,7 @@
 
     async selectSenderUser(thread)
     {
-      var participants = resolveThreadParticipants(thread, this.state && this.state.viewer);
+      var participants = this.getThreadParticipantsForDisplay(thread);
       var availableUsers = [];
       var seen = Object.create(null);
       participants.forEach(function (participant)
@@ -1652,11 +1666,7 @@
 
     async handleThreadCreate(users)
     {
-      var recipients = extractRecipientCodes(users);
-      if (!recipients.length)
-      {
-        return;
-      }
+      var recipients = this.normalizeCodeList(extractRecipientCodes(users));
       var duplicateThread = this.findThreadByRecipients(recipients);
       if (duplicateThread)
       {
