@@ -470,6 +470,17 @@ CREATE TABLE IF NOT EXISTS userContentClipBookmarks (
 );
 CREATE INDEX IF NOT EXISTS idx_userContentClipBookmarks_content ON userContentClipBookmarks(contentCode);
 CREATE INDEX IF NOT EXISTS idx_userContentClipBookmarks_user ON userContentClipBookmarks(userCode);
+CREATE TABLE IF NOT EXISTS userContentsAccess (
+    userCode VARCHAR(32) NOT NULL,
+    contentsCode VARCHAR(32) NOT NULL,
+    startDate VARCHAR(32),
+    endDate VARCHAR(32),
+    createdAt VARCHAR(32),
+    updatedAt VARCHAR(32),
+    PRIMARY KEY (userCode, contentsCode)
+);
+CREATE INDEX IF NOT EXISTS idx_userContentsAccess_user ON userContentsAccess(userCode);
+CREATE INDEX IF NOT EXISTS idx_userContentsAccess_contents ON userContentsAccess(contentsCode);
 COMMIT;
 SQL
 
