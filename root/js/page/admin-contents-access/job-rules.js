@@ -225,7 +225,7 @@
       }
 
       var decorated = this.page.decorateActionButton(submit, {
-        buttonType: 'pill-button/ghost',
+        buttonType: 'pill-button/outline',
         baseClass: 'btn btn--ghost',
         label: submit.textContent || '絞り込む'
       }) || submit;
