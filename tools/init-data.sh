@@ -10,6 +10,16 @@ if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
     fi
 fi
 
+if ! command -v ffmpeg >/dev/null 2>&1; then
+    echo "Error: ffmpeg is not installed or not in PATH." >&2
+    exit 1
+fi
+
+if ! command -v convert >/dev/null 2>&1; then
+    echo "Error: ImageMagick 'convert' command is not installed or not in PATH." >&2
+    exit 1
+fi
+
 DOC_ROOT="/var/www/htmlv"
 DATA_ROOT_DISPLAY="${DOC_ROOT}/<site-id>"
 DEFAULT_OWNER="www-data:www-data"
@@ -320,7 +330,8 @@ generate_sample_video() {
         return
     fi
 
-    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 10 "${target_path}" >/dev/null 2>&1
+    echo "Generating sample video (3s) for ${user_code}: ${target_path}"
+    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 3 "${target_path}" >/dev/null 2>&1
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
@@ -339,7 +350,50 @@ generate_sample_audio() {
         return
     fi
 
+    echo "Generating sample audio (10s) for ${user_code}: ${target_path}"
     ffmpeg -y -f lavfi -i "sine=frequency=100:duration=10:beep_factor=10" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_pdf() {
+    local user_code="$1"
+    local relative_path="$2"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    echo "Generating sample PDF for ${user_code}: ${target_path}"
+    convert -size 1200x1600 xc:white -gravity center -pointsize 48 -fill black \
+        -annotate 0 "Sample PDF for ${user_code}" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_image() {
+    local user_code="$1"
+    local relative_path="$2"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    echo "Generating sample image for ${user_code}: ${target_path}"
+    convert -size 1280x720 gradient:steelblue-snow -gravity center -pointsize 48 -fill navy \
+        -annotate 0 "Sample Image for ${user_code}" "${target_path}" >/dev/null 2>&1
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
@@ -1430,10 +1484,11 @@ SQL
 seed_user_contents_samples() {
     local db_path="$1"
     local -a templates=(
-        "document|application/pdf|5120|reference-guide.pdf"
+        "document|application/pdf|0|reference-guide.pdf"
         "note|text/plain|2048|coaching-memo.txt"
         "video|video/mp4|0|highlight.mp4"
         "audio|audio/wav|0|sweep.wav"
+        "image|image/png|0|milestone.png"
     )
 
     local user_code
@@ -1450,13 +1505,22 @@ seed_user_contents_samples() {
             local file_path="content/${content_code}.${extension}"
             local duration="NULL"
 
-            if [[ "${content_type}" == "video" ]]; then
-                file_size=$(generate_sample_video "${user_code}" "${file_path}")
-                duration=10
-            elif [[ "${content_type}" == "audio" ]]; then
-                file_size=$(generate_sample_audio "${user_code}" "${file_path}")
-                duration=10
-            fi
+            case "${content_type}" in
+                video)
+                    file_size=$(generate_sample_video "${user_code}" "${file_path}")
+                    duration=3
+                    ;;
+                audio)
+                    file_size=$(generate_sample_audio "${user_code}" "${file_path}")
+                    duration=10
+                    ;;
+                document)
+                    file_size=$(generate_sample_pdf "${user_code}" "${file_path}")
+                    ;;
+                image)
+                    file_size=$(generate_sample_image "${user_code}" "${file_path}")
+                    ;;
+            esac
 
             file_size=${file_size:-0}
 
