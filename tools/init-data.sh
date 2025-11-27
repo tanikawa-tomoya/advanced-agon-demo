@@ -485,7 +485,7 @@ COMMIT;
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
-        seed_user_contents_samples "$db_path"
+        seed_contents_test_data "$db_path"
     fi
 }
 
@@ -1415,9 +1415,38 @@ SQL
     done
 }
 
+seed_contents_access_test_data() {
+    local db_path="$1"
+    local -a entries=(
+        "${ADMIN_USER_CODE}|contents-admin-001-01|2024-03-01 00:00|"
+        "${OPERATOR_USER_CODES[0]}|contents-operator-001-01|2024-03-05 00:00|2024-05-31 23:59"
+        "${USER_CODES[0]}|contents-user-001-02|2024-03-10 09:00|"
+        "${USER_CODES[1]}|contents-user-002-01||2024-04-30 23:59"
+        "${OPERATOR_USER_CODES[1]:-${OPERATOR_USER_CODES[0]}}|contents-operator-002-03|2024-03-15 00:00|2024-03-31 23:59"
+    )
+
+    local entry
+    for entry in "${entries[@]}"; do
+        IFS='|' read -r user_code content_code start_date end_date <<<"${entry}"
+        sqlite3 "$db_path" <<SQL
+INSERT OR REPLACE INTO userContentsAccess (
+    userCode, contentsCode, startDate, endDate, createdAt, updatedAt
+) VALUES (
+    '$(sqlite_escape "${user_code}")',
+    '$(sqlite_escape "${content_code}")',
+    '$(sqlite_escape "${start_date}")',
+    '$(sqlite_escape "${end_date}")',
+    datetime('now','localtime'),
+    datetime('now','localtime')
+);
+SQL
+    done
+}
+
 seed_contents_test_data() {
     local db_path="$1"
     seed_user_contents_samples "$db_path"
+    seed_contents_access_test_data "$db_path"
 }
 
 seed_target_test_data() {
