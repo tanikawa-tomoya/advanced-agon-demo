@@ -254,17 +254,25 @@
       }
 
       host.innerHTML = '';
-      const createBtn = this.page.buttonService.createActionButton({
-        label: '新規追加',
-        icon: 'plus',
-        variant: 'primary',
-        attrs: { 'data-admin-purchase-create': 'true' }
+
+      const createLabel = '新規追加';
+      const reloadLabel = '再読み込み';
+
+      const createBtn = this.page.buttonService.createActionButton('expandable-icon-button/add', {
+        baseClass: 'target-management__icon-button target-management__icon-button--primary user-management__add',
+        label: createLabel,
+        ariaLabel: createLabel,
+        hoverLabel: createLabel,
+        type: 'button',
+        attributes: { 'data-admin-purchase-create': 'true' }
       });
-      const reloadBtn = this.page.buttonService.createActionButton({
-        label: '再読み込み',
-        icon: 'reload',
-        variant: 'ghost',
-        attrs: { 'data-admin-purchase-reload': 'true' }
+      const reloadBtn = this.page.buttonService.createActionButton('expandable-icon-button/reload', {
+        baseClass: 'target-management__icon-button target-management__icon-button--ghost user-management__reload',
+        label: reloadLabel,
+        ariaLabel: reloadLabel,
+        hoverLabel: reloadLabel,
+        type: 'button',
+        attributes: { 'data-admin-purchase-reload': 'true' }
       });
 
       host.appendChild(createBtn);
