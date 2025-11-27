@@ -729,7 +729,6 @@
       }
 
       var header = createElement('div', 'target-bbs__thread-header');
-      header.appendChild(this.renderThreadParticipants(thread));
 
       var info = createElement('div', 'target-bbs__thread-info');
       var nameRow = createElement('div', 'target-bbs__thread-name-row');
@@ -1150,6 +1149,12 @@
       var participant = resolveParticipantFromThread(thread, senderCode) || (senderCode ? { userCode: senderCode, displayName: senderCode } : null);
       var authorName = participant && (participant.displayName || participant.userCode) ? (participant.displayName || participant.userCode) : '不明なユーザー';
 
+      var body = createElement('div', 'target-bbs__message-body');
+      var content = createElement('p', 'target-bbs__post-text');
+      content.textContent = message.content || '';
+      body.appendChild(content);
+
+      wrapper.appendChild(body);
       var header = createElement('header', 'target-bbs__post-header');
       var headerRow = createElement('div', 'target-bbs__message-row');
       var authorBlock = createElement('div', 'target-bbs__message-author');
@@ -1186,13 +1191,10 @@
       headerRow.appendChild(actionBlock);
       header.appendChild(headerRow);
 
-      var body = createElement('div', 'target-bbs__message-body');
-      var content = createElement('p', 'target-bbs__post-text');
-      content.textContent = message.content || '';
-      body.appendChild(content);
+      var divider = createElement('hr', 'target-bbs__message-divider');
 
       wrapper.appendChild(header);
-      wrapper.appendChild(body);
+      wrapper.appendChild(divider);
       return wrapper;
     }
 
@@ -1776,10 +1778,144 @@
       return names.join('・');
     }
 
-    promptThreadTitle(defaultTitle)
+    openThreadTitleModal(options)
+    {
+      var title = normalizeText(options && options.title) || 'スレッドを編集';
+      var description = normalizeText(options && options.description)
+        || 'スレッド名を入力してください。';
+      var confirmLabel = normalizeText(options && options.confirmLabel) || '保存';
+      var cancelLabel = normalizeText(options && options.cancelLabel) || 'キャンセル';
+      var defaultValue = normalizeText(options && options.defaultValue) || '';
+
+      var backdrop = createElement('div', 'target-bbs__modal-backdrop');
+      var modal = createElement('div', 'target-bbs__modal');
+      var titleBlock = createElement('div', 'target-bbs__modal-header');
+      var heading = createElement('h3', 'target-bbs__modal-title');
+      heading.textContent = title;
+      titleBlock.appendChild(heading);
+
+      var descriptionEl = createElement('p', 'target-bbs__modal-description');
+      descriptionEl.textContent = description;
+      titleBlock.appendChild(descriptionEl);
+
+      var form = createElement('form', 'target-bbs__modal-form');
+      var field = createElement('label', 'target-bbs__modal-field');
+      var inputLabel = createElement('span', 'target-bbs__modal-label');
+      inputLabel.textContent = 'スレッド名';
+      var input = createElement('input', 'target-bbs__modal-input');
+      input.type = 'text';
+      input.name = 'threadTitle';
+      input.value = defaultValue;
+      input.placeholder = 'スレッド名を入力';
+      input.autocomplete = 'off';
+      field.appendChild(inputLabel);
+      field.appendChild(input);
+      form.appendChild(field);
+
+      var error = createElement('p', 'target-bbs__modal-error');
+      error.setAttribute('aria-live', 'polite');
+      form.appendChild(error);
+
+      var actions = createElement('div', 'target-bbs__modal-actions');
+      var cancel = createElement('button', 'target-bbs__modal-button target-bbs__modal-button--ghost');
+      cancel.type = 'button';
+      cancel.textContent = cancelLabel || 'キャンセル';
+      var submit = createElement('button', 'target-bbs__modal-button target-bbs__modal-button--primary');
+      submit.type = 'submit';
+      submit.textContent = confirmLabel || '保存';
+      actions.appendChild(cancel);
+      actions.appendChild(submit);
+      form.appendChild(actions);
+
+      modal.appendChild(titleBlock);
+      modal.appendChild(form);
+      backdrop.appendChild(modal);
+
+      return new Promise((resolve) =>
+      {
+        var closed = false;
+        var handleKey = function (event)
+        {
+          if (event.key === 'Escape')
+          {
+            document.removeEventListener('keydown', handleKey);
+            finish(null);
+          }
+        };
+
+        var finish = (value) =>
+        {
+          if (closed)
+          {
+            return;
+          }
+          closed = true;
+          document.removeEventListener('keydown', handleKey);
+          if (backdrop.parentNode)
+          {
+            backdrop.parentNode.removeChild(backdrop);
+          }
+          resolve(value);
+        };
+
+        var validate = () =>
+        {
+          var value = normalizeText(input.value);
+          if (!value)
+          {
+            error.textContent = 'スレッド名を入力してください。';
+            input.focus();
+            return null;
+          }
+          error.textContent = '';
+          return value;
+        };
+
+        form.addEventListener('submit', (event) =>
+        {
+          event.preventDefault();
+          var value = validate();
+          if (value == null)
+          {
+            return;
+          }
+          finish(value);
+        });
+
+        cancel.addEventListener('click', () =>
+        {
+          finish(null);
+        });
+
+        backdrop.addEventListener('click', (event) =>
+        {
+          if (event.target === backdrop)
+          {
+            finish(null);
+          }
+        });
+
+        document.addEventListener('keydown', handleKey);
+
+        window.setTimeout(() =>
+        {
+          input.focus();
+          input.select();
+        }, 0);
+
+        document.body.appendChild(backdrop);
+      });
+    }
+
+    async promptThreadTitle(defaultTitle)
     {
       var suggested = defaultTitle || '新規スレッド';
-      var input = window.prompt('スレッド名を入力してください', suggested);
+      var input = await this.openThreadTitleModal({
+        title: 'スレッド名を編集',
+        description: 'スレッドのタイトルを入力してください。',
+        confirmLabel: '保存する',
+        defaultValue: suggested
+      });
       if (input == null)
       {
         return null;
@@ -1810,7 +1946,7 @@
         return;
       }
       var defaultTitle = this.deriveThreadTitleFromRecipients(recipients);
-      var threadTitle = this.promptThreadTitle(defaultTitle);
+      var threadTitle = await this.promptThreadTitle(defaultTitle);
       if (threadTitle == null)
       {
         return;
@@ -1854,7 +1990,7 @@
       {
         return;
       }
-      var nextTitle = this.promptThreadTitle(thread.title);
+      var nextTitle = await this.promptThreadTitle(thread.title);
       if (nextTitle == null)
       {
         return;
