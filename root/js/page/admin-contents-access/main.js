@@ -101,6 +101,7 @@
     async _runJobsSequentially()
     {
       const queue = [
+        { src: '/js/page/admin-contents-access/job-form.js', exportName: 'JobForm' },
         { src: '/js/page/admin-contents-access/job-rules.js', exportName: 'JobRules' },
         { src: '/js/page/admin-contents-access/job-help.js', exportName: 'JobHelp' }
       ];

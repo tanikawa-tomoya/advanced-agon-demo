@@ -48,8 +48,10 @@
       this.state = document.querySelector(sel.state);
       this.actionsHost = document.querySelector(sel.actions);
       this.formHost = document.querySelector(sel.formHost);
+      this.formJob = this.page && this.page.formJob ? this.page.formJob : null;
       this.records = [];
       this.filtered = [];
+      this._handleFormCreated = this._handleFormCreated.bind(this);
     }
 
     async run()
@@ -57,7 +59,13 @@
       this._renderActions();
       this._bindEvents();
       this._decorateFilterButton();
+      this._bindFormEvents();
       await this.refresh();
+    }
+
+    _bindFormEvents()
+    {
+      document.addEventListener('contentsAccess:created', this._handleFormCreated);
     }
 
     _renderActions()
@@ -343,8 +351,35 @@
       }
     }
 
+    _handleFormCreated(event)
+    {
+      const detail = event && event.detail;
+      if (!detail)
+      {
+        return;
+      }
+      const record = this._normalizeRecord(detail, this.records.length);
+      record.createdAt = detail.createdAt || record.createdAt || '';
+      record.updatedAt = detail.updatedAt || record.updatedAt || record.createdAt;
+      if (!record.id)
+      {
+        record.id = 'local-' + Date.now();
+      }
+      this.records = [record].concat(this.records || []);
+      this.applyFilters();
+      if (this.page && typeof this.page.showToast === 'function')
+      {
+        this.page.showToast('アクセス権限を作成しました（デモ）。', 'success');
+      }
+    }
+
     _handleCreate()
     {
+      if (this.formJob && typeof this.formJob.openCreateForm === 'function')
+      {
+        this.formJob.openCreateForm();
+        return;
+      }
       if (this.formHost) {
         this.formHost.classList.remove('hidden');
         this.formHost.removeAttribute('hidden');
