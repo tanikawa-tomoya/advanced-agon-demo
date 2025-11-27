@@ -34,21 +34,17 @@
     {
       this.selectorConfig = {
         root: '[data-contents-access-root]',
+        host: '[data-contents-access-host]',
         helpButton: '#contents-access-help-button',
         helpModal: '#contents-access-help-modal',
-        summaryRoot: '[data-contents-access-summary]',
-        summaryTotal: '[data-contents-access-total]',
-        summaryRestricted: '[data-contents-access-restricted]',
-        summaryPending: '[data-contents-access-pending]',
+        actions: '[data-contents-access-actions]',
+        summary: '[data-contents-access-summary]',
         filterForm: '[data-contents-access-filter-form]',
-        filterType: '[data-contents-access-filter-type]',
-        filterLevel: '[data-contents-access-filter-level]',
-        filterGroup: '[data-contents-access-filter-group]',
-        refreshButton: '[data-contents-access-refresh]',
-        updatedAt: '[data-contents-access-updated]',
-        feedback: '[data-contents-access-feedback]',
+        keyword: '[data-contents-access-keyword]',
+        state: '[data-contents-access-state]',
         tableBody: '[data-contents-access-tbody]',
-        policyApply: '[data-contents-access-policy-save]'
+        feedback: '[data-contents-access-feedback]',
+        formHost: '[data-contents-access-form-host]'
       };
 
       this.apiConfig = {
@@ -73,7 +69,7 @@
 
       this.headerService = new window.Services.Header({ display: { forceLoginButton: false, hideLoginButton: false, showUserInfoWhenLoggedin: true } });
       this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
-      const host = document.querySelector(this.selectorConfig.root) || document.body;
+      const host = document.querySelector(this.selectorConfig.host) || document.body;
       this.loadingService = new window.Services.Loading(host);
       this.helpModalService = new window.Services.HelpModal({ closeOnEsc: true, closeOnBackdrop: true });
       const breadcrumbContainer = document.querySelector('.screen-page') || document.body;
@@ -105,7 +101,6 @@
     async _runJobsSequentially()
     {
       const queue = [
-        { src: '/js/page/admin-contents-access/job-summary.js', exportName: 'JobSummary' },
         { src: '/js/page/admin-contents-access/job-rules.js', exportName: 'JobRules' },
         { src: '/js/page/admin-contents-access/job-help.js', exportName: 'JobHelp' }
       ];

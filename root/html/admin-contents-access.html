@@ -57,142 +57,70 @@
           </button>
         </div>
         <p class="screen-intro__summary">
-          公開レベルや閲覧対象をまとめて確認し、権限に応じてコンテンツ配信を制御します。
+          init-data.sh で投入される contentsAccess のレコードを一覧し、ユーザー管理と同じ操作性で確認・登録できます。
         </p>
       </section>
 
-      <section class="screen-preview contents-access" id="contents-access-root" data-contents-access-root>
-        <div class="contents-access__header">
-          <div class="contents-access__summary" data-contents-access-summary>
-            <div class="contents-access__stat">
-              <p class="contents-access__stat-label">公開中のコンテンツ</p>
-              <p class="contents-access__stat-value" data-contents-access-total>0</p>
-              <p class="contents-access__stat-note">限定公開・会員限定を含む</p>
-            </div>
-            <div class="contents-access__stat">
-              <p class="contents-access__stat-label">限定公開</p>
-              <p class="contents-access__stat-value" data-contents-access-restricted>0</p>
-              <p class="contents-access__stat-note">グループ指定や時間帯を考慮</p>
-            </div>
-            <div class="contents-access__stat">
-              <p class="contents-access__stat-label">承認待ちリクエスト</p>
-              <p class="contents-access__stat-value" data-contents-access-pending>0</p>
-              <p class="contents-access__stat-note">閲覧リクエストや追加権限の保留</p>
-            </div>
-          </div>
-          <div class="contents-access__controls">
-            <form class="contents-access__filters" data-contents-access-filter-form>
-              <label class="contents-access__filter-field">
-                <span class="contents-access__filter-label">コンテンツ種別</span>
-                <select name="type" class="contents-access__filter-select" data-contents-access-filter-type>
-                  <option value="">すべて</option>
-                  <option value="material">教材</option>
-                  <option value="video">動画</option>
-                  <option value="document">資料</option>
-                  <option value="event">イベント</option>
-                </select>
-              </label>
-              <label class="contents-access__filter-field">
-                <span class="contents-access__filter-label">公開レベル</span>
-                <select name="accessLevel" class="contents-access__filter-select" data-contents-access-filter-level>
-                  <option value="">すべて</option>
-                  <option value="public">全員</option>
-                  <option value="restricted">限定公開</option>
-                  <option value="private">非公開</option>
-                </select>
-              </label>
-              <label class="contents-access__filter-field">
-                <span class="contents-access__filter-label">対象グループ</span>
-                <input
-                  type="search"
-                  name="group"
-                  placeholder="ロール・クラブ・チーム名で検索"
-                  class="contents-access__filter-input"
-                  data-contents-access-filter-group
-                />
-              </label>
-              <div class="contents-access__filter-actions">
-                <button type="submit" class="btn btn--ghost">絞り込む</button>
-              </div>
-            </form>
-            <div class="contents-access__refresh-row">
-              <button type="button" class="btn btn--ghost" id="contents-access-refresh" data-contents-access-refresh>
-                最新の情報を取得
-              </button>
-              <p class="contents-access__updated" data-contents-access-updated aria-live="polite"></p>
-            </div>
-          </div>
-        </div>
-
-        <div class="contents-access__feedback" data-contents-access-feedback aria-live="polite"></div>
-
-        <div class="contents-access__table-wrapper" role="region" aria-label="アクセスルール一覧">
-          <table class="contents-access__table">
-            <thead>
-              <tr>
-                <th scope="col">コンテンツ</th>
-                <th scope="col">カテゴリ</th>
-                <th scope="col">公開レベル</th>
-                <th scope="col">対象</th>
-                <th scope="col">配信ウィンドウ</th>
-                <th scope="col">最終更新</th>
-                <th scope="col">操作</th>
-              </tr>
-            </thead>
-            <tbody data-contents-access-tbody>
-              <tr>
-                <td colspan="7">読み込み中…</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <section class="contents-access__policies" aria-labelledby="contents-access-policies-title">
-          <div class="contents-access__policies-header">
+      <section class="screen-preview" id="contents-access-root" data-contents-access-root>
+        <div class="user-management contents-access" data-contents-access-host>
+          <div class="user-management__header">
             <div>
-              <h2 class="contents-access__policies-title" id="contents-access-policies-title">ポリシーテンプレート</h2>
-              <p class="contents-access__policies-summary">ロールやクラブ単位でアクセスルールをまとめて適用します。</p>
+              <h2 class="user-management__title">アクセス一覧</h2>
+              <p class="user-management__summary" data-contents-access-summary>全0件中 0件を表示</p>
             </div>
-            <button type="button" class="btn" data-contents-access-policy-save aria-label="ポリシーの更新を適用">
-              ポリシーを適用
-            </button>
+            <div class="user-management__controls admin-users__controls" data-contents-access-actions></div>
           </div>
-          <div class="contents-access__policy-grid">
-            <article class="contents-access__policy" data-contents-access-policy="supervisor">
-              <header class="contents-access__policy-header">
-                <p class="contents-access__policy-label">管理者</p>
-                <p class="contents-access__policy-meta">全領域閲覧 / 承認権限</p>
-              </header>
-              <ul class="contents-access__policy-list">
-                <li>全コンテンツを既定で閲覧可能</li>
-                <li>限定公開リクエストの承認を担当</li>
-                <li>配信ウィンドウの上書き設定が可能</li>
-              </ul>
-            </article>
-            <article class="contents-access__policy" data-contents-access-policy="operator">
-              <header class="contents-access__policy-header">
-                <p class="contents-access__policy-label">オペレーター</p>
-                <p class="contents-access__policy-meta">クラブ横断の運用担当</p>
-              </header>
-              <ul class="contents-access__policy-list">
-                <li>限定公開教材とイベント配信を閲覧</li>
-                <li>クラブ単位のアクセス範囲を調整</li>
-                <li>閲覧リクエストの一次レビューを担当</li>
-              </ul>
-            </article>
-            <article class="contents-access__policy" data-contents-access-policy="coach">
-              <header class="contents-access__policy-header">
-                <p class="contents-access__policy-label">コーチ</p>
-                <p class="contents-access__policy-meta">所属クラブ・担当生徒向け</p>
-              </header>
-              <ul class="contents-access__policy-list">
-                <li>担当クラブの限定公開コンテンツを閲覧</li>
-                <li>自チーム配信枠を編集し、公開申請を作成</li>
-                <li>フィードバック履歴を閲覧し、再利用</li>
-              </ul>
-            </article>
+
+          <form class="user-management__controls admin-users__filter" data-contents-access-filter-form>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">キーワード</span>
+              <input
+                type="search"
+                name="keyword"
+                placeholder="コンテンツコード / ユーザーコード"
+                class="user-management__input"
+                data-contents-access-keyword
+              />
+            </label>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">状態</span>
+              <select name="state" class="user-management__select" data-contents-access-state>
+                <option value="active" selected>配信中のみ</option>
+                <option value="upcoming">開始前のみ</option>
+                <option value="ended">終了済みのみ</option>
+                <option value="all">すべて</option>
+              </select>
+            </label>
+            <div class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label" aria-hidden="true"></span>
+              <button type="submit" class="btn btn--ghost">絞り込む</button>
+            </div>
+          </form>
+
+          <div class="user-management__table-wrapper">
+            <table class="user-table" data-contents-access-table>
+              <thead>
+                <tr>
+                  <th scope="col">コンテンツコード</th>
+                  <th scope="col">ユーザーコード</th>
+                  <th scope="col">公開開始</th>
+                  <th scope="col">公開終了</th>
+                  <th scope="col">作成</th>
+                  <th scope="col">更新</th>
+                  <th scope="col">操作</th>
+                </tr>
+              </thead>
+              <tbody data-contents-access-tbody>
+                <tr>
+                  <td colspan="7">読み込み中…</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </section>
+
+          <p class="user-management__feedback hidden" data-contents-access-feedback aria-live="polite" hidden></p>
+          <div class="admin-users__form-host hidden" data-contents-access-form-host hidden></div>
+        </div>
       </section>
     </main>
 

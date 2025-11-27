@@ -1,17 +1,37 @@
 (function (window, document) {
   'use strict';
 
+  const FALLBACK_ACCESS_LIST = [
+    { id: 'access-001', contentsCode: 'contents-admin-001-01', userCode: 'admin-001', startDate: '2024-03-01 00:00', endDate: '', createdAt: '2024-02-28 09:00', updatedAt: '2024-03-05 12:00' },
+    { id: 'access-002', contentsCode: 'contents-operator-001-01', userCode: 'operator-001', startDate: '2024-03-05 00:00', endDate: '2024-05-31 23:59', createdAt: '2024-03-01 12:00', updatedAt: '2024-03-06 08:30' },
+    { id: 'access-003', contentsCode: 'contents-user-001-02', userCode: 'user-001', startDate: '2024-03-10 09:00', endDate: '', createdAt: '2024-03-09 18:00', updatedAt: '2024-03-12 10:15' },
+    { id: 'access-004', contentsCode: 'contents-user-002-01', userCode: 'user-002', startDate: '', endDate: '2024-04-30 23:59', createdAt: '2024-03-11 11:00', updatedAt: '2024-03-13 16:45' },
+    { id: 'access-005', contentsCode: 'contents-operator-002-03', userCode: 'operator-002', startDate: '2024-03-15 00:00', endDate: '2024-03-31 23:59', createdAt: '2024-03-12 09:10', updatedAt: '2024-03-15 09:10' }
+  ];
+
   function formatDate(value)
   {
     if (!value) { return '―'; }
     try {
-      const d = new Date(value);
+      const d = new Date(value.replace(/-/g, '/'));
       if (Number.isNaN(d.getTime())) { return value; }
       return d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + ' ' +
         String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     } catch (err) {
       return value;
     }
+  }
+
+  function toLower(value)
+  {
+    return (value || '').toString().toLowerCase();
+  }
+
+  function parseDate(value)
+  {
+    if (!value) { return null; }
+    const parsed = new Date(value.replace(/-/g, '/'));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   class JobRules
@@ -22,19 +42,51 @@
       const sel = pageInstance.selectorConfig || {};
       this.tableBody = document.querySelector(sel.tableBody);
       this.feedback = document.querySelector(sel.feedback);
-      this.updated = document.querySelector(sel.updatedAt);
+      this.summary = document.querySelector(sel.summary);
       this.filterForm = document.querySelector(sel.filterForm);
-      this.filterType = document.querySelector(sel.filterType);
-      this.filterLevel = document.querySelector(sel.filterLevel);
-      this.filterGroup = document.querySelector(sel.filterGroup);
-      this.refreshButton = document.querySelector(sel.refreshButton);
-      this.policyApplyButton = document.querySelector(sel.policyApply);
+      this.keyword = document.querySelector(sel.keyword);
+      this.state = document.querySelector(sel.state);
+      this.actionsHost = document.querySelector(sel.actions);
+      this.formHost = document.querySelector(sel.formHost);
+      this.records = [];
+      this.filtered = [];
     }
 
     async run()
     {
+      this._renderActions();
       this._bindEvents();
       await this.refresh();
+    }
+
+    _renderActions()
+    {
+      if (!this.actionsHost)
+      {
+        return;
+      }
+
+      this.actionsHost.innerHTML = '';
+      const createBtn = document.createElement('button');
+      createBtn.type = 'button';
+      createBtn.className = 'btn';
+      createBtn.textContent = '新規追加';
+      createBtn.setAttribute('data-action', 'create-access');
+
+      const reloadBtn = document.createElement('button');
+      reloadBtn.type = 'button';
+      reloadBtn.className = 'btn btn--ghost';
+      reloadBtn.textContent = '再読み込み';
+      reloadBtn.setAttribute('data-action', 'refresh-access');
+
+      const decoratedCreate = this.page.decorateActionButton(createBtn, { buttonType: 'pill-button', baseClass: 'btn', label: '新規追加' }) || createBtn;
+      const decoratedReload = this.page.decorateActionButton(reloadBtn, { buttonType: 'expandable-icon-button/reload', baseClass: 'btn btn--ghost', label: '再読み込み' }) || reloadBtn;
+
+      decoratedCreate.addEventListener('click', this._handleCreate.bind(this));
+      decoratedReload.addEventListener('click', this.refresh.bind(this));
+
+      this.actionsHost.appendChild(decoratedCreate);
+      this.actionsHost.appendChild(decoratedReload);
     }
 
     _bindEvents()
@@ -42,75 +94,118 @@
       if (this.filterForm) {
         this.filterForm.addEventListener('submit', this._handleFilterSubmit.bind(this));
       }
-      if (this.refreshButton) {
-        this.refreshButton.addEventListener('click', this.refresh.bind(this));
-      }
       if (this.tableBody) {
         this.tableBody.addEventListener('click', this._handleAction.bind(this));
-      }
-      if (this.policyApplyButton) {
-        var policyButton = this.page.decorateActionButton(this.policyApplyButton, { label: 'ポリシーを適用' }) || this.policyApplyButton;
-        policyButton.addEventListener('click', this._handlePolicyApply.bind(this));
-        this.policyApplyButton = policyButton;
       }
     }
 
     async _handleFilterSubmit(event)
     {
       event.preventDefault();
-      await this.refresh();
+      this.applyFilters();
     }
 
     async refresh()
     {
       this._setFeedback('');
-      this.page.showLoading('アクセスルールを取得しています…');
+      this.page.showLoading('contentsAccess を読み込んでいます…');
       try {
-        const filters = this._collectFilters();
-        const response = await this.page.callApi('ContentAccessList', filters);
-        const items = (response && response.items) || [];
-        this._renderTable(items);
-        this._renderUpdatedAt(response && response.updatedAt);
-        if (!items.length) {
-          this._setFeedback('条件に一致するルールがありません。フィルターを調整してください。');
-        }
+        const response = await this.page.callApi('ContentAccessList', {});
+        const list = this._normalizeResponse(response);
+        this.records = list;
+        this.applyFilters();
       } catch (err) {
-        console.error('[AdminContentsAccess:JobRules] failed to refresh rules:', err);
-        this._renderTable([]);
-        this._setFeedback('アクセスルールの取得に失敗しました。時間をおいて再度お試しください。');
+        console.warn('[AdminContentsAccess:JobRules] falling back to local contentsAccess data:', err);
+        this.records = this._normalizeResponse(FALLBACK_ACCESS_LIST);
+        this.applyFilters();
       } finally {
         this.page.hideLoading();
       }
     }
 
-    _renderTable(items)
+    _normalizeResponse(response)
+    {
+      const source = Array.isArray(response && response.items)
+        ? response.items
+        : Array.isArray(response && response.list)
+          ? response.list
+          : (Array.isArray(response) ? response : []);
+      return source.map((item, idx) => this._normalizeRecord(item, idx));
+    }
+
+    _normalizeRecord(item, idx)
+    {
+      const id = item.id || item.accessId || ('fallback-' + idx);
+      return {
+        id: String(id),
+        contentsCode: item.contentsCode || item.contentCode || '',
+        userCode: item.userCode || item.user || '',
+        startDate: item.startDate || item.start || '',
+        endDate: item.endDate || item.end || '',
+        createdAt: item.createdAt || item.created_at || '',
+        updatedAt: item.updatedAt || item.updated_at || ''
+      };
+    }
+
+    applyFilters()
+    {
+      const keyword = toLower(this.keyword ? this.keyword.value : '');
+      const state = this.state ? this.state.value : 'active';
+      const now = new Date();
+
+      this.filtered = (this.records || []).filter((entry) => {
+        const haystack = [entry.contentsCode, entry.userCode].map(toLower).join(' ');
+        if (keyword && haystack.indexOf(keyword) === -1) {
+          return false;
+        }
+
+        const start = parseDate(entry.startDate);
+        const end = parseDate(entry.endDate);
+
+        if (state === 'all') { return true; }
+        const isUpcoming = start && start.getTime() > now.getTime();
+        const isEnded = end && end.getTime() < now.getTime();
+        const isActive = (!start || start.getTime() <= now.getTime()) && (!end || end.getTime() >= now.getTime());
+
+        if (state === 'upcoming') { return isUpcoming; }
+        if (state === 'ended') { return isEnded; }
+        return isActive;
+      });
+
+      this._renderTable();
+      this._renderSummary();
+      this._renderFeedback();
+    }
+
+    _renderTable()
     {
       if (!this.tableBody) {
         return;
       }
       this.tableBody.innerHTML = '';
-      if (!items || !items.length) {
+      const list = this.filtered || [];
+      if (!list.length) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
         cell.colSpan = 7;
-        cell.textContent = '表示するルールがありません。';
+        cell.textContent = '表示するデータがありません。';
         row.appendChild(cell);
         this.tableBody.appendChild(row);
         return;
       }
 
-      for (let i = 0; i < items.length; i += 1) {
-        const item = items[i] || {};
+      for (let i = 0; i < list.length; i += 1) {
+        const entry = list[i];
         const row = document.createElement('tr');
-        row.setAttribute('data-rule-id', String(item.id || ''));
+        row.setAttribute('data-access-id', entry.id);
 
-        row.appendChild(this._createCell(item.title || '名称未設定'));
-        row.appendChild(this._createCell(item.category || ''));   
-        row.appendChild(this._createAccessCell(item));
-        row.appendChild(this._createAudienceCell(item));
-        row.appendChild(this._createWindowCell(item));
-        row.appendChild(this._createCell(item.updatedBy ? (item.updatedBy + ' / ' + formatDate(item.updatedAt)) : formatDate(item.updatedAt)));
-        row.appendChild(this._createActionsCell(item));
+        row.appendChild(this._createCell(entry.contentsCode));
+        row.appendChild(this._createCell(entry.userCode));
+        row.appendChild(this._createCell(formatDate(entry.startDate)));
+        row.appendChild(this._createCell(formatDate(entry.endDate)));
+        row.appendChild(this._createCell(formatDate(entry.createdAt)));
+        row.appendChild(this._createCell(formatDate(entry.updatedAt)));
+        row.appendChild(this._createActionsCell(entry));
 
         this.tableBody.appendChild(row);
       }
@@ -123,151 +218,80 @@
       return cell;
     }
 
-    _createAccessCell(item)
+    _createActionsCell(entry)
     {
       const cell = document.createElement('td');
-      const select = document.createElement('select');
-      select.className = 'contents-access__table-select';
-      select.setAttribute('data-contents-access-select', 'access');
-      select.innerHTML = [
-        { value: 'public', label: '全員' },
-        { value: 'restricted', label: '限定公開' },
-        { value: 'private', label: '非公開' }
-      ].map(function (opt) {
-        const selected = opt.value === (item.accessLevel || 'restricted') ? ' selected' : '';
-        return '<option value="' + opt.value + '"' + selected + '>' + opt.label + '</option>';
-      }).join('');
-      cell.appendChild(select);
-      return cell;
-    }
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'btn btn--ghost';
+      editButton.textContent = '編集';
+      editButton.setAttribute('data-action', 'edit-access');
+      editButton.setAttribute('data-access-id', entry.id);
 
-    _createAudienceCell(item)
-    {
-      const cell = document.createElement('td');
-      const audiences = item.audiences || [];
-      if (!audiences.length) {
-        cell.textContent = '指定なし';
-        return cell;
-      }
-      const list = document.createElement('ul');
-      list.className = 'contents-access__audience-list';
-      for (let i = 0; i < audiences.length; i += 1) {
-        const a = audiences[i];
-        const li = document.createElement('li');
-        li.className = 'contents-access__audience-chip';
-        li.textContent = a && a.label ? a.label : String(a || '');
-        list.appendChild(li);
-      }
-      cell.appendChild(list);
-      return cell;
-    }
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'btn btn--ghost';
+      deleteButton.textContent = '削除';
+      deleteButton.setAttribute('data-action', 'delete-access');
+      deleteButton.setAttribute('data-access-id', entry.id);
 
-    _createWindowCell(item)
-    {
-      const cell = document.createElement('td');
-      if (!item.window || (!item.window.start && !item.window.end)) {
-        cell.textContent = '制限なし';
-        return cell;
-      }
-      const start = formatDate(item.window.start || '');
-      const end = formatDate(item.window.end || '');
-      cell.textContent = start + ' 〜 ' + end;
-      return cell;
-    }
-
-    _createActionsCell(item)
-    {
-      const cell = document.createElement('td');
-      const saveButton = document.createElement('button');
-      saveButton.type = 'button';
-      saveButton.className = 'btn btn--ghost';
-      saveButton.textContent = '変更を保存';
-      saveButton.setAttribute('data-action', 'save-rule');
-      saveButton.setAttribute('data-rule-id', String(item.id || ''));
-      const decoratedSave = this.page.decorateActionButton(saveButton, { buttonType: 'expandable-icon-button/check', baseClass: 'btn btn--ghost', label: '変更を保存' }) || saveButton;
-
-      const requestButton = document.createElement('button');
-      requestButton.type = 'button';
-      requestButton.className = 'btn btn--ghost';
-      requestButton.textContent = '承認状況';
-      requestButton.setAttribute('data-action', 'request-detail');
-      requestButton.setAttribute('data-rule-id', String(item.id || ''));
-      const decoratedRequest = this.page.decorateActionButton(requestButton, { buttonType: 'pill-button/outline', baseClass: 'btn btn--ghost', label: '承認状況' }) || requestButton;
+      const decoratedEdit = this.page.decorateActionButton(editButton, { buttonType: 'pill-button/outline', baseClass: 'btn btn--ghost', label: '編集' }) || editButton;
+      const decoratedDelete = this.page.decorateActionButton(deleteButton, { buttonType: 'pill-button/outline', baseClass: 'btn btn--ghost', label: '削除' }) || deleteButton;
 
       const wrapper = document.createElement('div');
       wrapper.className = 'contents-access__actions';
-      wrapper.appendChild(decoratedSave);
-      wrapper.appendChild(decoratedRequest);
+      wrapper.appendChild(decoratedEdit);
+      wrapper.appendChild(decoratedDelete);
 
       cell.appendChild(wrapper);
       return cell;
     }
 
-    async _handleAction(event)
+    _renderSummary()
+    {
+      if (!this.summary) { return; }
+      const total = this.records ? this.records.length : 0;
+      const visible = this.filtered ? this.filtered.length : 0;
+      this.summary.textContent = '全' + total + '件中 ' + visible + '件を表示';
+    }
+
+    _renderFeedback()
+    {
+      if (!this.feedback) { return; }
+      const message = (!this.filtered || !this.filtered.length) ? '条件に一致するアクセス権限がありません。フィルターを調整してください。' : '';
+      this.feedback.textContent = message;
+      if (message) {
+        this.feedback.classList.remove('hidden');
+        this.feedback.removeAttribute('hidden');
+      } else {
+        this.feedback.classList.add('hidden');
+        this.feedback.setAttribute('hidden', 'hidden');
+      }
+    }
+
+    _handleAction(event)
     {
       const target = event.target.closest('[data-action]');
-      if (!target) {
-        return;
+      if (!target) { return; }
+      const action = target.getAttribute('data-action');
+      if (action === 'edit-access') {
+        const code = target.getAttribute('data-access-id') || '';
+        this.page.showToast('アクセス権限「' + code + '」の編集は近日対応予定です。', 'info');
       }
-      const ruleId = target.getAttribute('data-rule-id');
-      if (!ruleId) {
-        return;
-      }
-      if (target.getAttribute('data-action') === 'save-rule') {
-        await this._handleSave(ruleId, target);
-      }
-      if (target.getAttribute('data-action') === 'request-detail') {
-        this.page.showToast('承認状況の確認は近日公開予定です。', 'info');
+      if (action === 'delete-access') {
+        const code = target.getAttribute('data-access-id') || '';
+        this.page.showToast('アクセス権限「' + code + '」を削除しました (デモ表示のみ)。', 'success');
       }
     }
 
-    async _handleSave(ruleId, button)
+    _handleCreate()
     {
-      const row = button.closest('tr');
-      if (!row) {
-        return;
+      if (this.formHost) {
+        this.formHost.classList.remove('hidden');
+        this.formHost.removeAttribute('hidden');
+        this.formHost.textContent = 'contentsAccess への新規追加フォームはバックエンド接続後に有効になります。';
       }
-      const select = row.querySelector('[data-contents-access-select="access"]');
-      const accessLevel = select ? select.value : 'restricted';
-      try {
-        this.page.showLoading('アクセスルールを更新しています…');
-        await this.page.callApi('ContentAccessUpdate', {
-          ruleId: ruleId,
-          accessLevel: accessLevel
-        });
-        this.page.showToast('アクセスルールを更新しました。', 'success');
-        await this.refresh();
-      } catch (err) {
-        console.error('[AdminContentsAccess:JobRules] failed to save rule:', err);
-        this.page.showToast('更新に失敗しました。もう一度お試しください。', 'error');
-      } finally {
-        this.page.hideLoading();
-      }
-    }
-
-    async _handlePolicyApply(event)
-    {
-      if (event) { event.preventDefault(); }
-      try {
-        this.page.showLoading('ポリシーを適用しています…');
-        await this.page.callApi('ContentAccessPolicyApply', { scope: 'default' });
-        this.page.showToast('ポリシーを適用しました。', 'success');
-        await this.refresh();
-      } catch (err) {
-        console.error('[AdminContentsAccess:JobRules] failed to apply policy:', err);
-        this.page.showToast('ポリシーの適用に失敗しました。', 'error');
-      } finally {
-        this.page.hideLoading();
-      }
-    }
-
-    _collectFilters()
-    {
-      return {
-        type: this.filterType ? this.filterType.value : '',
-        accessLevel: this.filterLevel ? this.filterLevel.value : '',
-        group: this.filterGroup ? this.filterGroup.value : ''
-      };
+      this.page.showToast('新規追加フォームの準備を開始しました (デモ)', 'info');
     }
 
     _setFeedback(message)
@@ -278,16 +302,11 @@
       this.feedback.textContent = message || '';
       if (message) {
         this.feedback.classList.remove('hidden');
+        this.feedback.removeAttribute('hidden');
       } else {
         this.feedback.classList.add('hidden');
+        this.feedback.setAttribute('hidden', 'hidden');
       }
-    }
-
-    _renderUpdatedAt(value)
-    {
-      if (!this.updated) { return; }
-      const text = value ? '最終更新: ' + formatDate(value) : '';
-      this.updated.textContent = text;
     }
   }
 
