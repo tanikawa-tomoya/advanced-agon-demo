@@ -2,7 +2,19 @@
 {
   'use strict';
 
-  var TAB_ORDER = ['basic', 'announcements', 'references', 'schedules', 'chat', 'bbs', 'submissions', 'reviews', 'badges', 'survey'];
+  var TAB_ORDER = [
+    'basic',
+    'announcements',
+    'references',
+    'schedules',
+    'products',
+    'chat',
+    'bbs',
+    'submissions',
+    'reviews',
+    'badges',
+    'survey'
+  ];
   var DISPLAY_FLAG_KEYS = [
     'displayGuidance',
     'displayGoals',
@@ -10,6 +22,7 @@
     'displayAnnouncements',
     'displayReferences',
     'displaySchedules',
+    'displayProducts',
     'displayChat',
     'displayBbs',
     'displaySubmissions',
@@ -76,6 +89,7 @@
     },
     // reference
     //
+    
     // schedule
     //
     {
@@ -86,7 +100,19 @@
       role: 'all',
       selectors: ['.target-schedule__refresh', '.target-schedule__preview', '.target-schedule__download']
     },
-    // schedule    
+    // schedule
+
+    // product
+    //
+    {
+      role: 'manage',
+      selectors: ['.target-product__open', '.target-product__edit', '.target-product__delete']
+    },
+    {
+      role: 'all',
+      selectors: ['.target-product__refresh', '.target-product__preview', '.target-product__download']
+    },
+    // product        
     {
       role: 'all',
       selectors: [
@@ -970,6 +996,7 @@
           submissions: [],
           references: [],
           schedules: [],
+          products: [],
           reviews: [],
           chats: {},          
           bbss: {},
@@ -985,6 +1012,7 @@
         submissions: null,
         references: null,
         schedules: null,
+        products: null,        
         reviews: null,
         chats: null,
         bbss: null,
@@ -1474,6 +1502,7 @@
         base + 'job-survey.js',
         base + 'job-reference.js',
         base + 'job-schedule.js',
+        base + 'job-product.js',
         base + 'job-chat.js',
         base + 'job-bbs.js',
         base + 'job-submission.js',
@@ -1490,7 +1519,8 @@
       var JobBasic = NS.JobBasic || window.TargetDetailJobBasic;
       var JobAnnouncement = NS.JobAnnouncement;
       var JobReference = NS.JobReference;
-      var JobSchedule = NS.JobSchedule;      
+      var JobSchedule = NS.JobSchedule;
+      var JobProduct = NS.JobProduct;      
       var JobChat = NS.JobChat;
       var JobBbs = NS.JobBbs;      
       var JobSubmission = NS.JobSubmission;
@@ -1501,7 +1531,8 @@
       this.tabJobMap = {
         announcements: { key: 'announcement', ctor: JobAnnouncement },
         references: { key: 'reference', ctor: JobReference },
-        schedules: { key: 'schedule', ctor: JobSchedule },        
+        schedules: { key: 'schedule', ctor: JobSchedule },
+        products: { key: 'product', ctor: JobProduct },        
         chat: { key: 'chat', ctor: JobChat },
         bbs: { key: 'bbs', ctor: JobBbs },
         submissions: { key: 'submission', ctor: JobSubmission },
@@ -1572,6 +1603,9 @@
       return this.state.submissions;
     }
 
+    //    
+    // reference
+    //
     async loadReferences(options)
     {
       var forceReload = options && options.force;
@@ -1593,7 +1627,11 @@
       }
       return this.state.references;
     }
+    // reference
 
+    //
+    // schedule
+    // 
     async loadSchedules(options)
     {
       var forceReload = options && options.force;
@@ -1614,7 +1652,34 @@
         this.state.schedules = this.config.fallback.schedules.slice();
       }
       return this.state.schedules;
-    }   
+    }
+    // schedule
+    
+    //
+    // product
+    // 
+    async loadProducts(options)
+    {
+      var forceReload = options && options.force;
+      
+      if (!forceReload && Array.isArray(this.state.products)) {
+        return this.state.products;
+      }
+
+      if (forceReload) {
+        this.state.products = null;
+      }
+      
+      try {
+        var payload = await this.callApi('TargetProductList', { targetCode: this.state.targetCode }, { requestType: 'TargetManagementProducts' });
+        this.state.products = Array.isArray(payload && payload.materials) ? payload.materials : [];
+      } catch (error) {
+        console.warn('[target-detail] TargetProductList fallback', error);
+        this.state.products = this.config.fallback.products.slice();
+      }
+      return this.state.products;
+    }
+    // product
 
     async loadAnnouncements(options)
     {
@@ -2415,6 +2480,7 @@
         announcements: 'displayAnnouncements',
         references: 'displayReferences',
         schedules: 'displaySchedules',
+        products: 'displayProducts',
         chat: 'displayChat',
         bbs: 'displayBbs',
         submissions: 'displaySubmissions',

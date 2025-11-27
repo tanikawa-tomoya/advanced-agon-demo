@@ -28,6 +28,7 @@
         'displayAnnouncements',
         'displayReferences',
         'displaySchedules',
+        'displayProducts',
         'displayChat',
         'displaySubmissions',
         'displayReviews',
