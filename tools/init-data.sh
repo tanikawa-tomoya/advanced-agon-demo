@@ -2707,6 +2707,90 @@ SQL
     fi
 }
 
+create_db_purchase() {
+    local db_path="$1"
+    sqlite3 "$db_path" <<'SQL'
+BEGIN;
+CREATE TABLE IF NOT EXISTS productPurchase (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    productCode VARCHAR(64) NOT NULL,
+    userCode VARCHAR(32) NOT NULL,
+    orderCode VARCHAR(64) NOT NULL,
+    price INTEGER NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    currency VARCHAR(8) DEFAULT 'JPY',
+    paymentMethod VARCHAR(32),
+    paymentStatus VARCHAR(32),
+    orderDate VARCHAR(32),
+    paymentDate VARCHAR(32),
+    shippingDate VARCHAR(32),
+    deliveryDate VARCHAR(32),
+    shippingStatus VARCHAR(32),
+    memo TEXT,
+    createdAt VARCHAR(32) DEFAULT (datetime('now','localtime')),
+    updatedAt VARCHAR(32) DEFAULT (datetime('now','localtime')),
+    UNIQUE(orderCode, productCode, userCode)
+);
+CREATE INDEX IF NOT EXISTS idx_productPurchase_user ON productPurchase(userCode);
+CREATE INDEX IF NOT EXISTS idx_productPurchase_orderDate ON productPurchase(orderDate);
+CREATE TRIGGER IF NOT EXISTS trg_productPurchase_updated
+AFTER UPDATE ON productPurchase
+FOR EACH ROW
+BEGIN
+    UPDATE productPurchase
+       SET updatedAt = datetime('now','localtime')
+     WHERE id = NEW.id;
+END;
+COMMIT;
+SQL
+
+    if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        sqlite3 "$db_path" <<SQL
+INSERT OR REPLACE INTO productPurchase (
+    productCode, userCode, orderCode, price, quantity, currency, paymentMethod,
+    paymentStatus, orderDate, paymentDate, shippingDate, deliveryDate, shippingStatus, memo,
+    createdAt, updatedAt
+) VALUES
+    (
+        'product-001',
+        '${USER_CODES[0]}',
+        'order-2024001',
+        12000,
+        1,
+        'JPY',
+        'credit-card',
+        'paid',
+        datetime('now','localtime','-10 days'),
+        datetime('now','localtime','-9 days'),
+        datetime('now','localtime','-8 days'),
+        datetime('now','localtime','-6 days'),
+        'delivered',
+        '初回セット購入',
+        datetime('now','localtime'),
+        datetime('now','localtime')
+    ),
+    (
+        'product-002',
+        '${USER_CODES[1]}',
+        'order-2024002',
+        6800,
+        2,
+        'JPY',
+        'bank-transfer',
+        'pending',
+        datetime('now','localtime','-3 days'),
+        NULL,
+        NULL,
+        NULL,
+        'preparing',
+        '追加アクセサリ',
+        datetime('now','localtime'),
+        datetime('now','localtime')
+    );
+SQL
+    fi
+}
+
 create_db_dataservice() {
     local db_path="$1"
     sqlite3 "$db_path" <<'SQL'
@@ -2949,6 +3033,7 @@ create_db_target "${DB_DIR}/target.sqlite"
 create_db_register "${DB_DIR}/register.sqlite"
 create_db_contact "${DB_DIR}/contact.sqlite"
 create_db_docker "${DB_DIR}/dockerService.sqlite"
+create_db_purchase "${DB_DIR}/purchase.sqlite"
 create_db_dataservice "${DB_DIR}/dataService.sqlite"
 create_db_queue "${DB_DIR}/queue.sqlite"
 
