@@ -14,6 +14,18 @@ DOC_ROOT="/var/www/htmlv"
 DATA_ROOT_DISPLAY="${DOC_ROOT}/<site-id>"
 DEFAULT_OWNER="www-data:www-data"
 
+log_action() {
+    echo ">>> $*"
+}
+
+require_command() {
+    local command_name="$1"
+    if ! command -v "$command_name" >/dev/null 2>&1; then
+        echo "Error: ${command_name} is required but not found in PATH." >&2
+        exit 1
+    fi
+}
+
 usage() {
     cat <<USAGE
 Usage: $0 [options] --domain <domain> --support-mail <address> --site-title <title> <site-id>
@@ -40,6 +52,10 @@ OWNER="${DEFAULT_OWNER}"
 PASSWORD_SEED=""
 SKIP_OWNER=false
 INCLUDE_FULL_TEST_DATA=false
+
+require_command "ffmpeg"
+require_command "convert"
+require_command "sqlite3"
 
 ADMIN_USER_CODE="admin-001"
 OPERATOR_USER_CODES=("operator-001" "operator-002")
@@ -225,11 +241,6 @@ if [[ ! "$SITE_ID" =~ ^[A-Za-z0-9_-]+$ ]]; then
     exit 1
 fi
 
-if ! command -v sqlite3 >/dev/null 2>&1; then
-    echo "Error: sqlite3 is required but not found in PATH." >&2
-    exit 1
-fi
-
 SITE_DIR="${DOC_ROOT}/${SITE_ID}"
 DATA_DIR="${SITE_DIR}/data"
 DB_DIR="${DATA_DIR}/db"
@@ -320,7 +331,7 @@ generate_sample_video() {
         return
     fi
 
-    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 10 "${target_path}" >/dev/null 2>&1
+    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 3 "${target_path}" >/dev/null 2>&1
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
@@ -340,6 +351,46 @@ generate_sample_audio() {
     fi
 
     ffmpeg -y -f lavfi -i "sine=frequency=100:duration=10:beep_factor=10" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_pdf() {
+    local user_code="$1"
+    local relative_path="$2"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    convert -size 1240x1754 xc:white -gravity center -pointsize 36 \
+        -annotate 0 "Sample PDF\nUser: ${user_code}" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_image() {
+    local user_code="$1"
+    local relative_path="$2"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    convert -size 1280x720 "gradient:#2563eb-#1d4ed8" -gravity center -pointsize 42 \
+        -annotate 0 "Sample Image\nUser: ${user_code}" "${target_path}" >/dev/null 2>&1
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
@@ -476,6 +527,7 @@ INSERT OR REPLACE INTO siteSettings (key, value) VALUES
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing common test data"
         seed_common_test_data "$db_path"
     fi
 }
@@ -541,6 +593,7 @@ COMMIT;
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing user content test data with generated media assets"
         seed_contents_test_data "$db_path"
     fi
 }
@@ -1356,6 +1409,7 @@ VALUES
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing target test data"
         seed_target_test_data "$db_path"
     fi
 }
@@ -1430,7 +1484,8 @@ SQL
 seed_user_contents_samples() {
     local db_path="$1"
     local -a templates=(
-        "document|application/pdf|5120|reference-guide.pdf"
+        "document|application/pdf|0|reference-guide.pdf"
+        "image|image/png|0|team-overview.png"
         "note|text/plain|2048|coaching-memo.txt"
         "video|video/mp4|0|highlight.mp4"
         "audio|audio/wav|0|sweep.wav"
@@ -1449,13 +1504,23 @@ seed_user_contents_samples() {
             local file_name="${user_code}-${file_stub}"
             local file_path="content/${content_code}.${extension}"
             local duration="NULL"
+            local width="NULL"
+            local height="NULL"
 
             if [[ "${content_type}" == "video" ]]; then
                 file_size=$(generate_sample_video "${user_code}" "${file_path}")
-                duration=10
+                duration=3
+                width=1920
+                height=1080
             elif [[ "${content_type}" == "audio" ]]; then
                 file_size=$(generate_sample_audio "${user_code}" "${file_path}")
                 duration=10
+            elif [[ "${content_type}" == "document" ]]; then
+                file_size=$(generate_sample_pdf "${user_code}" "${file_path}")
+            elif [[ "${content_type}" == "image" ]]; then
+                file_size=$(generate_sample_image "${user_code}" "${file_path}")
+                width=1280
+                height=720
             fi
 
             file_size=${file_size:-0}
@@ -1473,8 +1538,8 @@ INSERT OR REPLACE INTO userContents (
     ${file_size},
     ${duration},
     NULL,
-    NULL,
-    NULL,
+    ${width},
+    ${height},
     1,
     datetime('now','localtime'),
     datetime('now','localtime')
@@ -2754,6 +2819,7 @@ COMMIT;
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing register test data"
         seed_register_test_data "$db_path"
     fi
 }
@@ -2774,6 +2840,7 @@ COMMIT;
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing contact test data"
         seed_contact_test_data "$db_path"
     fi
 }
@@ -2804,6 +2871,7 @@ COMMIT;
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing docker queue test data"
         seed_docker_test_data "$db_path"
     fi
 }
@@ -2846,6 +2914,7 @@ COMMIT;
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing purchase test data"
         sqlite3 "$db_path" <<SQL
 INSERT OR REPLACE INTO productPurchase (
     productCode, userCode, orderCode, price, quantity, currency, paymentMethod,
@@ -2940,6 +3009,7 @@ COMMIT;
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing data service test data"
         seed_dataservice_test_data "$db_path"
     fi
 }
@@ -2977,6 +3047,7 @@ COMMIT;
 SQL
 
     if [[ "$INCLUDE_FULL_TEST_DATA" = true ]]; then
+        log_action "Preparing queue test data"
         seed_queue_test_data "$db_path"
     fi
 }
