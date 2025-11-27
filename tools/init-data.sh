@@ -1827,14 +1827,15 @@ WHERE b.badge_code = '${badge_code}'
   );
 SQL
 
-        sqlite3 "${contents_db_path}" <<SQL
+    sqlite3 "${contents_db_path}" <<SQL
 INSERT OR REPLACE INTO userContents (
     contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
 )
 VALUES
     ('${doc_content_code}', '${creator}', 'document', '${target_code}-guide.pdf', 'content/${doc_content_code}.pdf', 'application/pdf', 4096, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
     ('${support_content_code}', '${creator}', 'link', '${target_code}-faq.html', 'content/${support_content_code}.html', 'text/html', 0, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
-    ('${chat_attachment_content_code}', '${assigned_user}', 'note', '${target_code}-memo.txt', 'content/${chat_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
+    ('${chat_attachment_content_code}', '${assigned_user}', 'note', '${target_code}-memo.txt', 'content/${chat_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
+    ('${bbs_attachment_content_code}', '${assigned_user}', 'note', '${target_code}-memo.txt', 'content/${bbs_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
 SQL
 
         local doc_content_id
