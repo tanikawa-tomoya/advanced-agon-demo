@@ -292,6 +292,62 @@ load_common_user_ids() {
     done
 }
 
+resolve_user_content_path() {
+    local user_code="$1"
+    local relative_path="$2"
+
+    if [[ ! -v COMMON_USER_IDS["${user_code}"] ]]; then
+        echo ""
+        return 1
+    fi
+
+    local user_id="${COMMON_USER_IDS["${user_code}"]}"
+    local sanitized_path="${relative_path#/}"
+    local absolute_path="${USERDATA_BASE_DIR}/${user_id}/${sanitized_path}"
+
+    create_dir "$(dirname "${absolute_path}")" 0775
+
+    printf '%s\n' "${absolute_path}"
+}
+
+generate_sample_video() {
+    local user_code="$1"
+    local relative_path="$2"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 10 "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_audio() {
+    local user_code="$1"
+    local relative_path="$2"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    ffmpeg -y -f lavfi -i "sine=frequency=100:duration=10:beep_factor=10" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
 create_db_common() {
     local db_path="$1"
     local notify_mail="noreply@${DOMAIN}"
@@ -1376,7 +1432,8 @@ seed_user_contents_samples() {
     local -a templates=(
         "document|application/pdf|5120|reference-guide.pdf"
         "note|text/plain|2048|coaching-memo.txt"
-        "video|text/html|0|highlight.html"
+        "video|video/mp4|0|highlight.mp4"
+        "audio|audio/wav|0|sweep.wav"
     )
 
     local user_code
@@ -1391,6 +1448,18 @@ seed_user_contents_samples() {
             local extension="${file_stub##*.}"
             local file_name="${user_code}-${file_stub}"
             local file_path="content/${content_code}.${extension}"
+            local duration="NULL"
+
+            if [[ "${content_type}" == "video" ]]; then
+                file_size=$(generate_sample_video "${user_code}" "${file_path}")
+                duration=10
+            elif [[ "${content_type}" == "audio" ]]; then
+                file_size=$(generate_sample_audio "${user_code}" "${file_path}")
+                duration=10
+            fi
+
+            file_size=${file_size:-0}
+
             sqlite3 "$db_path" <<SQL
 INSERT OR REPLACE INTO userContents (
     contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
@@ -1402,7 +1471,7 @@ INSERT OR REPLACE INTO userContents (
     '${file_path}',
     '${mime_type}',
     ${file_size},
-    NULL,
+    ${duration},
     NULL,
     NULL,
     NULL,
@@ -1445,6 +1514,9 @@ SQL
 
 seed_contents_test_data() {
     local db_path="$1"
+    local common_db_path="${DB_DIR}/common.sqlite"
+
+    load_common_user_ids "${common_db_path}"
     seed_user_contents_samples "$db_path"
     seed_contents_access_test_data "$db_path"
 }
