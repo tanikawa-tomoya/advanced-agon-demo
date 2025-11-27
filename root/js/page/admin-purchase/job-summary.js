@@ -6,47 +6,33 @@
     constructor(pageInstance)
     {
       this.page = pageInstance;
-      this.root = document.querySelector(pageInstance.selectorConfig.summaryRoot);
-      this.total = document.querySelector(pageInstance.selectorConfig.summaryTotal);
-      this.processing = document.querySelector(pageInstance.selectorConfig.summaryProcessing);
-      this.attention = document.querySelector(pageInstance.selectorConfig.summaryAttention);
+      this.summary = document.querySelector(pageInstance.selectorConfig.summaryText);
+      this._handler = this._handleUpdate.bind(this);
     }
 
     async run()
     {
-      await this.refresh();
+      this._render(0, 0);
+      document.addEventListener('adminPurchase:updated', this._handler);
     }
 
-    async refresh()
+    _handleUpdate(event)
     {
-      if (!this.root)
+      const detail = event && event.detail ? event.detail : {};
+      const total = typeof detail.total === 'number' ? detail.total : 0;
+      const filtered = typeof detail.filtered === 'number' ? detail.filtered : 0;
+      this._render(total, filtered);
+    }
+
+    _render(total, filtered)
+    {
+      if (!this.summary)
       {
         return;
       }
-      this._setLoading(true);
-      try {
-        const response = await this.page.callApi('PurchaseSummary', {});
-        this._render(response || {});
-      } catch (err) {
-        console.error('[AdminPurchase:JobSummary] failed to fetch summary:', err);
-        this.page.showToast('サマリーの取得に失敗しました。', 'error');
-      } finally {
-        this._setLoading(false);
-      }
-    }
-
-    _render(summary)
-    {
-      if (this.total) { this.total.textContent = this._formatNumber(summary.total || 0); }
-      if (this.processing) { this.processing.textContent = this._formatNumber(summary.processing || 0); }
-      if (this.attention) { this.attention.textContent = this._formatNumber(summary.attention || 0); }
-    }
-
-    _setLoading(isLoading)
-    {
-      if (!this.root) { return; }
-      if (isLoading) { this.root.setAttribute('aria-busy', 'true'); }
-      else { this.root.removeAttribute('aria-busy'); }
+      const totalText = this._formatNumber(total || 0);
+      const filteredText = this._formatNumber(filtered || 0);
+      this.summary.textContent = '全' + totalText + '件中 ' + filteredText + '件を表示';
     }
 
     _formatNumber(value)

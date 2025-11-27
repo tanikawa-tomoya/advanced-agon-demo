@@ -9,6 +9,7 @@
       this.name = name || 'admin-purchase';
       this.selectorConfig = {};
       this.apiConfig = {};
+      this.state = { purchases: [], filtered: [] };
       this.headerService = null;
       this.toastService = null;
       this.loadingService = null;
@@ -34,21 +35,19 @@
     initConfig()
     {
       this.selectorConfig = {
-        root: '#purchase-root',
+        root: '[data-admin-purchase-root]',
         helpButton: '#purchase-help-button',
         helpModal: '#purchase-help-modal',
-        summaryRoot: '[data-purchase-summary]',
-        summaryTotal: '[data-purchase-total]',
-        summaryProcessing: '[data-purchase-processing]',
-        summaryAttention: '[data-purchase-attention]',
-        filterForm: '[data-purchase-filter-form]',
-        filterStatus: '[data-purchase-filter-status]',
-        filterPlan: '[data-purchase-filter-plan]',
-        filterPeriod: '[data-purchase-filter-period]',
-        refreshButton: '[data-purchase-refresh]',
-        updatedAt: '[data-purchase-updated]',
-        feedback: '[data-purchase-feedback]',
-        tableBody: '[data-purchase-tbody]'
+        summaryText: '[data-admin-purchase-summary]',
+        actions: '[data-admin-purchase-actions]',
+        filterForm: '[data-admin-purchase-filter-form]',
+        filterKeyword: '[data-admin-purchase-keyword]',
+        filterPayment: '[data-admin-purchase-payment]',
+        filterShipping: '[data-admin-purchase-shipping]',
+        tableBody: '[data-admin-purchase-tbody]',
+        feedback: '[data-admin-purchase-feedback]',
+        empty: '[data-admin-purchase-empty]',
+        formHost: '[data-admin-purchase-form-host]'
       };
 
       this.apiConfig = {
