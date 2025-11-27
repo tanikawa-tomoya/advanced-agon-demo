@@ -470,13 +470,14 @@ class Base
 			}
 		}
 
-		$roleClaims = [
-					   'isSupervisor' => 'isSupervisor',
-					   'isOperator'   => 'isOperator',
-					   ];
-		foreach ($roleClaims as $claim => $sessionKey) {
-			if (!array_key_exists($claim, $payload)) {
-				continue;
+                $roleClaims = [
+                                           'isSupervisor' => 'isSupervisor',
+                                           'isOperator'   => 'isOperator',
+                                           'useContentsManagement' => 'useContentsManagement',
+                                           ];
+                foreach ($roleClaims as $claim => $sessionKey) {
+                        if (!array_key_exists($claim, $payload)) {
+                                continue;
 			}
 
 			$flag = $payload[$claim] ? true : false;

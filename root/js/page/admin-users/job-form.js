@@ -119,6 +119,7 @@
           if (this._showRoleFlags) {
             payload.isSupervisor = values.isSupervisor ? '1' : '0';
             payload.isOperator = values.isOperator ? '1' : '0';
+            payload.useContentsManagement = values.useContentsManagement ? '1' : '0';
           }
           this._appendAvatarPayload(payload);
           await this.page.apiPost('create', payload);
@@ -297,7 +298,7 @@
       if (!$form || typeof $form.find !== 'function') {
         return false;
       }
-      return $form.find('[name="isSupervisor"], [name="isOperator"]').length > 0;
+      return $form.find('[name="isSupervisor"], [name="isOperator"], [name="useContentsManagement"]').length > 0;
     }
 
     _readForm($form) {
@@ -308,6 +309,7 @@
       const showRoleFlags = this._showRoleFlags === true;
       const isSupervisor = showRoleFlags ? getBool('isSupervisor') : this._getInitialRoleFlag('isSupervisor');
       const isOperator = showRoleFlags ? getBool('isOperator') : this._getInitialRoleFlag('isOperator');
+      const useContentsManagement = showRoleFlags ? getBool('useContentsManagement') : this._getInitialRoleFlag('useContentsManagement');
       return {
         mode: ($form.attr('data-mode') || 'create').toString(),
         id: ($form.find('[name="id"]').val() || '').toString(),
@@ -318,7 +320,8 @@
         role: get('role'),
         initialPassword: get('initialPassword'),
         isSupervisor,
-        isOperator
+        isOperator,
+        useContentsManagement
       };
     }
 
@@ -438,6 +441,11 @@
       const mail = (u.mail || '').toString().trim();
       const role = (u.role || u.roleName || u.roleLabel || u.roleText || u.roleCode || '').toString().trim();
       const initialPassword = this._trim(u.initialPassword || u.autoPassword || '');
+      const rawContentsFlag = (typeof u.useContentsManagement !== 'undefined') ? u.useContentsManagement : u.use_contents_management;
+      let useContentsManagement = this._normalizeRoleFlag(rawContentsFlag);
+      if (typeof rawContentsFlag === 'undefined') {
+        useContentsManagement = true;
+      }
       return {
         id: (u.id || u.userId || '').toString(),
         displayName,
@@ -448,7 +456,8 @@
         initialPassword,
         avatar: this._normalizeAvatarInitial(u),
         isSupervisor: this._normalizeRoleFlag(u.isSupervisor || u.supervisor),
-        isOperator: this._normalizeRoleFlag(u.isOperator || u.operator || u.isSupervisor)
+        isOperator: this._normalizeRoleFlag(u.isOperator || u.operator || u.isSupervisor),
+        useContentsManagement
       };
     }
 
@@ -585,6 +594,12 @@
           label: 'Operator',
           description: 'ユーザーにオペレーター権限を付与します。',
           checked: values.isOperator === true
+        }));
+        rows.push(this._renderRoleToggleField({
+          name: 'useContentsManagement',
+          label: 'コンテンツ管理の利用',
+          description: 'コンテンツ管理画面へのアクセスと操作を許可します。',
+          checked: values.useContentsManagement !== false
         }));
       }
 
@@ -987,7 +1002,7 @@
       changedFields.forEach((field) => {
         if (field === 'initialPassword') {
           payload.initialPassword = values.initialPassword;
-        } else if (field === 'isSupervisor' || field === 'isOperator') {
+        } else if (field === 'isSupervisor' || field === 'isOperator' || field === 'useContentsManagement') {
           payload[field] = values[field] ? '1' : '0';
         } else if (field !== 'avatar') {
           payload[field] = values[field];
@@ -1002,7 +1017,7 @@
     _getChangedFields(values) {
       const tracked = ['displayName', 'userCode', 'mail', 'organization', 'role', 'initialPassword'];
       if (this._showRoleFlags) {
-        tracked.push('isSupervisor', 'isOperator');
+        tracked.push('isSupervisor', 'isOperator', 'useContentsManagement');
       }
       const changed = [];
       const initial = this._initialValues || {};

@@ -137,25 +137,33 @@
       const autoPassword = this._trim(raw.initialPassword || raw.autoPassword || raw.auto_password || '');
       const isSupervisor = this._normalizeRoleFlag(raw && (raw.isSupervisor || raw.supervisor));
       const isOperator = this._normalizeRoleFlag(raw && (raw.isOperator || raw.operator || raw.isSupervisor));
+      const rawContentsFlag = (typeof raw.useContentsManagement !== 'undefined')
+        ? raw.useContentsManagement
+        : raw.use_contents_management;
+      let useContentsManagement = this._normalizeRoleFlag(rawContentsFlag);
+      if (typeof rawContentsFlag === 'undefined') {
+        useContentsManagement = true;
+      }
 
       const avatarUrl = this._resolveAvatarUrl(raw);
       const avatarInitial = this._resolveAvatarInitial(raw, displayName, userCode);
       const avatarTransform = this._resolveAvatarTransform(raw);
 
-      return {
-        id: String(id),
-        displayName,
+        return {
+          id: String(id),
+          displayName,
         userCode,
         mail,
         mailCheckDate,
         organization,
         role,
-        isDeleted,
-        isSupervisor,
-        isOperator,
-        avatarUrl,
-        avatarInitial,
-        avatarTransform,
+          isDeleted,
+          isSupervisor,
+          isOperator,
+          useContentsManagement,
+          avatarUrl,
+          avatarInitial,
+          avatarTransform,
         autoPassword,
         selectableUsers: this._normalizeSelectableUsers(raw && raw.selectableUsers)
       };
@@ -242,6 +250,7 @@
         const actionsHtml = this._renderRowActions(u);
         const selectableCell = this._renderSelectableUsersCell(u);
         const roleBadge = this._renderRoleBadge(u);
+        const contentsAccess = this._renderContentsStatus(u);
         const nameCell = [
           '<div class="user-table__name">',
             this._renderUserAvatar(u),
@@ -259,6 +268,7 @@
             `<td class="col--mail">${mailCell}</td>`,
             `<td class="col--organization">${this._esc(u.organization || '—')}</td>`,
             `<td class="col--role">${this._esc(roleText)}</td>`,
+            `<td class="col--contents">${contentsAccess}</td>`,
             `<td class="col--selectable">${selectableCell}</td>`,
             `<td class="col--actions user-table__actions">${actionsHtml}</td>`,
           `</tr>`
@@ -450,6 +460,26 @@
         }
       }
       return fallback;
+    }
+
+    _renderContentsStatus(user) {
+      const enabled = this._isContentsManagementEnabled(user);
+      const label = enabled ? '利用可' : '利用不可';
+      const status = enabled ? 'enabled' : 'disabled';
+      return `<span class="user-table__contents-status" data-contents-access="${this._esc(status)}">${this._esc(label)}</span>`;
+    }
+
+    _isContentsManagementEnabled(user) {
+      if (!user) {
+        return true;
+      }
+      const value = (typeof user.useContentsManagement !== 'undefined')
+        ? user.useContentsManagement
+        : user.use_contents_management;
+      if (typeof value === 'undefined') {
+        return true;
+      }
+      return this._normalizeRoleFlag(value);
     }
 
     _renderSummary() {
