@@ -17,6 +17,7 @@
       this.breadcrumbService = null;
       this.buttonService = null;
       this.confirmDialogService = null;
+      this.productSelectModalService = null;
     }
 
     async boot()
@@ -66,7 +67,8 @@
         { src: '/js/service-app/help-modal/main.js' },
         { src: '/js/service-app/breadcrumb/main.js' },
         { src: '/js/service-app/button/main.js' },
-        { src: '/js/service-app/confirm-dialog/main.js' }
+        { src: '/js/service-app/confirm-dialog/main.js' },
+        { src: '/js/service-app/product-select-modal/main.js' }
       ];
 
       await window.Utils.loadScriptsSync(scripts);
@@ -79,6 +81,7 @@
       this.breadcrumbService = new window.Services.Breadcrumb({ container: breadcrumbContainer });
       this.buttonService = new window.Services.button();
       this.confirmDialogService = new window.Services.ConfirmDialog();
+      this.productSelectModalService = new window.Services.ProductSelectModal({ multiple: false });
 
       await Promise.all([
         this.headerService.boot('.site-header'),
@@ -87,7 +90,8 @@
         this.helpModalService.boot(),
         this.breadcrumbService.boot(breadcrumbContainer),
         this.buttonService.boot(),
-        this.confirmDialogService.boot()
+        this.confirmDialogService.boot(),
+        this.productSelectModalService.boot()
       ]);
     }
 

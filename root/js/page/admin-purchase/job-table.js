@@ -17,6 +17,7 @@
       this._modalHost = null;
       this._modalForm = null;
       this._lastFocus = null;
+      this._productSelectButton = null;
     }
 
     async run()
@@ -316,7 +317,10 @@
                         '<span class="user-management__field-label">商品コード</span>',
                         '<span class="user-management__field-badge user-management__field-badge--required">必須</span>',
                       '</div>',
-                      '<input type="text" name="productCode" required class="user-management__input" />',
+                      '<div class="user-form__field-control">',
+                        '<input type="text" name="productCode" required class="user-management__input" data-admin-purchase-product-input />',
+                        '<button type="button" class="btn btn--ghost admin-purchase__product-select" data-admin-purchase-product-select>商品を選択</button>',
+                      '</div>',
                     '</div>',
                     '<div class="announcement-management__form-field user-form__field" data-field-name="userCode">',
                       '<div class="user-form__field-header">',
@@ -379,6 +383,7 @@
       host.appendChild(modal);
       this._modal = modal;
       this._modalForm = modal.querySelector('[data-admin-purchase-create-form]');
+      this._productSelectButton = modal.querySelector('[data-admin-purchase-product-select]');
 
       modal.addEventListener('click', (ev) => {
         const target = ev.target instanceof Element ? ev.target.closest('[data-modal-close]') : null;
@@ -397,6 +402,21 @@
       });
 
       this._formInitialized = true;
+      const orderCodeInput = this._modalForm ? this._modalForm.querySelector('input[name="orderCode"]') : null;
+      if (orderCodeInput)
+      {
+        orderCodeInput.addEventListener('input', () => {
+          orderCodeInput.setCustomValidity('');
+        });
+      }
+
+      if (this._productSelectButton)
+      {
+        this._productSelectButton.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          this._openProductSelectModal();
+        });
+      }
       jQuery(document).off('submit.purchaseCreateForm').on('submit.purchaseCreateForm', '[data-admin-purchase-create-form]', async (ev) => {
         ev.preventDefault();
         await this._handleCreate(ev.currentTarget);
@@ -411,10 +431,29 @@
       }
       const formData = new window.FormData(form);
       const now = new Date().toISOString();
+      const orderCode = (formData.get('orderCode') || '').toString().trim();
+      const productCode = (formData.get('productCode') || '').toString().trim();
+      const userCode = (formData.get('userCode') || '').toString().trim();
+      const orderCodeInput = form.querySelector('input[name="orderCode"]');
+      if (orderCodeInput)
+      {
+        orderCodeInput.setCustomValidity('');
+      }
+      if (this._isDuplicateOrderCode(orderCode))
+      {
+        if (orderCodeInput)
+        {
+          orderCodeInput.setCustomValidity('この注文コードはすでに使用されています。別のコードを入力してください。');
+          try { orderCodeInput.reportValidity(); } catch (_) {}
+          try { orderCodeInput.focus(); } catch (_) {}
+        }
+        this.page.showToast('同じ注文コードが既に存在します。', 'error');
+        return;
+      }
       const newItem = {
-        orderCode: formData.get('orderCode') || '',
-        productCode: formData.get('productCode') || '',
-        userCode: formData.get('userCode') || '',
+        orderCode: orderCode,
+        productCode: productCode,
+        userCode: userCode,
         price: Number(formData.get('price') || 0),
         quantity: Number(formData.get('quantity') || 1),
         currency: 'JPY',
@@ -461,6 +500,89 @@
       }
 
       this._focusFirstField();
+    }
+
+    _openProductSelectModal()
+    {
+      const service = this.page && this.page.productSelectModalService;
+      const input = this._modalForm ? this._modalForm.querySelector('[data-admin-purchase-product-input]') : null;
+      if (!service || typeof service.open !== 'function' || !input)
+      {
+        this.page.showToast('商品選択モーダルを利用できません。', 'error');
+        return;
+      }
+      const currentCode = (input.value || '').toString().trim();
+      const trigger = this._productSelectButton;
+      try
+      {
+        service.open({
+          multiple: false,
+          selectedCodes: currentCode ? [currentCode] : [],
+          initialKeyword: currentCode,
+          availableMaterials: this._buildProductSelectItems(),
+          onSelect: (item) => {
+            const code = item && (item.materialCode || item.contentCode || item.code || '');
+            input.value = code || '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            try { input.focus(); } catch (_) {}
+          },
+          onClose: () => {
+            if (trigger && typeof trigger.focus === 'function')
+            {
+              try { trigger.focus(); } catch (_) {}
+            }
+          }
+        });
+      }
+      catch (error)
+      {
+        console.error('[AdminPurchase:JobTable] failed to open product select modal', error);
+        this.page.showToast('商品を選択できませんでした。', 'error');
+      }
+    }
+
+    _buildProductSelectItems()
+    {
+      const list = Array.isArray(this.state.purchases) ? this.state.purchases : [];
+      const seen = new window.Set();
+      const items = [];
+      for (let i = 0; i < list.length; i += 1)
+      {
+        const code = (list[i].productCode || '').toString().trim();
+        if (!code)
+        {
+          continue;
+        }
+        const normalized = code.toLowerCase();
+        if (seen.has(normalized))
+        {
+          continue;
+        }
+        seen.add(normalized);
+        items.push({
+          materialCode: code,
+          title: code,
+          description: '',
+          displayName: code
+        });
+      }
+      const service = this.page && this.page.productSelectModalService;
+      if (service && service.jobs && service.jobs.data && typeof service.jobs.data.normalizeList === 'function')
+      {
+        return service.jobs.data.normalizeList(items);
+      }
+      return items;
+    }
+
+    _isDuplicateOrderCode(orderCode)
+    {
+      const target = (orderCode || '').toString().trim().toLowerCase();
+      if (!target)
+      {
+        return false;
+      }
+      const list = Array.isArray(this.state.purchases) ? this.state.purchases : [];
+      return list.some((item) => String(item.orderCode || '').trim().toLowerCase() === target);
     }
 
     _closeFormModal()
