@@ -994,7 +994,7 @@ CREATE TABLE IF NOT EXISTS targetBbsThreads (
     threadCode VARCHAR(32) NOT NULL UNIQUE,
     targetCode VARCHAR(32) NOT NULL,
     threadType VARCHAR(16) NOT NULL,
-    title VARCHAR(256),
+    title VARCHAR(256) NOT NULL DEFAULT '',
     description TEXT,
     createdByUserCode VARCHAR(32),
     createdAt VARCHAR(32),
