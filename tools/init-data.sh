@@ -1373,24 +1373,104 @@ SQL
 
 seed_user_contents_samples() {
     local db_path="$1"
+    local common_db_path="${DB_DIR}/common.sqlite"
+    load_common_user_ids "${common_db_path}"
     local -a templates=(
-        "document|application/pdf|5120|reference-guide.pdf"
-        "note|text/plain|2048|coaching-memo.txt"
-        "video|text/html|0|highlight.html"
+        "document|application/pdf|reference-guide.pdf|document"
+        "note|text/plain|coaching-memo.txt|note"
+        "video|video/mp4|highlight.mp4|video"
+        "audio|audio/wav|coaching-tone.wav|audio"
     )
 
     local user_code
     for user_code in "${USER_CODES[@]}"; do
+        local user_id="${COMMON_USER_IDS[${user_code}]:-}"
+        if [[ -z "${user_id}" ]]; then
+            echo "Error: missing userId for userCode '${user_code}' in ${common_db_path}." >&2
+            exit 1
+        fi
+
+        local user_dir="${USERDATA_BASE_DIR}/${user_id}"
+        create_dir "${user_dir}" 0775
+        create_dir "${user_dir}/content" 0775
+
         local idx=0
         local template
         for template in "${templates[@]}"; do
             idx=$((idx + 1))
             printf -v padded_idx '%02d' "$idx"
-            IFS='|' read -r content_type mime_type file_size file_stub <<<"${template}"
+            IFS='|' read -r content_type mime_type file_stub generator <<<"${template}"
             local content_code="contents-${user_code}-${padded_idx}"
             local extension="${file_stub##*.}"
             local file_name="${user_code}-${file_stub}"
             local file_path="content/${content_code}.${extension}"
+            local absolute_file_path="${user_dir}/${file_path}"
+            local duration_sql="NULL"
+            local bitrate_sql="NULL"
+            local width_sql="NULL"
+            local height_sql="NULL"
+
+            if [[ ! -f "${absolute_file_path}" ]]; then
+                install -d -m 0775 "$(dirname "${absolute_file_path}")"
+                case "${generator}" in
+                    video)
+                        ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 10 -pix_fmt yuv420p "${absolute_file_path}" -loglevel error
+                        ;;
+                    audio)
+                        ffmpeg -y -f lavfi -i "sine=frequency=100:duration=10:beep_factor=10" "${absolute_file_path}" -loglevel error
+                        ;;
+                    document)
+                        convert -size 1200x800 xc:white -gravity center -pointsize 36 \
+                            -annotate 0 "Sample Document for ${user_code}" "${absolute_file_path}" >/dev/null 2>&1
+                        ;;
+                    note)
+                        printf "Memo for %s\nGenerated at %s\n" "${user_code}" "$(date)" >"${absolute_file_path}"
+                        ;;
+                    *)
+                        printf "Placeholder for %s\n" "${file_name}" >"${absolute_file_path}"
+                        ;;
+                esac
+            fi
+
+            local file_size_value=0
+            if [[ -f "${absolute_file_path}" ]]; then
+                file_size_value=$(stat -c%s "${absolute_file_path}" 2>/dev/null || echo 0)
+            fi
+
+            if [[ -f "${absolute_file_path}" && ( "${generator}" = "video" || "${generator}" = "audio" ) ]]; then
+                local duration_raw
+                duration_raw=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${absolute_file_path}" 2>/dev/null || true)
+                if [[ -n "${duration_raw}" ]]; then
+                    local formatted_duration
+                    formatted_duration=$(printf '%.2f' "${duration_raw}" 2>/dev/null || true)
+                    if [[ -n "${formatted_duration}" ]]; then
+                        duration_sql="${formatted_duration}"
+                    fi
+                fi
+
+                local bitrate_raw
+                bitrate_raw=$(ffprobe -v error -show_entries format=bit_rate -of default=noprint_wrappers=1:nokey=1 "${absolute_file_path}" 2>/dev/null || true)
+                if [[ -n "${bitrate_raw}" ]]; then
+                    local formatted_bitrate
+                    formatted_bitrate=$(printf '%d' "${bitrate_raw}" 2>/dev/null || true)
+                    if [[ -n "${formatted_bitrate}" ]]; then
+                        bitrate_sql="${formatted_bitrate}"
+                    fi
+                fi
+
+                if [[ "${generator}" = "video" ]]; then
+                    local width_raw height_raw
+                    width_raw=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=noprint_wrappers=1:nokey=1 "${absolute_file_path}" 2>/dev/null || true)
+                    height_raw=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=noprint_wrappers=1:nokey=1 "${absolute_file_path}" 2>/dev/null || true)
+                    if [[ -n "${width_raw}" ]]; then
+                        width_sql="${width_raw}"
+                    fi
+                    if [[ -n "${height_raw}" ]]; then
+                        height_sql="${height_raw}"
+                    fi
+                fi
+            fi
+
             sqlite3 "$db_path" <<SQL
 INSERT OR REPLACE INTO userContents (
     contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
@@ -1401,11 +1481,11 @@ INSERT OR REPLACE INTO userContents (
     '${file_name}',
     '${file_path}',
     '${mime_type}',
-    ${file_size},
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    ${file_size_value},
+    ${duration_sql},
+    ${bitrate_sql},
+    ${width_sql},
+    ${height_sql},
     1,
     datetime('now','localtime'),
     datetime('now','localtime')
