@@ -81,7 +81,7 @@
       this.breadcrumbService = new window.Services.Breadcrumb({ container: breadcrumbContainer });
       this.buttonService = new window.Services.button();
       this.confirmDialogService = new window.Services.ConfirmDialog();
-      this.productSelectModalService = new window.Services.ProductSelectModal({ multiple: false });
+      this.productSelectModalService = new window.Services.ProductSelectModal({ multiple: false, targetCode: 'target-001' });
 
       await Promise.all([
         this.headerService.boot('.site-header'),

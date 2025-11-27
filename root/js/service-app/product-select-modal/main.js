@@ -15,8 +15,8 @@
     initConfig()
     {
       var textDefaults = {
-        modalTitle: '商品資料を検索',
-        modalDescription: 'ターゲットに紐づく商品資料を選択してください。',
+        modalTitle: '商品を検索',
+        modalDescription: '商品を選択してください。',
         keywordLabel: 'キーワード',
         searchPlaceholder: 'タイトル・コードで検索',
         emptyMessage: '選択できる商品資料が見つかりません。',

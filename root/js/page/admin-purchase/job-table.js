@@ -519,7 +519,7 @@
           multiple: false,
           selectedCodes: currentCode ? [currentCode] : [],
           initialKeyword: currentCode,
-          availableMaterials: this._buildProductSelectItems(),
+          loadOptions: { forceRefresh: true },
           onSelect: (item) => {
             const code = item && (item.materialCode || item.contentCode || item.code || '');
             input.value = code || '';
