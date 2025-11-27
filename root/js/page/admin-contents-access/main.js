@@ -15,6 +15,8 @@
       this.helpModalService = null;
       this.breadcrumbService = null;
       this.buttonService = null;
+      this.contentsSelectModalService = null;
+      this.userSelectModalService = null;
     }
 
     async boot()
@@ -62,7 +64,9 @@
         { src: '/js/service-app/loading/main.js' },
         { src: '/js/service-app/help-modal/main.js' },
         { src: '/js/service-app/breadcrumb/main.js' },
-        { src: '/js/service-app/button/main.js' }
+        { src: '/js/service-app/button/main.js' },
+        { src: '/js/service-app/contents-select-modal/main.js' },
+        { src: '/js/service-app/user-select-modal/main.js' }
       ];
 
       await window.Utils.loadScriptsSync(scripts);
@@ -75,6 +79,24 @@
       const breadcrumbContainer = document.querySelector('.screen-page') || document.body;
       this.breadcrumbService = new window.Services.Breadcrumb({ container: breadcrumbContainer });
       this.buttonService = new window.Services.button();
+      this.contentsSelectModalService = new window.Services.ContentsSelectModal({
+        multiple: false,
+        text: {
+          modalTitle: 'コンテンツを選択',
+          modalDescription: '全ユーザーのコンテンツを検索して選択します。',
+          applyLabel: 'このコンテンツを使用'
+        }
+      });
+      this.userSelectModalService = new window.Services.UserSelectModal({
+        multiple: false,
+        userListType: 'UserGetAll',
+        resultLimit: 200,
+        text: {
+          modalTitle: 'ユーザーを選択',
+          modalDescription: '全ユーザーから検索して選択します。',
+          applyLabel: 'このユーザーを指定'
+        }
+      });
 
       await Promise.all([
         this.headerService.boot('.site-header'),
@@ -82,7 +104,9 @@
         this.loadingService.boot(),
         this.helpModalService.boot(),
         this.breadcrumbService.boot(breadcrumbContainer),
-        this.buttonService.boot()
+        this.buttonService.boot(),
+        this.contentsSelectModalService.boot(),
+        this.userSelectModalService.boot()
       ]);
     }
 

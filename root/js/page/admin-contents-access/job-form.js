@@ -29,6 +29,8 @@
       this.cancelButton = null;
       this.fields = {};
       this._lastFocus = null;
+      this.contentsSelectButton = null;
+      this.userSelectButton = null;
     }
 
     async run()
@@ -56,6 +58,14 @@
       if (this.form)
       {
         this.form.addEventListener('submit', this._handleSubmit.bind(this));
+      }
+      if (this.contentsSelectButton)
+      {
+        this.contentsSelectButton.addEventListener('click', this._openContentsSelectModal.bind(this));
+      }
+      if (this.userSelectButton)
+      {
+        this.userSelectButton.addEventListener('click', this._openUserSelectModal.bind(this));
       }
       if (this.modal)
       {
@@ -259,18 +269,26 @@
                   <div class="user-form__fields contents-access__form-fields">
                     <label class="user-management__field user-form__field">
                       <span class="user-management__field-label">コンテンツコード <span class="user-management__field-badge user-management__field-badge--required">必須</span></span>
-                      <input type="text" name="contentsCode" class="user-management__input" data-field="contentsCode" placeholder="例: contents-admin-001-01" required />
+                      <div class="user-management__field-controls">
+                        <input type="text" name="contentsCode" class="user-management__input" data-field="contentsCode" placeholder="例: contents-admin-001-01" required />
+                        <button type="button" class="btn btn--ghost" data-action="contents-access-contents-select">コンテンツを選択</button>
+                      </div>
+                      <p class="user-management__field-help">全ユーザーのコンテンツを検索して選択できます。</p>
                     </label>
                     <label class="user-management__field user-form__field">
                       <span class="user-management__field-label">ユーザーコード <span class="user-management__field-badge user-management__field-badge--required">必須</span></span>
-                      <input type="text" name="userCode" class="user-management__input" data-field="userCode" placeholder="例: admin-001" required />
+                      <div class="user-management__field-controls">
+                        <input type="text" name="userCode" class="user-management__input" data-field="userCode" placeholder="例: admin-001" required />
+                        <button type="button" class="btn btn--ghost" data-action="contents-access-user-select">ユーザーを選択</button>
+                      </div>
+                      <p class="user-management__field-help">全ユーザーから対象ユーザーを指定します。</p>
                     </label>
                     <label class="user-management__field user-form__field">
-                      <span class="user-management__field-label">公開開始</span>
+                      <span class="user-management__field-label">アクセス期間（開始日時）</span>
                       <input type="datetime-local" name="startDate" class="user-management__input" data-field="startDate" />
                     </label>
                     <label class="user-management__field user-form__field">
-                      <span class="user-management__field-label">公開終了</span>
+                      <span class="user-management__field-label">アクセス期間（終了日時）</span>
                       <input type="datetime-local" name="endDate" class="user-management__input" data-field="endDate" />
                     </label>
                   </div>
@@ -296,6 +314,63 @@
         startDate: modal.querySelector('[data-field="startDate"]'),
         endDate: modal.querySelector('[data-field="endDate"]')
       };
+      this.contentsSelectButton = modal.querySelector('[data-action="contents-access-contents-select"]');
+      this.userSelectButton = modal.querySelector('[data-action="contents-access-user-select"]');
+    }
+
+    _openContentsSelectModal(event)
+    {
+      if (event)
+      {
+        event.preventDefault();
+      }
+      var service = this.page && this.page.contentsSelectModalService;
+      if (!service || typeof service.open !== 'function')
+      {
+        this.page.showToast('コンテンツ選択モーダルを起動できませんでした。', 'error');
+        return;
+      }
+      var currentCode = this.fields.contentsCode && this.fields.contentsCode.value ? this.fields.contentsCode.value.trim() : '';
+      service.open({
+        multiple: false,
+        selected: currentCode ? [{ id: currentCode }] : [],
+        onSelect: (item) =>
+        {
+          var raw = item && (item.raw || item);
+          var code = raw && (raw.contentCode || raw.content_code || raw.contentId || raw.contentID || raw.code || item.id);
+          if (this.fields.contentsCode && code)
+          {
+            this.fields.contentsCode.value = code;
+          }
+        }
+      });
+    }
+
+    _openUserSelectModal(event)
+    {
+      if (event)
+      {
+        event.preventDefault();
+      }
+      var service = this.page && this.page.userSelectModalService;
+      if (!service || typeof service.open !== 'function')
+      {
+        this.page.showToast('ユーザー選択モーダルを起動できませんでした。', 'error');
+        return;
+      }
+      var currentCode = this.fields.userCode && this.fields.userCode.value ? this.fields.userCode.value.trim() : '';
+      service.open({
+        multiple: false,
+        selectedCodes: currentCode ? [currentCode] : [],
+        onSelect: (user) =>
+        {
+          var code = user && (user.userCode || user.userId || user.id || '');
+          if (this.fields.userCode && code)
+          {
+            this.fields.userCode.value = code;
+          }
+        }
+      });
     }
   }
 
