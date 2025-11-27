@@ -4132,6 +4132,12 @@ body.is-modal-open {
   width: 100%;
 }
 
+.admin-purchase__form .user-form__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
 .user-form__toggle-control {
   gap: 16px;
 }
