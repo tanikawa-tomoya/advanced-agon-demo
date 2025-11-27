@@ -1713,7 +1713,8 @@
         recipientCodes: payload && Array.isArray(payload.recipientCodes)
           ? JSON.stringify(payload.recipientCodes)
           : JSON.stringify([]),
-        threadType: payload && payload.threadType
+        threadType: payload && payload.threadType,
+        threadTitle: payload && payload.threadTitle
       };
       var result = await this.callApi(
         'TargetChatThreadCreate',
@@ -1944,6 +1945,20 @@
       var result = await this.callApi(
         'TargetBbsMessageCreate',
         params,
+        { requestType: 'TargetManagementBbs' }
+      );
+      return this.normalizeBbsContext(result);
+    }
+
+    async updateBbsThreadTitle(threadCode, threadTitle)
+    {
+      var result = await this.callApi(
+        'TargetBbsThreadUpdate',
+        {
+          targetCode: this.state.targetCode,
+          threadCode: threadCode,
+          threadTitle: threadTitle
+        },
         { requestType: 'TargetManagementBbs' }
       );
       return this.normalizeBbsContext(result);

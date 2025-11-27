@@ -3096,7 +3096,7 @@
 .target-bbs__message-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 12px;
 }
@@ -3164,6 +3164,41 @@
   color: var(--text-muted);
 }
 
+.target-bbs__message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.target-bbs__thread-edit,
+.target-bbs__scroll-top {
+  min-width: 120px;
+}
+
+.target-bbs__board-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.target-bbs__board-guide-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.target-bbs__board-divider {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin: 0;
+}
+
+.target-bbs__message-time {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .target-bbs__message-viewport {
   flex: 1;
   overflow-y: auto;
@@ -3199,25 +3234,38 @@
 
 .target-bbs__message {
   max-width: 100%;
-  align-self: flex-start;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(7, 15, 27, 0.6);
 }
 
 .target-bbs__message--self {
-  align-self: flex-end;
+  background: rgba(16, 45, 82, 0.65);
 }
 
 .target-bbs__message-row {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .target-bbs__message-body {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: flex-start;
-  column-gap: 8px;
+  padding-left: 52px;
+}
+
+.target-bbs__message-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.target-bbs__message-author-name {
+  font-weight: 600;
+  font-size: 1rem;
 }
 
 .target-bbs__bubble {
@@ -3230,6 +3278,13 @@
   box-shadow: var(--shadow-xs);
   line-height: 1.5;
   max-width: 520px;
+}
+
+.target-bbs__post-text {
+  margin: 0;
+  color: #e9f1ff;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .target-bbs__bubble::after {
@@ -3258,7 +3313,7 @@
 }
 
 .target-bbs__message-info {
-  margin: 2px 0 0;
+  margin: 0;
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -3276,7 +3331,7 @@
 .target-bbs__message-meta-block {
   display: flex;
   flex-direction: row;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
   justify-content: flex-start;
   flex: 0 0 auto;

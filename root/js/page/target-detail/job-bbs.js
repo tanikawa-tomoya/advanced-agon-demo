@@ -431,15 +431,48 @@
       this.refs.recipientContainer = recipientList;
       recipientActions.appendChild(recipientList);
       messageHeader.appendChild(recipientActions);
+
+      var messageActions = createElement('div', 'target-bbs__message-actions');
+      var threadEditButton = this.createBannerButton({
+        buttonType: 'expandable-icon-button/edit',
+        label: 'スレッドを編集',
+        ariaLabel: 'スレッド名を編集',
+        hoverLabel: 'スレッド名を編集',
+        title: 'スレッド名を編集'
+      });
+      threadEditButton.classList.add('target-bbs__thread-edit');
+      threadEditButton.addEventListener('click', () =>
+      {
+        this.handleThreadRename(this.state.selectedThread);
+      });
+      this.refs.threadEditButton = threadEditButton;
+      messageActions.appendChild(threadEditButton);
+
+      var scrollTopButton = this.createBannerButton({
+        buttonType: 'expandable-icon-button/up',
+        label: '最上部へ',
+        ariaLabel: 'スレッドの最上部へ移動',
+        hoverLabel: 'スレッドの最上部へ移動',
+        title: 'スレッドの最上部へ移動'
+      });
+      scrollTopButton.classList.add('target-bbs__scroll-top');
+      scrollTopButton.addEventListener('click', () =>
+      {
+        this.scrollThreadToTop();
+      });
+      this.refs.scrollToTopButton = scrollTopButton;
+      messageActions.appendChild(scrollTopButton);
+
+      messageHeader.appendChild(messageActions);
       messagePane.appendChild(messageHeader);
 
       var messageIntro = createElement('div', 'target-bbs__board-guide');
       var introTitle = createElement('p', 'target-bbs__board-guide-title');
-      introTitle.textContent = '投稿は上から時系列順に並びます。議事録や共有事項など、長文もそのまま残せます。';
-      var introMeta = createElement('p', 'target-bbs__board-guide-meta');
-      introMeta.textContent = '各投稿の右上から削除できます。送信前に内容を確認し、必要に応じて送信者を切り替えてください。';
+      introTitle.textContent = '掲示板';
+      this.refs.boardGuideTitle = introTitle;
+      var introDivider = createElement('hr', 'target-bbs__board-divider');
       messageIntro.appendChild(introTitle);
-      messageIntro.appendChild(introMeta);
+      messageIntro.appendChild(introDivider);
       messagePane.appendChild(messageIntro);
 
       var messageViewport = createElement('div', 'target-bbs__message-viewport target-bbs__post-list');
@@ -1008,6 +1041,18 @@
       {
         this.refs.threadHeaderTitle.textContent = 'スレッドを選択';
         this.refs.threadHeaderMeta.textContent = '';
+        if (this.refs.boardGuideTitle)
+        {
+          this.refs.boardGuideTitle.textContent = 'スレッドを選択';
+        }
+        if (this.refs.threadEditButton)
+        {
+          this.refs.threadEditButton.disabled = true;
+        }
+        if (this.refs.scrollToTopButton)
+        {
+          this.refs.scrollToTopButton.disabled = true;
+        }
         this.renderMessages(null);
         this.setComposerEnabled(false);
         this.renderMessagePlaceholder(THREAD_SELECT_TEXT);
@@ -1015,6 +1060,18 @@
       }
       this.refs.threadHeaderTitle.textContent = thread.title || '掲示板';
       this.refs.threadHeaderMeta.textContent = formatThreadMeta(thread);
+      if (this.refs.boardGuideTitle)
+      {
+        this.refs.boardGuideTitle.textContent = thread.title || '掲示板';
+      }
+      if (this.refs.threadEditButton)
+      {
+        this.refs.threadEditButton.disabled = false;
+      }
+      if (this.refs.scrollToTopButton)
+      {
+        this.refs.scrollToTopButton.disabled = false;
+      }
       this.renderMessages(thread);
       this.setComposerEnabled(true);
     }
@@ -1072,35 +1129,23 @@
       var authorName = participant && (participant.displayName || participant.userCode) ? (participant.displayName || participant.userCode) : '不明なユーザー';
 
       var header = createElement('header', 'target-bbs__post-header');
-      var authorBlock = createElement('div', 'target-bbs__post-author');
-      var avatarWrapper = createElement('div', 'target-bbs__post-avatar');
+      var headerRow = createElement('div', 'target-bbs__message-row');
+      var authorBlock = createElement('div', 'target-bbs__message-author');
+      var avatarWrapper = createElement('div', 'target-bbs__message-avatar-wrapper');
       avatarWrapper.appendChild(createMessageAvatar(participant, this.getAvatarService(), this.avatarServiceBootPromise));
       authorBlock.appendChild(avatarWrapper);
-
-      var authorInfo = createElement('div', 'target-bbs__post-author-info');
-      var authorRow = createElement('div', 'target-bbs__post-author-row');
-      var author = createElement('span', 'target-bbs__post-author-name');
+      var author = createElement('span', 'target-bbs__message-author-name');
       author.textContent = authorName;
-      authorRow.appendChild(author);
-      var roleBadge = createElement('span', 'target-bbs__post-role');
-      roleBadge.textContent = isSelf ? 'あなたの投稿' : 'スレッド参加者';
-      authorRow.appendChild(roleBadge);
-      authorInfo.appendChild(authorRow);
+      authorBlock.appendChild(author);
 
-      var metaRow = createElement('div', 'target-bbs__post-meta-row');
-      var timestamp = createElement('time', 'target-bbs__post-time');
+      var actionBlock = createElement('div', 'target-bbs__post-actions target-bbs__message-meta-block');
+      var timestamp = createElement('time', 'target-bbs__message-time');
       if (message.sentAt)
       {
         timestamp.setAttribute('datetime', message.sentAt);
       }
       timestamp.textContent = message.sentAtDisplay || '';
-      metaRow.appendChild(timestamp);
-      authorInfo.appendChild(metaRow);
-
-      authorBlock.appendChild(authorInfo);
-      header.appendChild(authorBlock);
-
-      var actionBlock = createElement('div', 'target-bbs__post-actions');
+      actionBlock.appendChild(timestamp);
       if (this.canDeleteMessage(message))
       {
         var deleteButton = this.createRoundActionButton('delete', {
@@ -1115,9 +1160,11 @@
         });
         actionBlock.appendChild(deleteButton);
       }
-      header.appendChild(actionBlock);
+      headerRow.appendChild(authorBlock);
+      headerRow.appendChild(actionBlock);
+      header.appendChild(headerRow);
 
-      var body = createElement('div', 'target-bbs__post-body');
+      var body = createElement('div', 'target-bbs__message-body');
       var content = createElement('p', 'target-bbs__post-text');
       content.textContent = message.content || '';
       body.appendChild(content);
@@ -1125,6 +1172,22 @@
       wrapper.appendChild(header);
       wrapper.appendChild(body);
       return wrapper;
+    }
+
+    scrollThreadToTop()
+    {
+      if (!this.refs.messageViewport)
+      {
+        return;
+      }
+      if (typeof this.refs.messageViewport.scrollTo === 'function')
+      {
+        this.refs.messageViewport.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      else
+      {
+        this.refs.messageViewport.scrollTop = 0;
+      }
     }
 
     setComposerEnabled(enabled)
@@ -1664,6 +1727,53 @@
       return session;
     }
 
+    deriveThreadTitleFromRecipients(recipientCodes)
+    {
+      var codes = this.normalizeCodeList(recipientCodes || []);
+      if (!codes.length)
+      {
+        return '新規スレッド';
+      }
+      var participants = Array.isArray(this.state.participants) ? this.state.participants : [];
+      var names = codes.map((code) =>
+      {
+        var participant = participants.find(function (entry)
+        {
+          return entry && entry.userCode === code;
+        });
+        if (participant)
+        {
+          return participant.displayName || participant.userCode || code;
+        }
+        return code;
+      }).filter(Boolean);
+      if (!names.length)
+      {
+        return '新規スレッド';
+      }
+      return names.join('・');
+    }
+
+    promptThreadTitle(defaultTitle)
+    {
+      var suggested = defaultTitle || '新規スレッド';
+      var input = window.prompt('スレッド名を入力してください', suggested);
+      if (input == null)
+      {
+        return null;
+      }
+      var normalized = normalizeText(input);
+      if (!normalized)
+      {
+        if (this.page && typeof this.page.showToast === 'function')
+        {
+          this.page.showToast('error', 'スレッド名を入力してください。');
+        }
+        return null;
+      }
+      return normalized;
+    }
+
     async handleThreadCreate(users)
     {
       var recipients = this.normalizeCodeList(extractRecipientCodes(users));
@@ -1677,6 +1787,12 @@
         this.highlightThread(duplicateThread.threadCode);
         return;
       }
+      var defaultTitle = this.deriveThreadTitleFromRecipients(recipients);
+      var threadTitle = this.promptThreadTitle(defaultTitle);
+      if (threadTitle == null)
+      {
+        return;
+      }
       if (this.refs.threadAddButton)
       {
         this.refs.threadAddButton.disabled = true;
@@ -1687,7 +1803,8 @@
         var context = await this.page.createBbsThread({
           recipientCodes: recipients,
           threadType: recipients.length === 1 ? 'direct' : 'group',
-          content: null
+          content: null,
+          threadTitle: threadTitle
         });
         this.updateContext(context, context && context.threadCode);
       }
@@ -1705,6 +1822,49 @@
         {
           this.refs.threadAddButton.disabled = false;
           this.refs.threadAddButton.textContent = 'スレッドを追加';
+        }
+      }
+    }
+
+    async handleThreadRename(thread)
+    {
+      if (!thread)
+      {
+        return;
+      }
+      var nextTitle = this.promptThreadTitle(thread.title);
+      if (nextTitle == null)
+      {
+        return;
+      }
+      if (this.refs.threadEditButton)
+      {
+        this.refs.threadEditButton.disabled = true;
+        this.refs.threadEditButton.textContent = '更新中…';
+      }
+      try
+      {
+        var context = await this.page.updateBbsThreadTitle(thread.threadCode, nextTitle);
+        this.updateContext(context, thread.threadCode);
+        if (this.page && typeof this.page.showToast === 'function')
+        {
+          this.page.showToast('success', 'スレッド名を更新しました。');
+        }
+      }
+      catch (error)
+      {
+        window.console.error('[target-detail] failed to rename bbs thread', error);
+        if (this.page && typeof this.page.showToast === 'function')
+        {
+          this.page.showToast('error', 'スレッド名の更新に失敗しました。');
+        }
+      }
+      finally
+      {
+        if (this.refs.threadEditButton)
+        {
+          this.refs.threadEditButton.disabled = false;
+          this.refs.threadEditButton.textContent = 'スレッドを編集';
         }
       }
     }
