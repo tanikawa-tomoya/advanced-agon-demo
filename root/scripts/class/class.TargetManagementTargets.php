@@ -4059,27 +4059,39 @@ $pdo = $chatDependencies['pdo'];
 				//
 				// reference
 				//
-				$category = $this->deriveReferenceCategoryFromFile(
+				$referenceCategory = $this->deriveReferenceCategoryFromFile(
+
 																   isset($entry['type']) ? $entry['type'] : '',
+
 																   isset($entry['name']) ? $entry['name'] : '',
+
 																   'document'
+
 																   );
-				$category = trim((string) $category);
-				$storedResult = $this->storeReferenceFile($ownerCode, $category, $timestamp, $entry);
+				$referenceCategory = trim((string) $referenceCategory);
+				$referenceStoredResult = $this->storeReferenceFile($ownerCode, $referenceCategory, $timestamp, $entry);
 				// reference
 
 				//
 				// schedule
 				//
 				$category = $this->deriveScheduleCategoryFromFile(
+
 																   isset($entry['type']) ? $entry['type'] : '',
+
 																   isset($entry['name']) ? $entry['name'] : '',
+
 																   'document'
+
 																   );
 				$category = trim((string) $category);
 				$storedResult = $this->storeScheduleFile($ownerCode, $category, $timestamp, $entry);
-				// schedule				
-				
+				// schedule
+
+				$storedPaths[] = $referenceStoredResult['absolutePath'];
+				if (isset($referenceStoredResult['thumbnailPath']) && $referenceStoredResult['thumbnailPath'] !== null) {
+					$storedPaths[] = $referenceStoredResult['thumbnailPath'];
+				}
 				$storedPaths[] = $storedResult['absolutePath'];
 				if (isset($storedResult['thumbnailPath']) && $storedResult['thumbnailPath'] !== null) {
 					$storedPaths[] = $storedResult['thumbnailPath'];
