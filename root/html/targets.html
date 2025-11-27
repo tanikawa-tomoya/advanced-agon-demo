@@ -16,7 +16,7 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
       rel="stylesheet"
-    />
+      />
     <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
     <link rel="stylesheet" href="css/guidance-creator.css" />
     <link rel="stylesheet" href="css/targets.css" />
@@ -33,7 +33,7 @@
         aria-controls="site-header-nav"
         aria-expanded="false"
         aria-label="ナビゲーションメニュー"
-      >
+		>
         <span class="site-header__menu-icon" aria-hidden="true"></span>
       </button>
       <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
@@ -58,7 +58,7 @@
             aria-controls="target-help-modal"
             aria-expanded="false"
             aria-label="ターゲット管理のヘルプを開く"
-          >
+			>
             <span class="screen-help-icon" aria-hidden="true">?</span>
             <span class="visually-hidden">ターゲット管理のヘルプ</span>
           </button>
@@ -74,7 +74,7 @@
                 type="search"
                 placeholder="タイトル・作成者で検索"
                 data-targets-search
-              />
+				/>
             </div>
             <div class="targets__filters" data-targets-filters>
               <label class="targets__filter">
@@ -125,7 +125,7 @@
       data-targets-form-modal
       aria-hidden="true"
       hidden
-    >
+      >
       <div class="screen-modal__overlay" data-action="close-target-modal"></div>
       <section
         class="screen-modal__content targets__form-modal-dialog"
@@ -134,13 +134,13 @@
         aria-labelledby="targets-form-title"
         aria-describedby="targets-form-summary"
         tabindex="-1"
-      >
+		>
         <button
           type="button"
           class="screen-modal__close targets__form-modal-close"
           data-action="close-target-modal"
           aria-label="ターゲットフォームを閉じる"
-        >
+          >
           ×
         </button>
         <header class="screen-modal__header targets__form-header">
@@ -193,12 +193,12 @@
                     name="startDate"
                     class="targets__date-input"
                     aria-label="開始日"
-                  />
+					/>
                   <button
                     type="button"
                     class="targets__calendar-button"
                     aria-label="開始日のカレンダーを開く"
-                  >
+					>
                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                       <rect
                         x="4"
@@ -210,7 +210,7 @@
                         fill="none"
                         stroke="currentColor"
                         stroke-width="1.6"
-                      ></rect>
+						></rect>
                       <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="1.6"></line>
                       <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="1.6"></line>
                       <line x1="4" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.6"></line>
@@ -230,12 +230,12 @@
                     name="endDate"
                     class="targets__date-input"
                     aria-label="終了日"
-                  />
+					/>
                   <button
                     type="button"
                     class="targets__calendar-button"
                     aria-label="終了日のカレンダーを開く"
-                  >
+					>
                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                       <rect
                         x="4"
@@ -247,7 +247,7 @@
                         fill="none"
                         stroke="currentColor"
                         stroke-width="1.6"
-                      ></rect>
+						></rect>
                       <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="1.6"></line>
                       <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="1.6"></line>
                       <line x1="4" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.6"></line>
@@ -267,12 +267,12 @@
                     name="dueDate"
                     class="targets__date-input"
                     aria-label="期限"
-                  />
+					/>
                   <button
                     type="button"
                     class="targets__calendar-button"
                     aria-label="期限のカレンダーを開く"
-                  >
+					>
                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                       <rect
                         x="4"
@@ -284,7 +284,7 @@
                         fill="none"
                         stroke="currentColor"
                         stroke-width="1.6"
-                      ></rect>
+						></rect>
                       <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" stroke-width="1.6"></line>
                       <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" stroke-width="1.6"></line>
                       <line x1="4" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.6"></line>
@@ -321,7 +321,7 @@
                     class="btn btn--ghost"
                     data-action="clear-target-creator"
                     disabled
-                  >
+					>
                     クリア
                   </button>
                 </div>
@@ -348,7 +348,7 @@
                     class="btn btn--ghost"
                     data-action="clear-target-participants"
                     disabled
-                  >
+					>
                     クリア
                   </button>
                 </div>
@@ -429,6 +429,17 @@
                   </div>
                   <div class="targets__display-toggle">
                     <div class="targets__display-toggle-text">
+                      <span class="targets__display-toggle-title">掲示板</span>
+                      <span class="targets__display-toggle-desc">掲示板の表示 / 非表示を切り替えます。</span>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" class="toggle-switch__input" name="displayBbs" value="1" checked />
+                      <span class="toggle-switch__slider" aria-hidden="true"></span>
+                      <span class="visually-hidden">掲示板の表示を切り替える</span>
+                    </label>
+                  </div>				  
+                  <div class="targets__display-toggle">
+                    <div class="targets__display-toggle-text">
                       <span class="targets__display-toggle-title">提出</span>
                       <span class="targets__display-toggle-desc">提出セクションの表示 / 非表示を切り替えます。</span>
                     </div>
@@ -490,7 +501,7 @@
       aria-describedby="target-help-modal-body"
       aria-hidden="true"
       hidden
-    >
+      >
       <div class="c-help-modal__overlay" data-modal-close></div>
       <div class="c-help-modal__content">
         <button
@@ -499,7 +510,7 @@
           data-modal-close
           data-modal-initial-focus
           aria-label="ヘルプモーダルを閉じる"
-        >
+          >
           ×
         </button>
         <div class="c-help-modal__header">

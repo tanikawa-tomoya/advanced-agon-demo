@@ -911,7 +911,7 @@
           return participant.displayName || participant.userCode;
         }).join('・');
       } else {
-        title = 'チャット';
+        title = '掲示板';
       }
     }
     return {

@@ -3,7 +3,7 @@
   'use strict';
 
   var BBS_EMPTY_TEXT = 'メッセージがありません。最初のメッセージを送信してください。';
-  var THREAD_EMPTY_TEXT = 'チャットスレッドがまだありません。右上の「スレッドを追加」から作成してください。';
+  var THREAD_EMPTY_TEXT = '掲示板スレッドがまだありません。右上の「スレッドを追加」から作成してください。';
   var THREAD_SELECT_TEXT = '左のスレッド一覧から会話を選択してください。';
 
   function createElement(tagName, className)
@@ -339,7 +339,7 @@
       var header = createElement('header', 'target-bbs__header');
       var headerTop = createElement('div', 'target-bbs__header-top');
       var title = createElement('h3', 'target-detail__section-title target-bbs__heading');
-      title.textContent = 'チャット';
+      title.textContent = '掲示板';
       headerTop.appendChild(title);
 
       var headerActions = createElement('div', 'target-bbs__header-actions');
@@ -347,8 +347,8 @@
         buttonType: 'expandable-icon-button/reload',
         label: '再読み込み',
         ariaLabel: '再読み込み',
-        hoverLabel: 'チャットを再読み込み',
-        title: 'チャットを再読み込み'
+        hoverLabel: '掲示板を再読み込み',
+        title: '掲示板を再読み込み'
       });
       refreshButton.classList.add('target-bbs__reload');
       refreshButton.addEventListener('click', () =>
@@ -987,7 +987,7 @@
         this.renderMessagePlaceholder(THREAD_SELECT_TEXT);
         return;
       }
-      this.refs.threadHeaderTitle.textContent = thread.title || 'チャット';
+      this.refs.threadHeaderTitle.textContent = thread.title || '掲示板';
       this.refs.threadHeaderMeta.textContent = formatThreadMeta(thread);
       this.renderMessages(thread);
       this.setComposerEnabled(true);
