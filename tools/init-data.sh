@@ -10,6 +10,17 @@ if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
     fi
 fi
 
+require_command() {
+    local cmd="$1"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "Error: ${cmd} is required but not found in PATH." >&2
+        exit 1
+    fi
+}
+
+require_command ffmpeg
+require_command convert
+
 DOC_ROOT="/var/www/htmlv"
 DATA_ROOT_DISPLAY="${DOC_ROOT}/<site-id>"
 DEFAULT_OWNER="www-data:www-data"
@@ -269,6 +280,10 @@ create_dir "${DATA_DIR}/jwt/archive" 0770
 create_dir "$DATA_SERVICE_DIR" 0775
 create_dir "${DATA_SERVICE_DIR}/buckets" 0775
 
+log_action() {
+    echo "[init-data] $*"
+}
+
 load_common_user_ids() {
     local db_path="$1"
 
@@ -320,7 +335,8 @@ generate_sample_video() {
         return
     fi
 
-    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 10 "${target_path}" >/dev/null 2>&1
+    log_action "Generating sample video for ${user_code}: ffmpeg -y -f lavfi -i smptebars=size=1920x1080:rate=30 -t 3 ${target_path}"
+    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 3 "${target_path}" >/dev/null 2>&1
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
@@ -339,7 +355,71 @@ generate_sample_audio() {
         return
     fi
 
+    log_action "Generating sample audio for ${user_code}: ffmpeg -y -f lavfi -i sine=frequency=100:duration=10:beep_factor=10 ${target_path}"
     ffmpeg -y -f lavfi -i "sine=frequency=100:duration=10:beep_factor=10" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_pdf() {
+    local user_code="$1"
+    local relative_path="$2"
+    local label="$3"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    log_action "Generating sample PDF for ${user_code}: convert -size 1200x800 xc:white -gravity center -pointsize 32 -annotate 0 '${label}' ${target_path}"
+    convert -size 1200x800 xc:white -gravity center -pointsize 32 -annotate 0 "${label}" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_image() {
+    local user_code="$1"
+    local relative_path="$2"
+    local label="$3"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    log_action "Generating sample image for ${user_code}: convert -size 800x600 gradient:blue-yellow -gravity center -pointsize 28 -annotate 0 '${label}' ${target_path}"
+    convert -size 800x600 gradient:blue-yellow -gravity center -pointsize 28 -annotate 0 "${label}" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_text() {
+    local user_code="$1"
+    local relative_path="$2"
+    local content="$3"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    log_action "Generating sample text for ${user_code}: writing memo to ${target_path}"
+    printf '%s\n' "${content}" >"${target_path}"
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
@@ -1429,11 +1509,14 @@ SQL
 
 seed_user_contents_samples() {
     local db_path="$1"
+    log_action "Seeding user content samples into ${db_path}"
+
     local -a templates=(
-        "document|application/pdf|5120|reference-guide.pdf"
-        "note|text/plain|2048|coaching-memo.txt"
-        "video|video/mp4|0|highlight.mp4"
-        "audio|audio/wav|0|sweep.wav"
+        "document|application/pdf|reference-guide.pdf|Reference guide for",
+        "image|image/png|team-photo.png|Team photo for",
+        "note|text/plain|coaching-memo.txt|コーチングメモの下書きです。",
+        "video|video/mp4|highlight.mp4|",
+        "audio|audio/wav|sweep.wav|"
     )
 
     local user_code
@@ -1443,20 +1526,33 @@ seed_user_contents_samples() {
         for template in "${templates[@]}"; do
             idx=$((idx + 1))
             printf -v padded_idx '%02d' "$idx"
-            IFS='|' read -r content_type mime_type file_size file_stub <<<"${template}"
+            IFS='|' read -r content_type mime_type file_stub extra <<<"${template}"
             local content_code="contents-${user_code}-${padded_idx}"
             local extension="${file_stub##*.}"
             local file_name="${user_code}-${file_stub}"
             local file_path="content/${content_code}.${extension}"
             local duration="NULL"
+            local file_size=0
 
-            if [[ "${content_type}" == "video" ]]; then
-                file_size=$(generate_sample_video "${user_code}" "${file_path}")
-                duration=10
-            elif [[ "${content_type}" == "audio" ]]; then
-                file_size=$(generate_sample_audio "${user_code}" "${file_path}")
-                duration=10
-            fi
+            case "${content_type}" in
+                document)
+                    file_size=$(generate_sample_pdf "${user_code}" "${file_path}" "${extra} ${user_code}")
+                    ;;
+                image)
+                    file_size=$(generate_sample_image "${user_code}" "${file_path}" "${extra} ${user_code}")
+                    ;;
+                note)
+                    file_size=$(generate_sample_text "${user_code}" "${file_path}" "${extra}")
+                    ;;
+                video)
+                    file_size=$(generate_sample_video "${user_code}" "${file_path}")
+                    duration=3
+                    ;;
+                audio)
+                    file_size=$(generate_sample_audio "${user_code}" "${file_path}")
+                    duration=10
+                    ;;
+            esac
 
             file_size=${file_size:-0}
 
