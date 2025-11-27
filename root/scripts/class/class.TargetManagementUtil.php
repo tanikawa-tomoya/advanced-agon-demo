@@ -174,6 +174,8 @@ class TargetManagementUtil
 		}
 
                 $category = isset($row['category']) ? $row['category'] : null;
+                $startDate = isset($row['startDate']) ? trim((string) $row['startDate']) : null;
+                $endDate = isset($row['endDate']) ? trim((string) $row['endDate']) : null;
                 $linkUrl = isset($row['linkUrl']) ? trim($row['linkUrl']) : '';
                 $downloadUrl = isset($row['downloadUrl']) ? trim($row['downloadUrl']) : '';
                 $fileName = isset($row['fileName']) ? $row['fileName'] : null;
@@ -272,10 +274,12 @@ class TargetManagementUtil
 					 'materialCode' => $materialCode,
 					 'targetCode' => isset($row['targetCode']) ? $row['targetCode'] : null,
 					 'title' => isset($row['title']) ? $row['title'] : null,
-					 'description' => isset($row['description']) ? $row['description'] : null,
-					 'category' => $category,
-					 'linkUrl' => $linkUrl,
-					 'downloadUrl' => $downloadUrl,
+                                         'description' => isset($row['description']) ? $row['description'] : null,
+                                         'startDate' => $startDate,
+                                         'endDate' => $endDate,
+                                         'category' => $category,
+                                         'linkUrl' => $linkUrl,
+                                         'downloadUrl' => $downloadUrl,
 					 'previewImage' => $previewImage,
                                          'fileName' => $fileName,
                                          'fileSize' => $fileSize,
@@ -468,6 +472,8 @@ class TargetManagementUtil
 		}
 
                 $category = isset($row['category']) ? $row['category'] : null;
+                $startDate = isset($row['startDate']) ? trim((string) $row['startDate']) : null;
+                $endDate = isset($row['endDate']) ? trim((string) $row['endDate']) : null;
                 $linkUrl = isset($row['linkUrl']) ? trim($row['linkUrl']) : '';
                 $downloadUrl = isset($row['downloadUrl']) ? trim($row['downloadUrl']) : '';
                 $fileName = isset($row['fileName']) ? $row['fileName'] : null;
@@ -564,11 +570,13 @@ class TargetManagementUtil
 
 		return array(
 					 'materialCode' => $materialCode,
-					 'targetCode' => isset($row['targetCode']) ? $row['targetCode'] : null,
-					 'title' => isset($row['title']) ? $row['title'] : null,
-					 'description' => isset($row['description']) ? $row['description'] : null,
-					 'category' => $category,
-					 'linkUrl' => $linkUrl,
+                                         'targetCode' => isset($row['targetCode']) ? $row['targetCode'] : null,
+                                         'title' => isset($row['title']) ? $row['title'] : null,
+                                         'description' => isset($row['description']) ? $row['description'] : null,
+                                         'startDate' => $startDate,
+                                         'endDate' => $endDate,
+                                         'category' => $category,
+                                         'linkUrl' => $linkUrl,
 					 'downloadUrl' => $downloadUrl,
 					 'previewImage' => $previewImage,
                                          'fileName' => $fileName,

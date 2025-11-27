@@ -1512,6 +1512,22 @@
   font-size: 0.9rem;
 }
 
+.target-schedule__period-cell,
+.target-schedule__link-cell {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.target-schedule__link-cell {
+  max-width: 240px;
+  word-break: break-all;
+}
+
+.target-schedule__link {
+  color: var(--color-primary, #4f8bff);
+  text-decoration: underline;
+}
+
 .target-schedule__update-cell {
   white-space: nowrap;
 }
@@ -1584,6 +1600,17 @@
 .target-schedule__form-field.is-error .target-schedule__upload-note,
 .target-schedule__form-field.is-error .target-schedule__author-empty {
   color: #ff6b8b;
+}
+
+.target-schedule__form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.target-schedule__form-dates .target-schedule__form-field {
+  flex: 1 1 180px;
+  min-width: 160px;
 }
 
 .target-schedule__author {

@@ -558,6 +558,8 @@ CREATE TABLE IF NOT EXISTS targetReferenceMaterials (
     contentCode VARCHAR(32),
     title VARCHAR(256),
     description TEXT,
+    startDate VARCHAR(32),
+    endDate VARCHAR(32),
     category VARCHAR(32),
     linkUrl VARCHAR(512),
     downloadUrl VARCHAR(512),
@@ -603,6 +605,8 @@ CREATE TABLE IF NOT EXISTS targetScheduleMaterials (
     contentCode VARCHAR(32),
     title VARCHAR(256),
     description TEXT,
+    startDate VARCHAR(32),
+    endDate VARCHAR(32),
     category VARCHAR(32),
     linkUrl VARCHAR(512),
     downloadUrl VARCHAR(512),
@@ -1948,7 +1952,7 @@ VALUES
     ('${target_code}-guidance-02', '${target_code}', ${support_content_id:-NULL}, '${support_content_code}', '${title}FAQリンク', 'document', '${target_code}-faq.html', 0,
         '${creator}', datetime('now','localtime'), datetime('now','localtime'), 1, 0);
 INSERT OR REPLACE INTO targetScheduleMaterials (
-    materialCode, targetCode, contentsId, contentCode, title, description, category,
+    materialCode, targetCode, contentsId, contentCode, title, description, startDate, endDate, category,
     linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt,
     displayOrder, isDeleted
 )
@@ -1959,6 +1963,8 @@ VALUES (
     '${doc_content_code}',
     '${title}ガイド',
     '${description}の詳細資料',
+    date('now','${start_offset} days'),
+    date('now','+${end_offset} days'),
     'documentation',
     '${doc_url}',
     '${doc_url}.pdf',
@@ -1976,6 +1982,8 @@ VALUES (
     '${support_content_code}',
     '${support_title}',
     '${support_description}',
+    date('now','${start_offset} days'),
+    date('now','+${end_offset} days'),
     'faq',
     '${support_url}',
     NULL,
@@ -2124,7 +2132,7 @@ VALUES (
 INSERT OR REPLACE INTO targetReferenceMaterialContents (materialCode, contentCode, contentType, createdAt)
 VALUES ('${video_material_code}', '${video_content_code}', 'video', datetime('now','localtime'));
 INSERT OR REPLACE INTO targetScheduleMaterials (
-    materialCode, targetCode, contentCode, title, description, category,
+    materialCode, targetCode, contentCode, title, description, startDate, endDate, category,
     linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt,
     displayOrder, isDeleted
 )
@@ -2134,6 +2142,8 @@ VALUES (
     '${video_content_code}',
     '${title}動画チュートリアル',
     '重要なポイントを動画で復習できます。',
+    date('now','${start_offset} days'),
+    date('now','+${end_offset} days'),
     'video',
     '${video_embed_url}',
     '${video_watch_url}',
