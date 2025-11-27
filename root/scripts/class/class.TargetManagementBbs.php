@@ -355,13 +355,7 @@ $bbsData = TargetManagementUtil::fetchTargetBbsData($targetCode, $loginUserCode,
 			}
 		}
 
-		if (count($filteredRecipients) === 0) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'invalid';
-			return;
-		}
-
-		$threadTypeParam = isset($this->params['threadType']) ? $this->params['threadType'] : null;
+                $threadTypeParam = isset($this->params['threadType']) ? $this->params['threadType'] : null;
                 $threadType = $this->normalizeBbsThreadTypeValue($threadTypeParam, count($filteredRecipients));
                 if ($threadType === 'discussion') {
                         $threadType = 'group';
