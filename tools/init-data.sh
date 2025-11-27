@@ -10,6 +10,17 @@ if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
     fi
 fi
 
+require_command() {
+    local cmd="$1"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "Error: '${cmd}' is required but not found in PATH." >&2
+        exit 1
+    fi
+}
+
+require_command ffmpeg
+require_command convert
+
 DOC_ROOT="/var/www/htmlv"
 DATA_ROOT_DISPLAY="${DOC_ROOT}/<site-id>"
 DEFAULT_OWNER="www-data:www-data"
@@ -320,7 +331,8 @@ generate_sample_video() {
         return
     fi
 
-    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 10 "${target_path}" >/dev/null 2>&1
+    echo "Creating sample video (3s) with ffmpeg at ${target_path}"
+    ffmpeg -y -f lavfi -i "smptebars=size=1920x1080:rate=30" -t 3 "${target_path}" >/dev/null 2>&1
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
@@ -339,7 +351,50 @@ generate_sample_audio() {
         return
     fi
 
+    echo "Creating sample audio (10s) with ffmpeg at ${target_path}"
     ffmpeg -y -f lavfi -i "sine=frequency=100:duration=10:beep_factor=10" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_pdf() {
+    local user_code="$1"
+    local relative_path="$2"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    echo "Creating sample PDF with convert at ${target_path}"
+    convert -size 1200x1600 xc:white -gravity center -pointsize 36 \
+        -annotate 0 "Sample PDF for ${user_code}" "${target_path}" >/dev/null 2>&1
+
+    if [[ -f "${target_path}" ]]; then
+        stat -c%s "${target_path}"
+    else
+        echo 0
+    fi
+}
+
+generate_sample_image() {
+    local user_code="$1"
+    local relative_path="$2"
+    local target_path
+
+    if ! target_path=$(resolve_user_content_path "${user_code}" "${relative_path}"); then
+        echo 0
+        return
+    fi
+
+    echo "Creating sample image with convert at ${target_path}"
+    convert -size 1280x720 gradient:skyblue-white -gravity center -pointsize 48 \
+        -annotate 0 "Sample Image for ${user_code}" "${target_path}" >/dev/null 2>&1
 
     if [[ -f "${target_path}" ]]; then
         stat -c%s "${target_path}"
@@ -1430,7 +1485,8 @@ SQL
 seed_user_contents_samples() {
     local db_path="$1"
     local -a templates=(
-        "document|application/pdf|5120|reference-guide.pdf"
+        "document|application/pdf|0|reference-guide.pdf"
+        "image|image/png|0|preview.png"
         "note|text/plain|2048|coaching-memo.txt"
         "video|video/mp4|0|highlight.mp4"
         "audio|audio/wav|0|sweep.wav"
@@ -1452,10 +1508,14 @@ seed_user_contents_samples() {
 
             if [[ "${content_type}" == "video" ]]; then
                 file_size=$(generate_sample_video "${user_code}" "${file_path}")
-                duration=10
+                duration=3
             elif [[ "${content_type}" == "audio" ]]; then
                 file_size=$(generate_sample_audio "${user_code}" "${file_path}")
                 duration=10
+            elif [[ "${content_type}" == "document" ]]; then
+                file_size=$(generate_sample_pdf "${user_code}" "${file_path}")
+            elif [[ "${content_type}" == "image" ]]; then
+                file_size=$(generate_sample_image "${user_code}" "${file_path}")
             fi
 
             file_size=${file_size:-0}
@@ -1517,6 +1577,7 @@ seed_contents_test_data() {
     local common_db_path="${DB_DIR}/common.sqlite"
 
     load_common_user_ids "${common_db_path}"
+    echo "Preparing user content test data with generated media assets"
     seed_user_contents_samples "$db_path"
     seed_contents_access_test_data "$db_path"
 }
