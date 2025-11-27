@@ -2,13 +2,14 @@
 {
   'use strict';
 
-  var TAB_ORDER = ['basic', 'announcements', 'references', 'chat', 'bbs', 'submissions', 'reviews', 'badges', 'survey'];
+  var TAB_ORDER = ['basic', 'announcements', 'references', 'schedules', 'chat', 'bbs', 'submissions', 'reviews', 'badges', 'survey'];
   var DISPLAY_FLAG_KEYS = [
     'displayGuidance',
     'displayGoals',
     'displayAgreements',
     'displayAnnouncements',
     'displayReferences',
+    'displaySchedules',
     'displayChat',
     'displayBbs',
     'displaySubmissions',
@@ -62,6 +63,9 @@
       role: 'all',
       selectors: ['.target-announcement__refresh', '.target-detail__announcement-action--detail']
     },
+    //
+    // reference
+    //
     {
       role: 'manage',
       selectors: ['.target-reference__open', '.target-reference__edit', '.target-reference__delete']
@@ -70,6 +74,19 @@
       role: 'all',
       selectors: ['.target-reference__refresh', '.target-reference__preview', '.target-reference__download']
     },
+    // reference
+    //
+    // schedule
+    //
+    {
+      role: 'manage',
+      selectors: ['.target-schedule__open', '.target-schedule__edit', '.target-schedule__delete']
+    },
+    {
+      role: 'all',
+      selectors: ['.target-schedule__refresh', '.target-schedule__preview', '.target-schedule__download']
+    },
+    // schedule    
     {
       role: 'all',
       selectors: [
@@ -952,6 +969,7 @@
           target: {},
           submissions: [],
           references: [],
+          schedules: [],
           reviews: [],
           chats: {},          
           bbss: {},
@@ -966,6 +984,7 @@
         availableTabs: TAB_ORDER.slice(),
         submissions: null,
         references: null,
+        schedules: null,
         reviews: null,
         chats: null,
         bbss: null,
@@ -1454,6 +1473,7 @@
         base + 'job-announcement.js',
         base + 'job-survey.js',
         base + 'job-reference.js',
+        base + 'job-schedule.js',
         base + 'job-chat.js',
         base + 'job-bbs.js',
         base + 'job-submission.js',
@@ -1470,6 +1490,7 @@
       var JobBasic = NS.JobBasic || window.TargetDetailJobBasic;
       var JobAnnouncement = NS.JobAnnouncement;
       var JobReference = NS.JobReference;
+      var JobSchedule = NS.JobSchedule;      
       var JobChat = NS.JobChat;
       var JobBbs = NS.JobBbs;      
       var JobSubmission = NS.JobSubmission;
@@ -1480,6 +1501,7 @@
       this.tabJobMap = {
         announcements: { key: 'announcement', ctor: JobAnnouncement },
         references: { key: 'reference', ctor: JobReference },
+        schedules: { key: 'schedule', ctor: JobSchedule },        
         chat: { key: 'chat', ctor: JobChat },
         bbs: { key: 'bbs', ctor: JobBbs },
         submissions: { key: 'submission', ctor: JobSubmission },
@@ -1571,6 +1593,28 @@
       }
       return this.state.references;
     }
+
+    async loadSchedules(options)
+    {
+      var forceReload = options && options.force;
+      
+      if (!forceReload && Array.isArray(this.state.schedules)) {
+        return this.state.schedules;
+      }
+
+      if (forceReload) {
+        this.state.schedules = null;
+      }
+      
+      try {
+        var payload = await this.callApi('TargetScheduleList', { targetCode: this.state.targetCode }, { requestType: 'TargetManagementSchedules' });
+        this.state.schedules = Array.isArray(payload && payload.materials) ? payload.materials : [];
+      } catch (error) {
+        console.warn('[target-detail] TargetScheduleList fallback', error);
+        this.state.schedules = this.config.fallback.schedules.slice();
+      }
+      return this.state.schedules;
+    }   
 
     async loadAnnouncements(options)
     {
@@ -2355,6 +2399,7 @@
       var mapping = {
         announcements: 'displayAnnouncements',
         references: 'displayReferences',
+        schedules: 'displaySchedules',
         chat: 'displayChat',
         bbs: 'displayBbs',
         submissions: 'displaySubmissions',
