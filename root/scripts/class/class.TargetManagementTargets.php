@@ -11,6 +11,7 @@ class TargetManagementTargets extends Base
                 'displayAgreements',
                 'displayAnnouncements',
                 'displayReferences',
+				'displaySchedules',
                 'displayChat',
                 'displaySubmissions',
                 'displayReviews',
@@ -972,7 +973,7 @@ class TargetManagementTargets extends Base
                         $creatorCode = $this->getLoginUserCode();
                 }
 
-                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayReferences, displayChat, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayReferences, displaySchedules, displayChat, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
                 $stmt->execute(array(
                         $targetCode,
                         $title,
@@ -989,6 +990,7 @@ class TargetManagementTargets extends Base
                         $displayFlags['displayAgreements'],
                         $displayFlags['displayAnnouncements'],
                         $displayFlags['displayReferences'],
+                        $displayFlags['displaySchedules'],						
                         $displayFlags['displayChat'],
                         $displayFlags['displaySubmissions'],
                         $displayFlags['displayReviews'],
@@ -1797,6 +1799,7 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
                                          'displayAgreements' => $displayFlags['displayAgreements'],
                                          'displayAnnouncements' => $displayFlags['displayAnnouncements'],
                                          'displayReferences' => $displayFlags['displayReferences'],
+                                         'displaySchedules' => $displayFlags['displaySchedules'],										 
                                          'displayChat' => $displayFlags['displayChat'],
                                          'displaySubmissions' => $displayFlags['displaySubmissions'],
                                          'displayReviews' => $displayFlags['displayReviews'],
@@ -1808,24 +1811,25 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
                                          'createdByDisplayName' => $creatorDisplayName,
                                          'createdByUserAvatarUrl' => $creatorAvatar['url'],
                                          'createdByAvatarUrl' => $creatorAvatar['url'],
-					 'createdByUserAvatarAlt' => $creatorAvatar['alt'],
-					 'createdByAvatarAlt' => $creatorAvatar['alt'],
-					 'createdByUserAvatarTransform' => $creatorAvatar['transform'],
-					 'createdByAvatarTransform' => $creatorAvatar['transform'],
-					 'createdByUserAvatar' => $creatorAvatar['payload'],
-					 'createdByAvatar' => $creatorAvatar['payload'],
-					 'createdAt' => $row['createdAt'],
-					 'updatedAt' => $row['updatedAt'],
-                                                         'referenceMaterials' => TargetManagementUtil::fetchTargetReferenceMaterials($row['targetCode'], $this->getLoginUserCode(), $this->getPDOTarget(), $this->getPDOContents(), $this->siteId),
-					 'guidanceContents' => $this->fetchTargetGuidanceContents($row['targetCode']),
-					 'agreements' => $this->fetchTargetAgreements($row['targetCode'], $this->getPDOTarget()),
-					 'goals' => $this->fetchTargetGoals($row['targetCode']),
-					 'basicInfoConfirmation' => $this->fetchBasicInfoConfirmationPayload($row['targetCode'], $viewerUserCode),
-					 'sectionActivity' => $sectionActivity,
-					 'chatThreads' => $chatThreads,
-					 'chatParticipants' => $chatParticipants,
-					 'chatMembers' => $chatParticipants,
-					 'chatUsers' => $chatParticipants
+										 'createdByUserAvatarAlt' => $creatorAvatar['alt'],
+										 'createdByAvatarAlt' => $creatorAvatar['alt'],
+										 'createdByUserAvatarTransform' => $creatorAvatar['transform'],
+										 'createdByAvatarTransform' => $creatorAvatar['transform'],
+										 'createdByUserAvatar' => $creatorAvatar['payload'],
+										 'createdByAvatar' => $creatorAvatar['payload'],
+										 'createdAt' => $row['createdAt'],
+										 'updatedAt' => $row['updatedAt'],
+										 'referenceMaterials' => TargetManagementUtil::fetchTargetReferenceMaterials($row['targetCode'], $this->getLoginUserCode(), $this->getPDOTarget(), $this->getPDOContents(), $this->siteId),
+										 'scheduleMaterials' => TargetManagementUtil::fetchTargetScheduleMaterials($row['targetCode'], $this->getLoginUserCode(), $this->getPDOTarget(), $this->getPDOContents(), $this->siteId),										 
+										 'guidanceContents' => $this->fetchTargetGuidanceContents($row['targetCode']),
+										 'agreements' => $this->fetchTargetAgreements($row['targetCode'], $this->getPDOTarget()),
+										 'goals' => $this->fetchTargetGoals($row['targetCode']),
+										 'basicInfoConfirmation' => $this->fetchBasicInfoConfirmationPayload($row['targetCode'], $viewerUserCode),
+										 'sectionActivity' => $sectionActivity,
+										 'chatThreads' => $chatThreads,
+										 'chatParticipants' => $chatParticipants,
+										 'chatMembers' => $chatParticipants,
+										 'chatUsers' => $chatParticipants
 					 );
 	}
 
@@ -2024,6 +2028,9 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
 			}
 		}
 
+		//
+		// reference
+		//
 		$stmt = $pdo->prepare(
 							  'SELECT m.*, owner.displayName AS ownerDisplayName '
 							  . 'FROM targetReferenceMaterials m '
@@ -2057,6 +2064,45 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
 				}
 			}
 		}
+		// reference
+
+		//
+		// schedule
+		//
+		$stmt = $pdo->prepare(
+							  'SELECT m.*, owner.displayName AS ownerDisplayName '
+							  . 'FROM targetScheduleMaterials m '
+							  . 'LEFT JOIN common.user owner ON m.ownerUserCode = owner.userCode '
+							  . 'WHERE m.targetCode = ? '
+							  . 'ORDER BY m.createdAt ASC, m.updatedAt ASC, m.id ASC'
+							  );
+		$stmt->execute(array($targetCode));
+		while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+			$title = isset($row['title']) ? trim((string)$row['title']) : '';
+			$subject = $title !== '' ? 'スケジュール「' . $title . '」' : 'スケジュール';
+			$owner = $this->resolveActivityActorSummary(
+														isset($row['ownerUserCode']) ? $row['ownerUserCode'] : null,
+														isset($row['ownerDisplayName']) ? $row['ownerDisplayName'] : null
+														);
+			$ownerName = $owner[1];
+			$createdTimestamp = Util::normalizeTimestampValue(isset($row['createdAt']) ? $row['createdAt'] : null);
+			if ($createdTimestamp !== null) {
+				$description = $ownerName !== '' ? $ownerName . 'が' . $subject . 'を追加しました。' : $subject . 'を追加しました。';
+				$append($createdTimestamp, 'schedule', 'create', $subject, $description, $owner[0], $ownerName);
+			}
+			$updatedTimestamp = Util::normalizeTimestampValue(isset($row['updatedAt']) ? $row['updatedAt'] : null);
+			$isDeleted = isset($row['isDeleted']) ? (int)$row['isDeleted'] : 0;
+			if ($updatedTimestamp !== null && ($createdTimestamp === null || strcmp($updatedTimestamp, $createdTimestamp) !== 0)) {
+				if ($isDeleted === 1) {
+					$description = $ownerName !== '' ? $ownerName . 'が' . $subject . 'を削除しました。' : $subject . 'が削除されました。';
+					$append($updatedTimestamp, 'schedule', 'delete', $subject, $description, $owner[0], $ownerName);
+				} else {
+					$description = $ownerName !== '' ? $ownerName . 'が' . $subject . 'を更新しました。' : $subject . 'が更新されました。';
+					$append($updatedTimestamp, 'schedule', 'update', $subject, $description, $owner[0], $ownerName);
+				}
+			}
+		}
+		// schedule		
 
                 $stmt = $pdo->prepare(
                                                           'SELECT s.id, s.submissionCode, s.userCode, s.createdAt, s.updatedAt, s.submittedAt, s.isDeleted, '
@@ -2212,6 +2258,7 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
 					 'agreement' => '規約',
 					 'guidance' => 'ガイダンスコンテンツ',
 					 'reference' => '参考資料',
+					 'schedule' => 'スケジュール',
 					 'submission' => '提出',
 					 'review' => 'レビュー',
 					 'badge' => 'バッジ',
@@ -2424,6 +2471,16 @@ $pdo = $chatDependencies['pdo'];
 							  );
 		$stmt->execute(array($targetCode));
 		$map['references'] = $this->buildSectionActivityEntryFromRow($stmt->fetch(PDO::FETCH_ASSOC));
+
+		$stmt = $pdo->prepare(
+							  'SELECT ownerUserCode AS actorCode, COALESCE(updatedAt, createdAt) AS activityAt '
+							  . 'FROM targetScheduleMaterials '
+							  . 'WHERE targetCode = ? AND (isDeleted IS NULL OR isDeleted = 0) '
+							  . 'ORDER BY activityAt DESC, id DESC '
+							  . 'LIMIT 1'
+							  );
+		$stmt->execute(array($targetCode));
+		$map['schedules'] = $this->buildSectionActivityEntryFromRow($stmt->fetch(PDO::FETCH_ASSOC));		
 
 		$stmt = $pdo->prepare(
 							  'SELECT updatedByUserCode AS actorCode, COALESCE(updatedAt, createdAt) AS activityAt '
@@ -3999,14 +4056,30 @@ $pdo = $chatDependencies['pdo'];
 				}
 				$usedFileIndexes[$fileIndex] = true;
 
+				//
+				// reference
+				//
 				$category = $this->deriveReferenceCategoryFromFile(
 																   isset($entry['type']) ? $entry['type'] : '',
 																   isset($entry['name']) ? $entry['name'] : '',
 																   'document'
 																   );
-                                $category = trim((string) $category);
-
+				$category = trim((string) $category);
 				$storedResult = $this->storeReferenceFile($ownerCode, $category, $timestamp, $entry);
+				// reference
+
+				//
+				// schedule
+				//
+				$category = $this->deriveScheduleCategoryFromFile(
+																   isset($entry['type']) ? $entry['type'] : '',
+																   isset($entry['name']) ? $entry['name'] : '',
+																   'document'
+																   );
+				$category = trim((string) $category);
+				$storedResult = $this->storeScheduleFile($ownerCode, $category, $timestamp, $entry);
+				// schedule				
+				
 				$storedPaths[] = $storedResult['absolutePath'];
 				if (isset($storedResult['thumbnailPath']) && $storedResult['thumbnailPath'] !== null) {
 					$storedPaths[] = $storedResult['thumbnailPath'];
