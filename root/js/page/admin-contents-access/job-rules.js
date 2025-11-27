@@ -56,6 +56,7 @@
     {
       this._renderActions();
       this._bindEvents();
+      this._decorateFilterButton();
       await this.refresh();
     }
 
@@ -66,21 +67,54 @@
         return;
       }
 
+      const svc = this.page.buttonService;
+      const createLabel = '新規追加';
+      const reloadLabel = '再読み込み';
+
       this.actionsHost.innerHTML = '';
+
+      if (svc && typeof svc.createActionButton === 'function')
+      {
+        const createButton = svc.createActionButton('expandable-icon-button/add', {
+          baseClass: 'target-management__icon-button target-management__icon-button--primary user-management__add',
+          label: createLabel,
+          ariaLabel: createLabel,
+          hoverLabel: createLabel,
+          type: 'button',
+          dataset: { action: 'create-access' }
+        });
+
+        const reloadButton = svc.createActionButton('expandable-icon-button/reload', {
+          baseClass: 'target-management__icon-button target-management__icon-button--ghost user-management__reload',
+          label: reloadLabel,
+          ariaLabel: reloadLabel,
+          hoverLabel: reloadLabel,
+          type: 'button',
+          dataset: { action: 'refresh-access' }
+        });
+
+        createButton.addEventListener('click', this._handleCreate.bind(this));
+        reloadButton.addEventListener('click', this.refresh.bind(this));
+
+        this.actionsHost.appendChild(createButton);
+        this.actionsHost.appendChild(reloadButton);
+        return;
+      }
+
       const createBtn = document.createElement('button');
       createBtn.type = 'button';
       createBtn.className = 'btn';
-      createBtn.textContent = '新規追加';
+      createBtn.textContent = createLabel;
       createBtn.setAttribute('data-action', 'create-access');
 
       const reloadBtn = document.createElement('button');
       reloadBtn.type = 'button';
       reloadBtn.className = 'btn btn--ghost';
-      reloadBtn.textContent = '再読み込み';
+      reloadBtn.textContent = reloadLabel;
       reloadBtn.setAttribute('data-action', 'refresh-access');
 
-      const decoratedCreate = this.page.decorateActionButton(createBtn, { buttonType: 'pill-button', baseClass: 'btn', label: '新規追加' }) || createBtn;
-      const decoratedReload = this.page.decorateActionButton(reloadBtn, { buttonType: 'expandable-icon-button/reload', baseClass: 'btn btn--ghost', label: '再読み込み' }) || reloadBtn;
+      const decoratedCreate = this.page.decorateActionButton(createBtn, { buttonType: 'pill-button', baseClass: 'btn', label: createLabel }) || createBtn;
+      const decoratedReload = this.page.decorateActionButton(reloadBtn, { buttonType: 'expandable-icon-button/reload', baseClass: 'btn btn--ghost', label: reloadLabel }) || reloadBtn;
 
       decoratedCreate.addEventListener('click', this._handleCreate.bind(this));
       decoratedReload.addEventListener('click', this.refresh.bind(this));
@@ -175,6 +209,31 @@
       this._renderTable();
       this._renderSummary();
       this._renderFeedback();
+    }
+
+    _decorateFilterButton()
+    {
+      if (!this.filterForm)
+      {
+        return;
+      }
+
+      var submit = this.filterForm.querySelector('button[type="submit"]');
+      if (!submit)
+      {
+        return;
+      }
+
+      var decorated = this.page.decorateActionButton(submit, {
+        buttonType: 'pill-button/ghost',
+        baseClass: 'btn btn--ghost',
+        label: submit.textContent || '絞り込む'
+      }) || submit;
+
+      if (decorated !== submit && submit.parentNode)
+      {
+        submit.parentNode.replaceChild(decorated, submit);
+      }
     }
 
     _renderTable()
