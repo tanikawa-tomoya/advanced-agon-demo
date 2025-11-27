@@ -348,7 +348,7 @@
 
       var empty = document.createElement('div');
       empty.className = 'target-product__empty';
-      empty.textContent = 'このターゲットに共有されたプロダクトはまだありません。';
+      empty.textContent = 'このターゲットに共有された商品はまだありません。';
       this.refs.empty = empty;
       section.appendChild(empty);
 
@@ -368,7 +368,7 @@
       header.className = 'target-detail__section-header';
 
       var title = document.createElement('h2');
-      title.textContent = 'プロダクト';
+      title.textContent = '商品';
       header.appendChild(title);
 
       var actions = document.createElement('div');
@@ -376,7 +376,7 @@
 
       if (this.canManage)
       {
-        var openButton = this.createBannerButton('プロダクトを追加', 'target-product__open', {
+        var openButton = this.createBannerButton('商品を追加', 'target-product__open', {
           baseClass: 'target-management__icon-button target-management__icon-button--primary target-product__open',
           buttonType: 'expandable-icon-button/add'
         });
@@ -388,9 +388,9 @@
         baseClass: 'target-management__icon-button target-management__icon-button--ghost target-product__refresh',
         buttonType: 'expandable-icon-button/reload',
         fallbackClass: 'btn btn--ghost',
-        title: 'プロダクトを再読み込み',
-        hoverLabel: 'プロダクトを再読み込み',
-        ariaLabel: 'プロダクトを再読み込み'
+        title: '商品を再読み込み',
+        hoverLabel: '商品を再読み込み',
+        ariaLabel: '商品を再読み込み'
       });
       actions.appendChild(refreshButton);
       this.refs.refreshButton = refreshButton;
@@ -408,13 +408,13 @@
       search.type = 'search';
       search.placeholder = 'タイトルで絞り込み';
       search.className = 'target-product__search';
-      search.setAttribute('aria-label', 'プロダクトを検索');
+      search.setAttribute('aria-label', '商品を検索');
       filters.appendChild(search);
       this.refs.search = search;
 
       var filter = document.createElement('select');
       filter.className = 'target-product__filter';
-      filter.setAttribute('aria-label', 'プロダクトカテゴリを絞り込み');
+      filter.setAttribute('aria-label', '商品カテゴリを絞り込み');
       filter.innerHTML = (
         '<option value="all">すべて</option>' +
         '<option value="link">リンク</option>' +
@@ -1102,16 +1102,16 @@
       {
         this.refs.refreshButton.disabled = true;
       }
-      this.setFeedback('プロダクトを再読み込みしています…', 'info');
+      this.setFeedback('商品を再読み込みしています…', 'info');
       try
       {
         await this.reloadProductsFromServer();
-        this.setFeedback('最新のプロダクトを読み込みました。', 'success');
+        this.setFeedback('最新の商品を読み込みました。', 'success');
       }
       catch (error)
       {
         console.error('[target-detail] product refresh failed', error);
-        this.setFeedback('プロダクトの再読み込みに失敗しました。', 'error');
+        this.setFeedback('商品の再読み込みに失敗しました。', 'error');
       }
       finally
       {
@@ -1395,8 +1395,8 @@
         if (this.refs.empty)
         {
           var message = this.state.items.length
-            ? '条件に一致するプロダクトはありません。'
-            : 'このターゲットに共有されたプロダクトはまだありません。';
+            ? '条件に一致する商品はありません。'
+            : 'このターゲットに共有された商品はまだありません。';
           this.refs.empty.textContent = message;
           this.refs.empty.hidden = false;
         }
@@ -1521,8 +1521,8 @@
       if (this.canManage)
       {
         var editButton = this.createRoundButton('edit', '編集', 'target-product__action target-product__edit', {
-          hoverLabel: 'プロダクトを編集',
-          title: 'プロダクトを編集'
+          hoverLabel: '商品を編集',
+          title: '商品を編集'
         });
         editButton.addEventListener('click', (event) =>
         {
@@ -1532,8 +1532,8 @@
         actions.appendChild(editButton);
 
         var deleteButton = this.createRoundButton('delete', '削除', 'target-product__action target-product__delete', {
-          hoverLabel: 'プロダクトを削除',
-          title: 'プロダクトを削除'
+          hoverLabel: '商品を削除',
+          title: '商品を削除'
         });
         deleteButton.addEventListener('click', (event) =>
         {
@@ -1569,7 +1569,7 @@
         image.className = 'target-product__thumbnail-image';
         image.src = thumbnailUrl;
         image.loading = 'lazy';
-        image.alt = item && item.title ? item.title : 'プロダクトのサムネイル';
+        image.alt = item && item.title ? item.title : '商品のサムネイル';
         wrapper.appendChild(image);
       }
       else if (isPdfThumbnail)
@@ -2372,7 +2372,7 @@
         return;
       }
 
-      var confirmed = await this.page.confirmDialogService.open('このプロダクトを削除しますか？', { type: 'warning' });
+      var confirmed = await this.page.confirmDialogService.open('この商品を削除しますか？', { type: 'warning' });
       if (!confirmed)
       {
         return;
@@ -2383,7 +2383,7 @@
         button.disabled = true;
         button.setAttribute('aria-busy', 'true');
       }
-      this.setFeedback('プロダクトを削除しています…', 'info');
+      this.setFeedback('商品を削除しています…', 'info');
 
       try
       {
@@ -2407,19 +2407,19 @@
         }
         this.renderList();
         this.updateFilterOptions();
-        this.setFeedback('プロダクトを削除しました。', 'success');
+        this.setFeedback('商品を削除しました。', 'success');
         if (typeof this.page.showToast === 'function')
         {
-          this.page.showToast('success', 'プロダクトを削除しました。');
+          this.page.showToast('success', '商品を削除しました。');
         }
       }
       catch (error)
       {
         window.console.error('[target-detail] failed to delete product', error);
-        this.setFeedback('プロダクトの削除に失敗しました。', 'error');
+        this.setFeedback('商品の削除に失敗しました。', 'error');
         if (typeof this.page.showToast === 'function')
         {
-          this.page.showToast('error', 'プロダクトの削除に失敗しました。');
+          this.page.showToast('error', '商品の削除に失敗しました。');
         }
       }
       finally
@@ -2548,8 +2548,8 @@
         '<section class="screen-modal__content target-product__modal" role="dialog" aria-modal="true" aria-labelledby="target-product-modal-title">' +
         '<button type="button" class="screen-modal__close" aria-label="モーダルを閉じる">×</button>' +
         '<header class="screen-modal__header">' +
-        '<h2 class="screen-modal__title" id="target-product-modal-title">プロダクトを追加</h2>' +
-        '<p class="screen-modal__summary">リンクやファイル情報を入力してプロダクトを登録します。</p>' +
+        '<h2 class="screen-modal__title" id="target-product-modal-title">商品を追加</h2>' +
+        '<p class="screen-modal__summary">リンクやファイル情報を入力して商品を登録します。</p>' +
         '</header>' +
         '<form class="screen-modal__body target-product__form" novalidate>' +
         '<div class="target-product__form-field target-product__form-row--full">' +
@@ -2830,13 +2830,13 @@
       var isEditMode = modal.mode === 'edit';
       if (modal.titleNode)
       {
-        modal.titleNode.textContent = isEditMode ? 'プロダクトを編集' : 'プロダクトを追加';
+        modal.titleNode.textContent = isEditMode ? '商品を編集' : '商品を追加';
       }
       if (modal.summaryNode)
       {
         modal.summaryNode.textContent = isEditMode
-          ? '登録済みの情報を編集してプロダクトを更新します。'
-          : 'リンクやファイル情報を入力してプロダクトを登録します。';
+          ? '登録済みの情報を編集して商品を更新します。'
+          : 'リンクやファイル情報を入力して商品を登録します。';
       }
       if (modal.submitButton)
       {
@@ -3700,7 +3700,7 @@
             throw new Error('アップロードしたコンテンツ情報を取得できませんでした。');
           }
         }
-        this.setModalFeedback('プロダクトを登録しています…', 'info');
+        this.setModalFeedback('商品を登録しています…', 'info');
         var derivedCategory = currentMaterial && currentMaterial.category ? currentMaterial.category : 'document';
         if (uploadedContent)
         {
@@ -3793,7 +3793,7 @@
         }
         if (!material)
         {
-          throw new Error('プロダクトの登録結果を取得できませんでした。');
+          throw new Error('商品の登録結果を取得できませんでした。');
         }
         var normalized = this.normalizeMaterial(material);
         if (normalized)
@@ -3844,17 +3844,17 @@
         {
           window.console.warn('[target-detail] product reload failed after submit', refreshError);
         }
-        this.setFeedback(isEditMode ? 'プロダクトを更新しました。' : 'プロダクトを追加しました。', 'success');
+        this.setFeedback(isEditMode ? '商品を更新しました。' : '商品を追加しました。', 'success');
         if (this.page && typeof this.page.showToast === 'function')
         {
-          this.page.showToast('success', isEditMode ? 'プロダクトを更新しました。' : 'プロダクトを追加しました。');
+          this.page.showToast('success', isEditMode ? '商品を更新しました。' : '商品を追加しました。');
         }
-        this.setModalFeedback(isEditMode ? 'プロダクトを更新しました。' : 'プロダクトを追加しました。', 'success');
+        this.setModalFeedback(isEditMode ? '商品を更新しました。' : '商品を追加しました。', 'success');
         this.closeAddModal();
       }
       catch (error)
       {
-        var message = error && error.message ? error.message : 'プロダクトの登録に失敗しました。';
+        var message = error && error.message ? error.message : '商品の登録に失敗しました。';
         this.setModalFeedback(message, 'error');
       }
       finally

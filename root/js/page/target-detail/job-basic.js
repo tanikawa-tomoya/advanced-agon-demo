@@ -7,7 +7,7 @@
     { id: 'announcements', label: 'お知らせ' },
     { id: 'references', label: '参考資料' },
     { id: 'schedules', label: 'スケジュール' },
-    { id: 'products', label: 'プロダクト' },
+    { id: 'products', label: '商品' },
     { id: 'chat', label: 'チャット' },
     { id: 'bbs', label: '掲示板' },
     { id: 'submissions', label: '提出' },
