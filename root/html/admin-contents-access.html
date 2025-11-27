@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>阿含宗デモサイト | 管理者 | コンテンツアクセス管理</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+        <script src="js/entrypoint.js?v=1"></script>
+  </head>
+  <body data-page="admin-contents-access">
+    <header class="site-header">
+      <a class="site-header__logo" href="/index" data-logo-label="阿含宗デモサイト">阿含宗デモサイト</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="screen-intro">
+        <div class="screen-intro__title-row">
+          <h1 class="screen-intro__title">コンテンツアクセス管理</h1>
+          <button
+            type="button"
+            class="screen-help-button"
+            id="contents-access-help-button"
+            aria-haspopup="dialog"
+            aria-controls="contents-access-help-modal"
+            aria-expanded="false"
+            aria-label="コンテンツアクセス管理のヘルプを開く"
+          >
+            <span class="screen-help-icon" aria-hidden="true">?</span>
+            <span class="visually-hidden">コンテンツアクセス管理のヘルプ</span>
+          </button>
+        </div>
+        <p class="screen-intro__summary">
+          公開レベルや閲覧対象をまとめて確認し、権限に応じてコンテンツ配信を制御します。
+        </p>
+      </section>
+
+      <section class="screen-preview contents-access" id="contents-access-root" data-contents-access-root>
+        <div class="contents-access__header">
+          <div class="contents-access__summary" data-contents-access-summary>
+            <div class="contents-access__stat">
+              <p class="contents-access__stat-label">公開中のコンテンツ</p>
+              <p class="contents-access__stat-value" data-contents-access-total>0</p>
+              <p class="contents-access__stat-note">限定公開・会員限定を含む</p>
+            </div>
+            <div class="contents-access__stat">
+              <p class="contents-access__stat-label">限定公開</p>
+              <p class="contents-access__stat-value" data-contents-access-restricted>0</p>
+              <p class="contents-access__stat-note">グループ指定や時間帯を考慮</p>
+            </div>
+            <div class="contents-access__stat">
+              <p class="contents-access__stat-label">承認待ちリクエスト</p>
+              <p class="contents-access__stat-value" data-contents-access-pending>0</p>
+              <p class="contents-access__stat-note">閲覧リクエストや追加権限の保留</p>
+            </div>
+          </div>
+          <div class="contents-access__controls">
+            <form class="contents-access__filters" data-contents-access-filter-form>
+              <label class="contents-access__filter-field">
+                <span class="contents-access__filter-label">コンテンツ種別</span>
+                <select name="type" class="contents-access__filter-select" data-contents-access-filter-type>
+                  <option value="">すべて</option>
+                  <option value="material">教材</option>
+                  <option value="video">動画</option>
+                  <option value="document">資料</option>
+                  <option value="event">イベント</option>
+                </select>
+              </label>
+              <label class="contents-access__filter-field">
+                <span class="contents-access__filter-label">公開レベル</span>
+                <select name="accessLevel" class="contents-access__filter-select" data-contents-access-filter-level>
+                  <option value="">すべて</option>
+                  <option value="public">全員</option>
+                  <option value="restricted">限定公開</option>
+                  <option value="private">非公開</option>
+                </select>
+              </label>
+              <label class="contents-access__filter-field">
+                <span class="contents-access__filter-label">対象グループ</span>
+                <input
+                  type="search"
+                  name="group"
+                  placeholder="ロール・クラブ・チーム名で検索"
+                  class="contents-access__filter-input"
+                  data-contents-access-filter-group
+                />
+              </label>
+              <div class="contents-access__filter-actions">
+                <button type="submit" class="btn btn--ghost">絞り込む</button>
+              </div>
+            </form>
+            <div class="contents-access__refresh-row">
+              <button type="button" class="btn btn--ghost" id="contents-access-refresh" data-contents-access-refresh>
+                最新の情報を取得
+              </button>
+              <p class="contents-access__updated" data-contents-access-updated aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="contents-access__feedback" data-contents-access-feedback aria-live="polite"></div>
+
+        <div class="contents-access__table-wrapper" role="region" aria-label="アクセスルール一覧">
+          <table class="contents-access__table">
+            <thead>
+              <tr>
+                <th scope="col">コンテンツ</th>
+                <th scope="col">カテゴリ</th>
+                <th scope="col">公開レベル</th>
+                <th scope="col">対象</th>
+                <th scope="col">配信ウィンドウ</th>
+                <th scope="col">最終更新</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody data-contents-access-tbody>
+              <tr>
+                <td colspan="7">読み込み中…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <section class="contents-access__policies" aria-labelledby="contents-access-policies-title">
+          <div class="contents-access__policies-header">
+            <div>
+              <h2 class="contents-access__policies-title" id="contents-access-policies-title">ポリシーテンプレート</h2>
+              <p class="contents-access__policies-summary">ロールやクラブ単位でアクセスルールをまとめて適用します。</p>
+            </div>
+            <button type="button" class="btn" data-contents-access-policy-save aria-label="ポリシーの更新を適用">
+              ポリシーを適用
+            </button>
+          </div>
+          <div class="contents-access__policy-grid">
+            <article class="contents-access__policy" data-contents-access-policy="supervisor">
+              <header class="contents-access__policy-header">
+                <p class="contents-access__policy-label">管理者</p>
+                <p class="contents-access__policy-meta">全領域閲覧 / 承認権限</p>
+              </header>
+              <ul class="contents-access__policy-list">
+                <li>全コンテンツを既定で閲覧可能</li>
+                <li>限定公開リクエストの承認を担当</li>
+                <li>配信ウィンドウの上書き設定が可能</li>
+              </ul>
+            </article>
+            <article class="contents-access__policy" data-contents-access-policy="operator">
+              <header class="contents-access__policy-header">
+                <p class="contents-access__policy-label">オペレーター</p>
+                <p class="contents-access__policy-meta">クラブ横断の運用担当</p>
+              </header>
+              <ul class="contents-access__policy-list">
+                <li>限定公開教材とイベント配信を閲覧</li>
+                <li>クラブ単位のアクセス範囲を調整</li>
+                <li>閲覧リクエストの一次レビューを担当</li>
+              </ul>
+            </article>
+            <article class="contents-access__policy" data-contents-access-policy="coach">
+              <header class="contents-access__policy-header">
+                <p class="contents-access__policy-label">コーチ</p>
+                <p class="contents-access__policy-meta">所属クラブ・担当生徒向け</p>
+              </header>
+              <ul class="contents-access__policy-list">
+                <li>担当クラブの限定公開コンテンツを閲覧</li>
+                <li>自チーム配信枠を編集し、公開申請を作成</li>
+                <li>フィードバック履歴を閲覧し、再利用</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div
+      class="c-help-modal"
+      id="contents-access-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="コンテンツアクセス管理のポイント"
+      aria-describedby="contents-access-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="contents-access-help-modal-title">コンテンツアクセス管理のポイント</h2>
+          <p class="c-help-modal__summary" id="contents-access-help-modal-summary">
+            公開レベル、対象、配信期間をまとめて把握し、ポリシーを一括適用できます。
+          </p>
+        </div>
+        <div class="c-help-modal__body" id="contents-access-help-modal-body">
+          <p>
+            アクセスルールを可視化し、コンテンツ単位の上書きやロール別ポリシーを組み合わせて管理します。承認待ちリクエストは
+            「承認待ちリクエスト」カードから確認し、必要に応じて承認・却下してください。
+          </p>
+          <ul>
+            <li>公開レベル・対象グループ・配信ウィンドウを確認し、変更が必要なものだけ更新します。</li>
+            <li>フィルターを使ってクラブやカテゴリ別のルールを絞り込み、定期的に棚卸しを行います。</li>
+            <li>ポリシーテンプレートはロール単位でまとめて適用でき、個別コンテンツの上書きも維持されます。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

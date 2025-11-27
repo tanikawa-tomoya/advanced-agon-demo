@@ -679,7 +679,8 @@
         contactlog: Object.freeze({ key: 'contactlog', label: '問い合わせ管理', href: '/admin-contactlog' }),
         system: Object.freeze({ key: 'system', label: 'システム管理', href: '/admin-system' }),
         targets: Object.freeze({ key: 'targets', label: 'ターゲット管理', href: '/targets' }),
-        contents: Object.freeze({ key: 'contents', label: 'コンテンツ管理', href: '/contents' })
+        contents: Object.freeze({ key: 'contents', label: 'コンテンツ管理', href: '/contents' }),
+        contentAccess: Object.freeze({ key: 'contentAccess', label: 'アクセス管理', href: '/admin-contents-access' })
       });
 
       this.MENU_PRESETS = Object.freeze({
@@ -690,7 +691,8 @@
           this.MENU_ITEMS.contactlog,
           this.MENU_ITEMS.system,
           this.MENU_ITEMS.targets,
-          this.MENU_ITEMS.contents
+          this.MENU_ITEMS.contents,
+          this.MENU_ITEMS.contentAccess
         ]),
         operator: window.Utils.freezeArray([
           this.MENU_ITEMS.dashboard,
