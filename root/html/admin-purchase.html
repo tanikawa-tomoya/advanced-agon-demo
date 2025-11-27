@@ -57,93 +57,82 @@
           </button>
         </div>
         <p class="screen-intro__summary">
-          定期課金・単発購入の状況を横断して確認し、領収書の再送や自動更新の管理を行います。
+          productPurchase テーブルの内容を一覧で確認し、決済・発送状況を管理します。
         </p>
       </section>
 
-      <section class="screen-preview purchase" id="purchase-root" data-purchase-root>
-        <div class="purchase__header">
-          <div class="purchase__summary" data-purchase-summary>
-            <div class="purchase__stat">
-              <p class="purchase__stat-label">総注文数</p>
-              <p class="purchase__stat-value" data-purchase-total>0</p>
-              <p class="purchase__stat-note">課金形態を問わず集計</p>
+      <section class="screen-preview" id="purchase-root" data-admin-purchase-root>
+        <div class="user-management">
+          <div class="user-management__header">
+            <div>
+              <h2 class="user-management__title">購入一覧</h2>
+              <p class="user-management__summary" data-admin-purchase-summary>
+                全0件中 0件を表示
+              </p>
             </div>
-            <div class="purchase__stat">
-              <p class="purchase__stat-label">処理中</p>
-              <p class="purchase__stat-value" data-purchase-processing>0</p>
-              <p class="purchase__stat-note">決済審査・オーソリ待ち</p>
-            </div>
-            <div class="purchase__stat">
-              <p class="purchase__stat-label">要対応</p>
-              <p class="purchase__stat-value" data-purchase-attention>0</p>
-              <p class="purchase__stat-note">エラー・キャンセル申請</p>
-            </div>
+            <div class="user-management__controls admin-users__controls" data-admin-purchase-actions></div>
           </div>
-          <div class="purchase__controls">
-            <form class="purchase__filters" id="purchase-filter-form" data-purchase-filter-form>
-              <label class="purchase__filter-field">
-                <span class="purchase__filter-label">ステータス</span>
-                <select name="status" class="purchase__filter-select" id="purchase-filter-status" data-purchase-filter-status>
-                  <option value="">すべて</option>
-                  <option value="paid">決済済み</option>
-                  <option value="processing">処理中</option>
-                  <option value="refunded">返金済み</option>
-                  <option value="failed">失敗</option>
-                </select>
-              </label>
-              <label class="purchase__filter-field">
-                <span class="purchase__filter-label">プラン</span>
-                <select name="plan" class="purchase__filter-select" id="purchase-filter-plan" data-purchase-filter-plan>
-                  <option value="">すべて</option>
-                  <option value="standard">スタンダード</option>
-                  <option value="premium">プレミアム</option>
-                  <option value="one-time">単発購入</option>
-                </select>
-              </label>
-              <label class="purchase__filter-field">
-                <span class="purchase__filter-label">期間</span>
-                <select name="period" class="purchase__filter-select" id="purchase-filter-period" data-purchase-filter-period>
-                  <option value="7d">直近7日</option>
-                  <option value="30d">直近30日</option>
-                  <option value="90d">直近90日</option>
-                  <option value="all">全期間</option>
-                </select>
-              </label>
-              <div class="purchase__filter-actions">
-                <button type="submit" class="btn btn--ghost">絞り込む</button>
-              </div>
-            </form>
-            <div class="purchase__refresh-row">
-              <button type="button" class="btn btn--ghost" id="purchase-refresh" data-purchase-refresh>
-                最新の情報を取得
-              </button>
-              <p class="purchase__updated" id="purchase-updated" data-purchase-updated aria-live="polite"></p>
+
+          <form class="user-management__controls admin-users__filter" data-admin-purchase-filter-form>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">キーワード</span>
+              <input
+                type="search"
+                name="keyword"
+                placeholder="注文番号・商品コード・ユーザーコードで検索"
+                class="user-management__input"
+                data-admin-purchase-keyword
+              />
+            </label>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">決済状態</span>
+              <select name="paymentStatus" class="user-management__select" data-admin-purchase-payment>
+                <option value="" selected>すべて</option>
+                <option value="paid">決済済み</option>
+                <option value="pending">保留 / 審査中</option>
+                <option value="failed">失敗</option>
+                <option value="refunded">返金済み</option>
+              </select>
+            </label>
+            <label class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label">配送状態</span>
+              <select name="shippingStatus" class="user-management__select" data-admin-purchase-shipping>
+                <option value="" selected>すべて</option>
+                <option value="preparing">準備中</option>
+                <option value="shipped">発送済み</option>
+                <option value="delivered">配達完了</option>
+              </select>
+            </label>
+            <div class="user-management__field admin-users__filter-field">
+              <span class="user-management__field-label" aria-hidden="true"></span>
+              <button type="submit" class="btn btn--ghost">絞り込む</button>
             </div>
+          </form>
+
+          <div class="user-management__table-wrapper">
+            <table class="user-table" data-admin-purchase-table>
+              <thead>
+                <tr>
+                  <th scope="col">注文 / 商品</th>
+                  <th scope="col">ユーザー</th>
+                  <th scope="col">決済</th>
+                  <th scope="col">出荷</th>
+                  <th scope="col">数量・金額</th>
+                  <th scope="col">備考</th>
+                </tr>
+              </thead>
+              <tbody data-admin-purchase-tbody>
+                <tr>
+                  <td colspan="6">読み込み中…</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
 
-        <div class="purchase__feedback" id="purchase-feedback" data-purchase-feedback aria-live="polite"></div>
+          <p class="user-management__feedback hidden" data-admin-purchase-feedback aria-live="polite" hidden></p>
+          <p class="admin-users__empty hidden" data-admin-purchase-empty hidden>購入がまだ登録されていません。</p>
 
-        <div class="purchase__table-wrapper" role="region" aria-label="購入履歴一覧">
-          <table class="purchase__table">
-            <thead>
-              <tr>
-                <th scope="col">注文番号</th>
-                <th scope="col">会員</th>
-                <th scope="col">プラン</th>
-                <th scope="col">ステータス</th>
-                <th scope="col">決済日</th>
-                <th scope="col">次回請求</th>
-                <th scope="col">操作</th>
-              </tr>
-            </thead>
-            <tbody id="purchase-table-body" data-purchase-tbody>
-              <tr>
-                <td colspan="7">読み込み中…</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="admin-users__form-host hidden" data-admin-purchase-form-host hidden></div>
         </div>
       </section>
     </main>
