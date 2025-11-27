@@ -209,6 +209,111 @@
     return hasAny ? merged : {};
   }
 
+  function clamp01(value)
+  {
+    const num = Number(value);
+    if (Number.isNaN(num)) { return null; }
+    if (num < 0) { return 0; }
+    if (num > 1) { return 1; }
+    return num;
+  }
+
+  function hexToRgbTuple(value)
+  {
+    if (!value || typeof value !== 'string') { return null; }
+    const hex = value.trim().replace(/^#/, '');
+    if (hex.length === 3) {
+      const r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
+      const g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
+      const b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
+      if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) { return null; }
+      return [r, g, b];
+    }
+    if (hex.length === 6) {
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) { return null; }
+      return [r, g, b];
+    }
+    return null;
+  }
+
+  function rgbStringToTuple(value)
+  {
+    if (!value || typeof value !== 'string') { return null; }
+    const cleaned = value.replace(/rgb(a)?\(|\)/gi, '').trim();
+    const parts = cleaned.split(',').slice(0, 3).map(function (part)
+    {
+      return parseInt(part, 10);
+    });
+    if (parts.length !== 3 || parts.some(function (n) { return Number.isNaN(n); })) {
+      return null;
+    }
+    return parts;
+  }
+
+  function colorWithOpacity(color, opacity)
+  {
+    const alpha = clamp01(opacity);
+    if (alpha === null || alpha === 1) {
+      return (typeof color === 'string' && color.trim()) ? color.trim() : '';
+    }
+    const trimmed = (typeof color === 'string') ? color.trim() : '';
+    const hexTuple = hexToRgbTuple(trimmed);
+    if (hexTuple) {
+      return 'rgba(' + hexTuple[0] + ',' + hexTuple[1] + ',' + hexTuple[2] + ',' + alpha + ')';
+    }
+    const rgbTuple = rgbStringToTuple(trimmed);
+    if (rgbTuple) {
+      return 'rgba(' + rgbTuple[0] + ',' + rgbTuple[1] + ',' + rgbTuple[2] + ',' + alpha + ')';
+    }
+    if (trimmed.indexOf('rgba(') === 0) {
+      return trimmed;
+    }
+    if (trimmed.indexOf('rgb(') === 0) {
+      return trimmed.replace(/rgb\(/i, 'rgba(').replace(/\)$/, ',' + alpha + ')');
+    }
+    return trimmed;
+  }
+
+  function normalizeBorderWidth(value)
+  {
+    if (value === null || value === undefined) { return ''; }
+    if (typeof value === 'number' && !Number.isNaN(value)) { return value + 'px'; }
+    const text = String(value).trim();
+    if (!text) { return ''; }
+    if (/^[0-9]+(\.[0-9]+)?$/.test(text)) { return text + 'px'; }
+    return text;
+  }
+
+  function extractTextFromHtml(html, doc)
+  {
+    const hostDoc = doc || document;
+    if (!hostDoc || typeof hostDoc.createElement !== 'function') { return ''; }
+    const container = hostDoc.createElement('div');
+    container.innerHTML = html;
+    return container.textContent ? container.textContent.trim() : '';
+  }
+
+  function applyCurlRibbonStyles(element, options)
+  {
+    const background = colorWithOpacity(options.backgroundColor || '#c13d36', options.backgroundOpacity);
+    const borderColor = (options.borderColor !== undefined && options.borderColor !== null)
+      ? String(options.borderColor)
+      : '';
+    const borderWidth = normalizeBorderWidth(options.borderWidth);
+    if (background) {
+      element.style.setProperty('--curl-ribbon-bg-color', background);
+    }
+    if (borderColor) {
+      element.style.setProperty('--curl-ribbon-border-color', borderColor);
+    }
+    if (borderWidth) {
+      element.style.setProperty('--curl-ribbon-border-width', borderWidth);
+    }
+  }
+
   function toDataAttributeName(key)
   {
     return 'data-' + String(key).replace(/([A-Z])/g, function (match)
@@ -603,7 +708,8 @@
         { src: '/js/service-app/button/job-action-design-round-popup.js' },
         { src: '/js/service-app/button/job-action-design-banner.js' },
         { src: '/js/service-app/button/job-action-design-translucent-rounded.js' },
-        { src: '/js/service-app/button/job-action-design-expandable-icon-button.js' }
+        { src: '/js/service-app/button/job-action-design-expandable-icon-button.js' },
+        { src: '/js/service-app/button/job-action-design-curl-ribbon.js' }
       ]);
 
       const jobs = getButtonNamespace();
@@ -772,6 +878,9 @@
       } else if (!hoverLabel && !text && element.hasAttribute('data-hover-label')) {
         element.removeAttribute('data-hover-label');
       }
+      const labelHtml = (finalOptions.labelHtml !== undefined && finalOptions.labelHtml !== null)
+        ? String(finalOptions.labelHtml)
+        : '';
       let iconHtml = (finalOptions.iconHtml !== undefined && finalOptions.iconHtml !== null)
         ? String(finalOptions.iconHtml)
         : '';
@@ -799,7 +908,10 @@
       }
       let srLabel = srLabelOverride;
       if (!srLabel) {
-        srLabel = text;
+        srLabel = labelHtml ? (extractTextFromHtml(labelHtml, document) || text) : text;
+      }
+      if (finalOptions.designKey === 'curl-ribbon') {
+        applyCurlRibbonStyles(element, finalOptions);
       }
       element.textContent = '';
       if (iconHtml) {
@@ -815,7 +927,15 @@
         iconSpan.textContent = iconChar;
         element.appendChild(iconSpan);
       }
-      if (srLabel) {
+      if (labelHtml) {
+        element.insertAdjacentHTML('beforeend', labelHtml);
+        if (srLabel) {
+          const srSpan = document.createElement('span');
+          srSpan.className = srLabelClass ? srLabelClass : 'visually-hidden';
+          srSpan.textContent = srLabel;
+          element.appendChild(srSpan);
+        }
+      } else if (srLabel) {
         if (srLabelClass) {
           const srSpan = document.createElement('span');
           srSpan.className = srLabelClass;

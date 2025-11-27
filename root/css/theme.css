@@ -14565,3 +14565,67 @@ body.is-modal-open {
     flex-direction: column;
   }
 }
+
+.curl-ribbon-button {
+  --curl-ribbon-bg-color: rgba(193, 61, 54, 0.9);
+  --curl-ribbon-border-color: #8f2622;
+  --curl-ribbon-border-width: 2px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 26px;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  text-decoration: none;
+  border-radius: 8px;
+  border: var(--curl-ribbon-border-width) solid var(--curl-ribbon-border-color);
+  background: var(--curl-ribbon-bg-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  overflow: visible;
+  z-index: 0;
+}
+
+.curl-ribbon-button__text {
+  display: inline-block;
+}
+
+.curl-ribbon-button::before,
+.curl-ribbon-button::after {
+  content: '';
+  position: absolute;
+  top: -45%;
+  width: 52px;
+  height: 190%;
+  background: var(--curl-ribbon-bg-color);
+  border: var(--curl-ribbon-border-width) solid var(--curl-ribbon-border-color);
+  border-left: 0;
+  border-right: 0;
+  z-index: -1;
+  opacity: 0.94;
+}
+
+.curl-ribbon-button::before {
+  left: -34px;
+  transform: rotate(-7deg);
+  border-radius: 55% 45% 50% 50%;
+}
+
+.curl-ribbon-button::after {
+  right: -34px;
+  transform: rotate(7deg);
+  border-radius: 45% 55% 50% 50%;
+}
+
+.curl-ribbon-button:hover,
+.curl-ribbon-button:focus-visible {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.curl-ribbon-button:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
