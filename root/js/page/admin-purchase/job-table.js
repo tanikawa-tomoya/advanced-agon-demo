@@ -13,6 +13,10 @@
       };
       this._formVisible = false;
       this._formInitialized = false;
+      this._modal = null;
+      this._modalHost = null;
+      this._modalForm = null;
+      this._lastFocus = null;
     }
 
     async run()
@@ -37,12 +41,12 @@
 
       jQuery(document).off('click.purchaseCreate').on('click.purchaseCreate', '[data-admin-purchase-create]', (ev) => {
         ev.preventDefault();
-        this._toggleForm(true);
+        this._openFormModal();
       });
 
       jQuery(document).off('click.purchaseFormCancel').on('click.purchaseFormCancel', '[data-admin-purchase-cancel]', (ev) => {
         ev.preventDefault();
-        this._toggleForm(false);
+        this._closeFormModal();
       });
     }
 
@@ -285,67 +289,93 @@
       {
         return;
       }
-      const host = document.querySelector(this.selectorConfig.formHost);
-      if (!host)
-      {
-        return;
-      }
-      host.innerHTML = [
-        '<div class="admin-users__form">',
-          '<div class="admin-users__form-header">',
-            '<h3 class="admin-users__form-title">購入を追加</h3>',
-            '<button type="button" class="btn btn--ghost" data-admin-purchase-cancel>閉じる</button>',
-          '</div>',
-          '<form data-admin-purchase-create-form class="admin-users__form-body">',
-            '<div class="admin-users__form-grid">',
-              '<label class="admin-users__form-field">',
-                '<span class="admin-users__form-label">注文コード</span>',
-                '<input type="text" name="orderCode" required class="user-management__input" />',
-              '</label>',
-              '<label class="admin-users__form-field">',
-                '<span class="admin-users__form-label">商品コード</span>',
-                '<input type="text" name="productCode" required class="user-management__input" />',
-              '</label>',
-              '<label class="admin-users__form-field">',
-                '<span class="admin-users__form-label">ユーザーコード</span>',
-                '<input type="text" name="userCode" required class="user-management__input" />',
-              '</label>',
-              '<label class="admin-users__form-field">',
-                '<span class="admin-users__form-label">単価 (JPY)</span>',
-                '<input type="number" name="price" min="0" step="1" class="user-management__input" />',
-              '</label>',
-              '<label class="admin-users__form-field">',
-                '<span class="admin-users__form-label">数量</span>',
-                '<input type="number" name="quantity" min="1" step="1" value="1" class="user-management__input" />',
-              '</label>',
-              '<label class="admin-users__form-field">',
-                '<span class="admin-users__form-label">決済状態</span>',
-                '<select name="paymentStatus" class="user-management__select">',
-                  '<option value="paid">決済済み</option>',
-                  '<option value="pending" selected>保留 / 審査中</option>',
-                  '<option value="failed">失敗</option>',
-                '</select>',
-              '</label>',
-              '<label class="admin-users__form-field">',
-                '<span class="admin-users__form-label">配送状態</span>',
-                '<select name="shippingStatus" class="user-management__select">',
-                  '<option value="preparing" selected>準備中</option>',
-                  '<option value="shipped">発送済み</option>',
-                  '<option value="delivered">配達完了</option>',
-                '</select>',
-              '</label>',
-              '<label class="admin-users__form-field admin-users__form-field--wide">',
-                '<span class="admin-users__form-label">備考</span>',
-                '<textarea name="memo" class="user-management__input" rows="2"></textarea>',
-              '</label>',
+
+      const host = document.querySelector(this.selectorConfig.formHost) || document.body;
+      this._modalHost = host;
+
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = [
+        '<div class="screen-modal" data-admin-purchase-modal aria-hidden="true">',
+          '<div class="screen-modal__overlay" data-modal-close aria-label="モーダルを閉じる"></div>',
+          '<section class="screen-modal__content" role="dialog" aria-modal="true" aria-labelledby="admin-purchase-form-title">',
+            '<button type="button" class="screen-modal__close" data-modal-close data-modal-initial-focus aria-label="モーダルを閉じる">×</button>',
+            '<div class="screen-modal__body admin-users__modal-body">',
+              '<section class="announcement-management__form admin-users__form" data-admin-purchase-form-wrapper aria-live="polite">',
+                '<h2 class="announcement-management__form-title" id="admin-purchase-form-title">購入を追加</h2>',
+                '<form class="announcement-management__form-body user-form" data-admin-purchase-create-form>',
+                  '<div class="admin-users__form-grid">',
+                    '<label class="admin-users__form-field">',
+                      '<span class="admin-users__form-label">注文コード</span>',
+                      '<input type="text" name="orderCode" required class="user-management__input" />',
+                    '</label>',
+                    '<label class="admin-users__form-field">',
+                      '<span class="admin-users__form-label">商品コード</span>',
+                      '<input type="text" name="productCode" required class="user-management__input" />',
+                    '</label>',
+                    '<label class="admin-users__form-field">',
+                      '<span class="admin-users__form-label">ユーザーコード</span>',
+                      '<input type="text" name="userCode" required class="user-management__input" />',
+                    '</label>',
+                    '<label class="admin-users__form-field">',
+                      '<span class="admin-users__form-label">単価 (JPY)</span>',
+                      '<input type="number" name="price" min="0" step="1" class="user-management__input" />',
+                    '</label>',
+                    '<label class="admin-users__form-field">',
+                      '<span class="admin-users__form-label">数量</span>',
+                      '<input type="number" name="quantity" min="1" step="1" value="1" class="user-management__input" />',
+                    '</label>',
+                    '<label class="admin-users__form-field">',
+                      '<span class="admin-users__form-label">決済状態</span>',
+                      '<select name="paymentStatus" class="user-management__select">',
+                        '<option value="paid">決済済み</option>',
+                        '<option value="pending" selected>保留 / 審査中</option>',
+                        '<option value="failed">失敗</option>',
+                      '</select>',
+                    '</label>',
+                    '<label class="admin-users__form-field">',
+                      '<span class="admin-users__form-label">配送状態</span>',
+                      '<select name="shippingStatus" class="user-management__select">',
+                        '<option value="preparing" selected>準備中</option>',
+                        '<option value="shipped">発送済み</option>',
+                        '<option value="delivered">配達完了</option>',
+                      '</select>',
+                    '</label>',
+                    '<label class="admin-users__form-field admin-users__form-field--wide">',
+                      '<span class="admin-users__form-label">備考</span>',
+                      '<textarea name="memo" class="user-management__input" rows="2"></textarea>',
+                    '</label>',
+                  '</div>',
+                  '<div class="announcement-management__form-actions user-form__actions">',
+                    '<button type="submit" class="btn btn--primary">追加する</button>',
+                    '<button type="button" class="btn btn--ghost" data-admin-purchase-cancel data-modal-close>キャンセル</button>',
+                  '</div>',
+                '</form>',
+              '</section>',
             '</div>',
-            '<div class="admin-users__form-actions">',
-              '<button type="submit" class="btn btn--primary">追加する</button>',
-              '<button type="button" class="btn btn--ghost" data-admin-purchase-cancel>キャンセル</button>',
-            '</div>',
-          '</form>',
+          '</section>',
         '</div>'
       ].join('');
+
+      const modal = wrapper.firstElementChild;
+      host.appendChild(modal);
+      this._modal = modal;
+      this._modalForm = modal.querySelector('[data-admin-purchase-create-form]');
+
+      modal.addEventListener('click', (ev) => {
+        const target = ev.target instanceof Element ? ev.target.closest('[data-modal-close]') : null;
+        if (target)
+        {
+          ev.preventDefault();
+          this._closeFormModal();
+        }
+      });
+      modal.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape' && this._modal && this._modal.classList.contains('is-open'))
+        {
+          ev.preventDefault();
+          this._closeFormModal();
+        }
+      });
 
       this._formInitialized = true;
       jQuery(document).off('submit.purchaseCreateForm').on('submit.purchaseCreateForm', '[data-admin-purchase-create-form]', async (ev) => {
@@ -383,29 +413,98 @@
 
       this.state.purchases.unshift(newItem);
       this.page.showToast('購入データを追加しました。', 'success');
-      this._toggleForm(false);
+      this._closeFormModal();
       await this._applyFilters();
     }
 
-    _toggleForm(shouldShow)
+    _openFormModal()
     {
-      const host = document.querySelector(this.selectorConfig.formHost);
-      if (!host)
+      this._ensureForm();
+      if (!this._modal)
       {
         return;
       }
 
-      this._ensureForm();
-      this._formVisible = shouldShow;
-      if (shouldShow)
+      this._formVisible = true;
+      if (this._modalHost && this._modalHost !== document.body)
       {
-        host.classList.remove('hidden');
-        host.removeAttribute('hidden');
+        this._modalHost.classList.remove('hidden');
+        this._modalHost.removeAttribute('hidden');
+      }
+
+      this._lastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      this._modal.classList.add('is-open');
+      this._modal.setAttribute('aria-hidden', 'false');
+      this._modal.setAttribute('data-modal-open', 'true');
+      if (document.body)
+      {
+        document.body.classList.add('is-modal-open');
+      }
+
+      this._focusFirstField();
+    }
+
+    _closeFormModal()
+    {
+      if (!this._modal)
+      {
+        return;
+      }
+
+      this._formVisible = false;
+      this._modal.classList.remove('is-open');
+      this._modal.setAttribute('aria-hidden', 'true');
+      this._modal.removeAttribute('data-modal-open');
+      if (this._modalHost && this._modalHost !== document.body)
+      {
+        this._modalHost.classList.add('hidden');
+        this._modalHost.setAttribute('hidden', 'hidden');
+      }
+      if (document.body)
+      {
+        document.body.classList.remove('is-modal-open');
+      }
+
+      const focusTarget = this._lastFocus;
+      this._lastFocus = null;
+      if (focusTarget && typeof focusTarget.focus === 'function')
+      {
+        try { focusTarget.focus(); } catch (_) {}
+      }
+    }
+
+    _focusFirstField()
+    {
+      if (!this._modalForm)
+      {
+        return;
+      }
+      const firstField = this._modalForm.querySelector('input:not([type="hidden"]) , textarea, select');
+      if (typeof window.requestAnimationFrame === 'function')
+      {
+        window.requestAnimationFrame(() => {
+          if (firstField && typeof firstField.focus === 'function')
+          {
+            firstField.focus();
+            if (typeof firstField.select === 'function')
+            {
+              firstField.select();
+            }
+          }
+        });
       }
       else
       {
-        host.classList.add('hidden');
-        host.setAttribute('hidden', 'hidden');
+        setTimeout(() => {
+          if (firstField && typeof firstField.focus === 'function')
+          {
+            firstField.focus();
+            if (typeof firstField.select === 'function')
+            {
+              firstField.select();
+            }
+          }
+        }, 0);
       }
     }
 
