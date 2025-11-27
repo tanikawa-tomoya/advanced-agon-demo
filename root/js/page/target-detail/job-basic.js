@@ -6,6 +6,7 @@
     { id: 'basic', label: '基本情報' },
     { id: 'announcements', label: 'お知らせ' },
     { id: 'references', label: '参考資料' },
+    { id: 'schedule', label: 'スケジュール' },
     { id: 'chat', label: 'チャット' },
     { id: 'bbs', label: '掲示板' },
     { id: 'submissions', label: '提出' },
