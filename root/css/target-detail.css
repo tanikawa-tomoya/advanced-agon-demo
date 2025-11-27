@@ -2768,7 +2768,7 @@
 
 .target-bbs__layout {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  grid-template-columns: minmax(160px, 200px) minmax(0, 1fr);
   gap: 20px;
   align-items: stretch;
 }
@@ -2848,6 +2848,12 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
+}
+
+.target-bbs__thread-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .target-bbs__icon-button {
@@ -3019,13 +3025,26 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .target-bbs__thread-meta {
   font-size: 0.75rem;
   color: var(--text-muted);
-  margin-left: auto;
   white-space: nowrap;
+}
+
+.target-bbs__thread-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.target-bbs__thread-edit-inline {
+  width: 22px;
+  height: 22px;
+  padding: 2px;
+  border-radius: 8px;
 }
 
 .target-bbs__thread-body {
@@ -3254,7 +3273,7 @@
 }
 
 .target-bbs__message-body {
-  padding-left: 52px;
+  padding-left: 6px;
 }
 
 .target-bbs__message-author {
@@ -3274,7 +3293,7 @@
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(42, 66, 102, 0.96), rgba(60, 90, 134, 0.96));
   color: #e9f1ff;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   box-shadow: var(--shadow-xs);
   line-height: 1.5;
   max-width: 520px;
