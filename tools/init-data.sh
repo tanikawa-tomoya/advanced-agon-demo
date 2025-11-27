@@ -502,6 +502,7 @@ CREATE TABLE IF NOT EXISTS targets (
     displayAnnouncements INTEGER DEFAULT 1,
     displayResources INTEGER DEFAULT 1,
     displayChat INTEGER DEFAULT 1,
+    displayBbs INTEGER DEFAULT 1,
     displaySubmissions INTEGER DEFAULT 1,
     displayReviews INTEGER DEFAULT 1,
     displayBadges INTEGER DEFAULT 1,
@@ -937,6 +938,79 @@ CREATE TABLE IF NOT EXISTS targetChatMessageReads (
     UNIQUE(messageCode, userCode)
 );
 CREATE INDEX IF NOT EXISTS idx_targetChatMessageReads_user ON targetChatMessageReads(userCode);
+
+CREATE TABLE IF NOT EXISTS targetBbsThreads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    threadCode VARCHAR(32) NOT NULL UNIQUE,
+    targetCode VARCHAR(32) NOT NULL,
+    threadType VARCHAR(16) NOT NULL,
+    title VARCHAR(256),
+    description TEXT,
+    createdByUserCode VARCHAR(32),
+    createdAt VARCHAR(32),
+    updatedAt VARCHAR(32),
+    lastMessageAt VARCHAR(32),
+    lastMessageSnippet TEXT,
+    lastMessageSenderCode VARCHAR(32),
+    isArchived INTEGER DEFAULT 0,
+    isLocked INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_targetBbsThreads_target ON targetBbsThreads(targetCode);
+CREATE INDEX IF NOT EXISTS idx_targetBbsThreads_activity ON targetBbsThreads(targetCode, lastMessageAt);
+CREATE INDEX IF NOT EXISTS idx_targetBbsThreads_lastSender ON targetBbsThreads(lastMessageSenderCode);
+CREATE TABLE IF NOT EXISTS targetBbsThreadMembers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    threadCode VARCHAR(32) NOT NULL,
+    userCode VARCHAR(32) NOT NULL,
+    joinedAt VARCHAR(32),
+    leftAt VARCHAR(32),
+    notificationsMuted INTEGER DEFAULT 0,
+    UNIQUE(threadCode, userCode)
+);
+CREATE INDEX IF NOT EXISTS idx_targetBbsThreadMembers_thread ON targetBbsThreadMembers(threadCode);
+CREATE INDEX IF NOT EXISTS idx_targetBbsThreadMembers_user ON targetBbsThreadMembers(userCode);
+CREATE TABLE IF NOT EXISTS targetBbsMessages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    messageCode VARCHAR(32) NOT NULL UNIQUE,
+    threadCode VARCHAR(32) NOT NULL,
+    senderUserCode VARCHAR(32) NOT NULL,
+    content TEXT,
+    sentAt VARCHAR(32),
+    deliveredAt VARCHAR(32),
+    readAt VARCHAR(32),
+    createdAt VARCHAR(32),
+    updatedAt VARCHAR(32),
+    replyToMessageCode VARCHAR(32),
+    metadata TEXT,
+    isDeleted INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_targetBbsMessages_thread ON targetBbsMessages(threadCode);
+CREATE INDEX IF NOT EXISTS idx_targetBbsMessages_order ON targetBbsMessages(threadCode, sentAt);
+CREATE INDEX IF NOT EXISTS idx_targetBbsMessages_sender ON targetBbsMessages(senderUserCode);
+CREATE TABLE IF NOT EXISTS targetBbsMessageAttachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    attachmentCode VARCHAR(32) NOT NULL UNIQUE,
+    messageCode VARCHAR(32) NOT NULL,
+    contentCode VARCHAR(32) NOT NULL,
+    contentType VARCHAR(32),
+    fileName VARCHAR(256),
+    mimeType VARCHAR(64),
+    fileSize INTEGER,
+    downloadUrl VARCHAR(512),
+    createdAt VARCHAR(32),
+    updatedAt VARCHAR(32)
+);
+CREATE INDEX IF NOT EXISTS idx_targetBbsAttachments_message ON targetBbsMessageAttachments(messageCode);
+CREATE TABLE IF NOT EXISTS targetBbsMessageReads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    messageCode VARCHAR(32) NOT NULL,
+    userCode VARCHAR(32) NOT NULL,
+    readAt VARCHAR(32),
+    createdAt VARCHAR(32),
+    UNIQUE(messageCode, userCode)
+);
+CREATE INDEX IF NOT EXISTS idx_targetBbsMessageReads_user ON targetBbsMessageReads(userCode);
+
 COMMIT;
 SQL
 
@@ -1309,7 +1383,25 @@ seed_target_test_data() {
         "ペースは問題ありません。レビュー観点をメモしておきましょう。"
         "資料の構成が良いですね。完了報告のテンプレートも添付します。"
     )
-    local -a review_comments=(
+    local -a bbs_titles=(
+        "オンボーディング共有スレッド"
+        "チーム連絡スレッド"
+        "レビュー相談スレッド"
+        "フィードバック共有スレッド"
+    )
+    local -a bbs_messages_user=(
+        "現在の進捗は50%です。次回までに残りを対応します。"
+        "ドキュメントのドラフトを作成しました。確認をお願いします。"
+        "手順書を読み進めていますが、不明点はありません。"
+        "収集したフィードバックを整理したので見てください。"
+    )
+    local -a bbs_messages_operator=(
+        "確認しました。次はレポート作成に進みましょう。"
+        "共有ありがとうございます。ミーティングの議事録も追加してください。"
+        "ペースは問題ありません。レビュー観点をメモしておきましょう。"
+        "資料の構成が良いですね。完了報告のテンプレートも添付します。"
+    )
+	local -a review_comments=(
         "全体的に良くまとまっています。"
         "コミュニケーションの流れが分かりやすいです。"
         "レビュー観点の整理が丁寧です。"
@@ -1494,6 +1586,9 @@ seed_target_test_data() {
         local chat_title="${chat_titles[i]}"
         local chat_message_user="${chat_messages_user[i]}"
         local chat_message_operator="${chat_messages_operator[i]}"
+        local bbs_title="${bbs_titles[i]}"
+        local bbs_message_user="${bbs_messages_user[i]}"
+        local bbs_message_operator="${bbs_messages_operator[i]}"		
         local review_comment="${review_comments[i]}"
         local review_private_note="${review_private_notes[i]}"
         local video_id="${video_ids[i]}"
@@ -1525,6 +1620,7 @@ seed_target_test_data() {
         local support_content_code="content-link-${padded_index}"
         local video_content_code="content-video-${padded_index}"
         local chat_attachment_content_code="content-chat-${padded_index}"
+		local bbs_attachment_content_code="content-bbs-${padded_index}"
         local agreement_primary_code="agreement-${padded_index}-01"
         local agreement_secondary_code="agreement-${padded_index}-02"
         local agreement_primary_kind="${agreement_kind_primary[i]}"
@@ -1563,7 +1659,7 @@ INSERT OR REPLACE INTO targets (
     targetCode, title, description, imageFile, status, priority, dueDate,
     startDate, endDate, assignedUserCode, assignedGroupCode,
     displayGuidance, displayGoals, displayAgreements, displayAnnouncements,
-    displayResources, displayChat, displaySubmissions, displayReviews, displayBadges, displaySurvey,
+    displayResources, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
     createdByUserCode, createdAt, updatedAt, isDeleted
 )
 VALUES (
@@ -2003,6 +2099,82 @@ INSERT OR REPLACE INTO targetChatMessageReads (messageCode, userCode, readAt, cr
 VALUES
     ('${user_message_code}', '${creator}', datetime('now','localtime'), datetime('now','localtime')),
     ('${operator_message_code}', '${assigned_user}', datetime('now','localtime'), datetime('now','localtime'));
+
+INSERT OR REPLACE INTO targetBbsThreads (
+    threadCode, targetCode, threadType, title, description, createdByUserCode,
+    createdAt, updatedAt, lastMessageAt, lastMessageSnippet, lastMessageSenderCode, isArchived, isLocked
+)
+VALUES (
+    '${thread_code}',
+    '${target_code}',
+    'discussion',
+    '${bbs_title}',
+    '${description}',
+    '${creator}',
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    '${bbs_message_operator}',
+    '${creator}',
+    0,
+    0
+);
+INSERT OR IGNORE INTO targetBbsThreadMembers (threadCode, userCode, joinedAt, notificationsMuted)
+VALUES
+    ('${thread_code}', '${assigned_user}', datetime('now','localtime'), 0),
+    ('${thread_code}', '${creator}', datetime('now','localtime'), 0),
+    ('${thread_code}', '${ADMIN_USER_CODE}', datetime('now','localtime'), 0);
+INSERT OR REPLACE INTO targetBbsMessages (
+    messageCode, threadCode, senderUserCode, content, sentAt, deliveredAt,
+    readAt, createdAt, updatedAt, replyToMessageCode, metadata, isDeleted
+)
+VALUES (
+    '${user_message_code}',
+    '${thread_code}',
+    '${assigned_user}',
+    '${bbs_message_user}',
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    NULL,
+    '{"emphasis": "normal"}',
+    0
+), (
+    '${operator_message_code}',
+    '${thread_code}',
+    '${creator}',
+    '${bbs_message_operator}',
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    datetime('now','localtime'),
+    '${user_message_code}',
+    '{"emphasis": "info"}',
+    0
+);
+INSERT OR REPLACE INTO targetBbsMessageAttachments (
+    attachmentCode, messageCode, contentCode, contentType, fileName, mimeType, fileSize, downloadUrl, createdAt, updatedAt
+)
+VALUES (
+    '${attachment_code}',
+    '${user_message_code}',
+    '${bbs_attachment_content_code}',
+    'note',
+    '${target_code}-memo.txt',
+    'text/plain',
+    128,
+    '${doc_url}/memo.txt',
+    datetime('now','localtime'),
+    datetime('now','localtime')
+);
+INSERT OR REPLACE INTO targetBbsMessageReads (messageCode, userCode, readAt, createdAt)
+VALUES
+    ('${user_message_code}', '${creator}', datetime('now','localtime'), datetime('now','localtime')),
+    ('${operator_message_code}', '${assigned_user}', datetime('now','localtime'), datetime('now','localtime'));
+
 SQL
 
         display_order=$((display_order + 1))
@@ -2163,6 +2335,8 @@ VALUES (
 INSERT OR REPLACE INTO submissionContents (submissionCode, contentCode, contentType, createdAt)
 VALUES ('${submission_code}', '${content_code}', 'text', datetime('now','localtime'));
 INSERT OR IGNORE INTO targetChatThreadMembers (threadCode, userCode, joinedAt, notificationsMuted)
+VALUES ('${extra_thread_code}', '${submitter_code}', datetime('now','localtime'), 0);
+INSERT OR IGNORE INTO targetBbsThreadMembers (threadCode, userCode, joinedAt, notificationsMuted)
 VALUES ('${extra_thread_code}', '${submitter_code}', datetime('now','localtime'), 0);
 SQL
     done
