@@ -315,6 +315,7 @@ CREATE TABLE IF NOT EXISTS user (
     imageFileName VARCHAR(32),
     isSupervisor INTEGER,
     isOperator INTEGER,
+    useContentsManagement INTEGER DEFAULT 1,
     role VARCHAR(16),
     autoPassword VARCHAR(16),
     mail VARCHAR(128),
@@ -383,8 +384,8 @@ SQL
     done
 
     sqlite3 "$db_path" <<SQL
-INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, autoPassword, mail, role)
-VALUES ('${ADMIN_USER_CODE}', '', 'Administrator', 'Head Office', 1, 0, '${admin_auto_password}', '', 'supervisor');
+INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, autoPassword, mail, role)
+VALUES ('${ADMIN_USER_CODE}', '', 'Administrator', 'Head Office', 1, 0, 1, '${admin_auto_password}', '', 'supervisor');
 SQL
 
     for operator_code in "${OPERATOR_USER_CODES[@]}"; do
@@ -392,16 +393,16 @@ SQL
         local display_name="${operator_code//-/ }"
         display_name="${display_name^}"
         sqlite3 "$db_path" <<SQL
-INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, autoPassword, mail, role)
-VALUES ('${operator_code}', '', '${display_name}', 'Operations', 0, 1, '${password}', '', 'operator');
+INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, autoPassword, mail, role)
+VALUES ('${operator_code}', '', '${display_name}', 'Operations', 0, 1, 1, '${password}', '', 'operator');
 SQL
     done
 
     for user_code in "${USER_CODES[@]}"; do
         local password="${user_auto_passwords[${user_code}]}"
         sqlite3 "$db_path" <<SQL
-INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, autoPassword, mail, role)
-VALUES ('${user_code}', '', '${user_code}', 'General', 0, 0, '${password}', '', 'member');
+INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, autoPassword, mail, role)
+VALUES ('${user_code}', '', '${user_code}', 'General', 0, 0, 1, '${password}', '', 'member');
 SQL
     done
 

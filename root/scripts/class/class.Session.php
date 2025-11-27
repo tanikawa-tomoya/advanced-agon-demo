@@ -62,22 +62,27 @@ class Session extends Base
 			return;
 		}
 	  	  
-		$this->session["userId"] = $userInfo["id"];
-		unset($this->session["isOperator"]);
-		unset($this->session["isSupervisor"]);
-		if ($userInfo["isSupervisor"] == 1) {
-			$this->session["isSupervisor"] = true;
-			$this->session["isOperator"] = true;
-		} else if ($userInfo["isOperator"] == 1) {
-			$this->session["isOperator"] = true;
-		}
-		$this->session["userCode"] = $userInfo["userCode"];
+                $this->session["userId"] = $userInfo["id"];
+                unset($this->session["isOperator"]);
+                unset($this->session["isSupervisor"]);
+                unset($this->session["useContentsManagement"]);
+                if ($userInfo["isSupervisor"] == 1) {
+                        $this->session["isSupervisor"] = true;
+                        $this->session["isOperator"] = true;
+                } else if ($userInfo["isOperator"] == 1) {
+                        $this->session["isOperator"] = true;
+                }
+                if (isset($userInfo['useContentsManagement']) && (int) $userInfo['useContentsManagement'] === 1) {
+                        $this->session["useContentsManagement"] = true;
+                }
+                $this->session["userCode"] = $userInfo["userCode"];
 
-		$claims = array(
-			'userId'       => (int) $userInfo['id'],
-			'isSupervisor' => (int) $userInfo['isSupervisor'] === 1 ? 1 : 0,
-			'isOperator'   => (int) $userInfo['isOperator'] === 1 ? 1 : 0,
-							);
+                $claims = array(
+                        'userId'       => (int) $userInfo['id'],
+                        'isSupervisor' => (int) $userInfo['isSupervisor'] === 1 ? 1 : 0,
+                        'isOperator'   => (int) $userInfo['isOperator'] === 1 ? 1 : 0,
+                        'useContentsManagement' => isset($userInfo['useContentsManagement']) && (int) $userInfo['useContentsManagement'] === 1 ? 1 : 0,
+                                                        );
 		$token = $this->issueJwt($claims);
 
 		$jwtPayload = null;
@@ -103,11 +108,12 @@ class Session extends Base
 							"userCode"     => $userInfo["userCode"],
 							"displayName" => $userInfo["displayName"],
 							"mail"        => $this->decrypt($userInfo["mail"]),
-								"isSupervisor" => (int) $userInfo["isSupervisor"],
-								"isOperator"   => (int) $userInfo["isOperator"],
-								"token"        => $token,
-								"userId"       => (int) $userInfo["id"],
-								);
+                                                                "isSupervisor" => (int) $userInfo["isSupervisor"],
+                                                                "isOperator"   => (int) $userInfo["isOperator"],
+                                                                "useContentsManagement" => isset($userInfo['useContentsManagement']) ? (int) $userInfo['useContentsManagement'] : 0,
+                                                                "token"        => $token,
+                                                                "userId"       => (int) $userInfo["id"],
+                                                                );
 	}
 
 	public function procLogout()

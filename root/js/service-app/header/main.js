@@ -170,6 +170,54 @@
       return false;
     }
 
+    _isContentsManagementEnabled(user) {
+      if (!user) { return true; }
+      const value = (typeof user.useContentsManagement !== 'undefined')
+        ? user.useContentsManagement
+        : user.use_contents_management;
+      if (typeof value === 'undefined') { return true; }
+      if (value === true || value === 1 || value === '1') { return true; }
+      if (typeof value === 'string') {
+        const normalized = value.toLowerCase();
+        return normalized === 'true' || normalized === 'yes' || normalized === 'on';
+      }
+      return false;
+    }
+
+    _cloneMenu(items) {
+      if (this.jobMenu && typeof this.jobMenu.cloneMenu === 'function') {
+        return this.jobMenu.cloneMenu(items);
+      }
+      const src = Array.isArray(items) ? items : [];
+      const cloned = [];
+      for (let i = 0; i < src.length; i += 1) {
+        const it = src[i] || {};
+        cloned.push({
+          key: it.key || '',
+          label: it.label || '',
+          href: it.href || '#'
+        });
+      }
+      return cloned;
+    }
+
+    _filterContentsMenu(items, allowContents) {
+      const cloned = this._cloneMenu(items);
+      if (allowContents) {
+        return cloned;
+      }
+      const filtered = [];
+      for (let i = 0; i < cloned.length; i += 1) {
+        const it = cloned[i] || {};
+        const key = (it.key || '').toString().toLowerCase();
+        const href = (it.href || '').toString();
+        if (key === 'contents') { continue; }
+        if (href.indexOf('/contents') === 0) { continue; }
+        filtered.push(it);
+      }
+      return filtered;
+    }
+
     _mergeDisplayOptions(options) {
       const defaults = this.DEFAULTS.display || {};
       const raw = options && typeof options === 'object' ? options : {};
@@ -274,17 +322,18 @@
       const presets = this.MENU_PRESETS || {};
       const isSupervisor = !!(user && user.isSupervisor === 1) || this._hasRoleName(user, ['supervisor']);
       const isOperator = !!(user && user.isOperator === 1) || this._hasRoleName(user, ['operator']) || isSupervisor;
+      const allowContents = this._isContentsManagementEnabled(user);
 
       if (isSupervisor && presets.supervisor) {
-        return this.jobMenu.cloneMenu(presets.supervisor);
+        return this._filterContentsMenu(presets.supervisor, allowContents);
       }
       if (isOperator && presets.operator) {
-        return this.jobMenu.cloneMenu(presets.operator);
+        return this._filterContentsMenu(presets.operator, allowContents);
       }
       if (presets.general) {
-        return this.jobMenu.cloneMenu(presets.general);
+        return this._filterContentsMenu(presets.general, allowContents);
       }
-      return this.jobMenu.cloneMenu(this.DEFAULTS.menu || []);
+      return this._filterContentsMenu(this.DEFAULTS.menu || [], allowContents);
     }
 
     isLoggedInUser(user)
@@ -357,9 +406,10 @@
      */
     setMenu(items) {
       if (!this._mounted) { return this; }
-      const menuItems = this._cloneMenu(items);
-      this.config.menu = menuItems;
-      this.jobMenu.renderMenu(menuItems);
+      const allowContents = this._isContentsManagementEnabled(this._currentUser);
+      const menuItems = this._filterContentsMenu(items, allowContents);
+      this.config.menu = this._cloneMenu(menuItems);
+      this.jobMenu.renderMenu(this.config.menu);
       return this;
     }
 
@@ -599,9 +649,10 @@
         if (typeof profile.loggedIn !== 'boolean') {
           profile.loggedIn = true;
         }
+        profile.useContentsManagement = this._isContentsManagementEnabled(profile);
         return profile;
       }
-      
+
       const profile = Object.assign({}, this.ANONYMOUS_PROFILE);
       profile.loggedIn = false;
       return profile;

@@ -75,7 +75,11 @@
       try {
         this.initConfig();
         await this.initServices();
-        await this.ensureProfile();
+        const profile = await this.ensureProfile();
+        if (!this.isContentsManagementEnabled(profile)) {
+          window.location.href = '/dashboard';
+          return;
+        }
         this.loadSavedFilters();
         this.renderBreadcrumbs();
         await this.initContentUploader();
@@ -1158,6 +1162,31 @@
       }
       this.state.profile = profile;
       return profile;
+    }
+
+    isContentsManagementEnabled(profile)
+    {
+      if (!profile || typeof profile !== 'object')
+      {
+        return true;
+      }
+      var value = (typeof profile.useContentsManagement !== 'undefined')
+        ? profile.useContentsManagement
+        : profile.use_contents_management;
+      if (typeof value === 'undefined')
+      {
+        return true;
+      }
+      if (value === true || value === 1 || value === '1')
+      {
+        return true;
+      }
+      if (typeof value === 'string')
+      {
+        var normalized = value.toLowerCase();
+        return normalized === 'true' || normalized === 'yes' || normalized === 'on';
+      }
+      return false;
     }
 
     async callApi(type, payload, overrides)

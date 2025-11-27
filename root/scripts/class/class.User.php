@@ -115,6 +115,12 @@ class User extends Base
                 $roleRaw = isset($userInfo['role']) ? trim((string) $userInfo['role']) : '';
                 $userInfo['role'] = $roleRaw;
 
+                if (array_key_exists('useContentsManagement', $userInfo)) {
+                        $userInfo['useContentsManagement'] = ((int) $userInfo['useContentsManagement'] === 1) ? 1 : 0;
+                } else {
+                        $userInfo['useContentsManagement'] = 1;
+                }
+
                 if (array_key_exists('organization', $userInfo)) {
                         $userInfo['organization'] = $userInfo['organization'] === null
                                 ? null
@@ -408,6 +414,10 @@ class User extends Base
                 if (array_key_exists('isOperator', $this->params)) {
                         $isOperator = $this->normalizeRoleFlagValue($this->params['isOperator']);
                 }
+                $useContentsManagement = 1;
+                if (array_key_exists('useContentsManagement', $this->params)) {
+                        $useContentsManagement = $this->normalizeRoleFlagValue($this->params['useContentsManagement']);
+                }
                 if ($isSupervisor === 1) {
                         $isOperator = 1;
                 }
@@ -444,8 +454,8 @@ class User extends Base
 
                         $defaultRole = '';
 
-                        $stmt = $pdoCommon->prepare("INSERT INTO user (userCode, displayName, organization, autoPassword, mail, role, isSupervisor, isOperator) VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute(array($userCode, $displayName, $organization, $autoPassword, $encryptedMail, $defaultRole, $isSupervisor, $isOperator));
+                        $stmt = $pdoCommon->prepare("INSERT INTO user (userCode, displayName, organization, autoPassword, mail, role, isSupervisor, isOperator, useContentsManagement) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute(array($userCode, $displayName, $organization, $autoPassword, $encryptedMail, $defaultRole, $isSupervisor, $isOperator, $useContentsManagement));
 						
 			$userId = $pdoCommon->lastInsertId();
 
@@ -489,11 +499,12 @@ class User extends Base
 	  
 		$baseDir = $this->dataBasePath . "/userdata/" . $userInfo["id"];
 		
-		$claims = array(
+                $claims = array(
                         'userId'       => (int) $userInfo['id'],
                         'isSupervisor' => (int) $userInfo['isSupervisor'] === 1 ? 1 : 0,
                         'isOperator'   => (int) $userInfo['isOperator'] === 1 ? 1 : 0,
-						);
+                        'useContentsManagement' => isset($userInfo['useContentsManagement']) && (int) $userInfo['useContentsManagement'] === 1 ? 1 : 0,
+                                                );
 
 		try {
 			$token = $this->issueJwt($claims);
@@ -516,12 +527,13 @@ class User extends Base
                                                                 "imageFileName" => $userInfo["imageFileName"],
                                                                 "mail" => $this->decrypt($userInfo["mail"]),
                                                                 "mailCheckDate" => $userInfo["mailCheckDate"],
-								"hint" => $this->decrypt($userInfo["hint"]),
-								"isSupervisor" => (int) $userInfo["isSupervisor"],
-								"isOperator" => (int) $userInfo["isOperator"],
-								"role" => isset($userInfo['role']) ? strtolower(trim((string) $userInfo['role'])) : null,
-								"token" => $token,
-								);
+                                                                "hint" => $this->decrypt($userInfo["hint"]),
+                                                                "isSupervisor" => (int) $userInfo["isSupervisor"],
+                                                                "isOperator" => (int) $userInfo["isOperator"],
+                                                                "useContentsManagement" => isset($userInfo['useContentsManagement']) ? (int) $userInfo['useContentsManagement'] : 0,
+                                                                "role" => isset($userInfo['role']) ? strtolower(trim((string) $userInfo['role'])) : null,
+                                                                "token" => $token,
+                                                                );
 
 		$avatarSettings = $this->readUserAvatarSettings($baseDir);
 		if (!empty($avatarSettings)) {
@@ -1513,6 +1525,7 @@ class User extends Base
 
                $value = $this->params[$columnName];
                 $isRoleFlag = ($columnName == "isSupervisor" || $columnName == "isOperator");
+                $isBooleanFlag = $isRoleFlag || $columnName == "useContentsManagement";
 	  	  
 		if ($value == "serverTime") {
 			$now = new DateTime('now');
@@ -1554,11 +1567,11 @@ class User extends Base
                                 $value = htmlspecialchars($value, ENT_QUOTES, "UTF-8");
                         }
                 }
-                else if ($columnName == "isSupervisor" || $columnName == "isOperator") {
+                else if ($columnName == "isSupervisor" || $columnName == "isOperator" || $columnName == "useContentsManagement") {
                         $value = $this->normalizeRoleFlagValue($value);
                 }
 
-                if ($isRoleFlag) {
+                if ($isBooleanFlag) {
                         $stmt = $this->getPDOCommon()->prepare("UPDATE user SET " . $columnName . " = ? WHERE id = ?");
                         $stmt->execute(array((int) $value, $id));
                         if ($changed == false) {
@@ -1896,11 +1909,12 @@ class User extends Base
 			return array();
 		}
 
-		$snapshot = array(
-						  'id' => isset($userInfo['id']) ? (int) $userInfo['id'] : null,
-						  'userCode' => isset($userInfo['userCode']) ? $userInfo['userCode'] : null,
-						  'displayName' => isset($userInfo['displayName']) ? $userInfo['displayName'] : null,
-						  );
+                $snapshot = array(
+                                                  'id' => isset($userInfo['id']) ? (int) $userInfo['id'] : null,
+                                                  'userCode' => isset($userInfo['userCode']) ? $userInfo['userCode'] : null,
+                                                  'displayName' => isset($userInfo['displayName']) ? $userInfo['displayName'] : null,
+                                                  'useContentsManagement' => isset($userInfo['useContentsManagement']) ? (int) $userInfo['useContentsManagement'] : null,
+                                                  );
 
 		if (array_key_exists('imageFileName', $metadata)) {
 			$snapshot['imageFileName'] = $metadata['imageFileName'];
