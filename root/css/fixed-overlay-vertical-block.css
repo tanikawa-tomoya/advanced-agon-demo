@@ -1,0 +1,49 @@
+.c-fixed-overlay-vertical-block {
+  position: fixed;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 10px;
+  color: #ffffff;
+  background-color: rgba(38, 38, 38, 0.8);
+  border: 2px solid #b98b24;
+  border-radius: 6px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
+  z-index: 9000;
+}
+
+.c-fixed-overlay-vertical-block.is-left {
+  left: 24px;
+}
+
+.c-fixed-overlay-vertical-block.is-right {
+  right: 24px;
+}
+
+.c-fixed-overlay-vertical-block__title {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  margin: 0;
+}
+
+.c-fixed-overlay-vertical-block__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.c-fixed-overlay-vertical-block__item {
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+}
