@@ -125,16 +125,44 @@ class TargetManagementSchedules extends Base
 			return;
 		}
 
-		$description = null;
-		if (isset($this->params['description'])) {
-			$descriptionValue = Util::normalizeOptionalString($this->params['description'], 2048);
-			if ($descriptionValue === false) {
-				$this->status = parent::RESULT_ERROR;
-				$this->errorReason = 'invalid';
-				return;
-			}
-			$description = $descriptionValue;
-		}
+                $description = null;
+                if (isset($this->params['description'])) {
+                        $descriptionValue = Util::normalizeOptionalString($this->params['description'], 2048);
+                        if ($descriptionValue === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $description = $descriptionValue;
+                }
+
+                $startDate = null;
+                if (isset($this->params['startDate'])) {
+                        $startDateCandidate = Util::normalizeDate($this->params['startDate']);
+                        if ($startDateCandidate === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $startDate = $startDateCandidate;
+                }
+
+                $endDate = null;
+                if (isset($this->params['endDate'])) {
+                        $endDateCandidate = Util::normalizeDate($this->params['endDate']);
+                        if ($endDateCandidate === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $endDate = $endDateCandidate;
+                }
+
+                if ($startDate !== null && $endDate !== null && strcmp($startDate, $endDate) > 0) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid';
+                        return;
+                }
 
                 $category = null;
                 if (isset($this->params['category'])) {
@@ -235,28 +263,30 @@ class TargetManagementSchedules extends Base
                 $timestamp = $now->format('Y-m-d H:i:s');
                 $materialCode = $this->generateUniqid();
 
-		
-// Schedule material records themselves live in the target database,
-// so inserts/updates must go through the target connection.
-$pdo = $this->getPDOTarget();
+
+                // Schedule material records themselves live in the target database,
+                // so inserts/updates must go through the target connection.
+                $pdo = $this->getPDOTarget();
 
 		try {
 			$pdo->beginTransaction();
 
                         $stmt = $pdo->prepare(
-                                                                  'INSERT INTO targetScheduleMaterials (materialCode, targetCode, contentCode, title, description, category, linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt, displayOrder, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)'
+                                                                  'INSERT INTO targetScheduleMaterials (materialCode, targetCode, contentCode, title, description, startDate, endDate, category, linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt, displayOrder, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)'
                                                                   );
-			$stmt->execute(array(
-								 $materialCode,
-								 $targetCode,
-								 $contentCode,
-								 $titleValue,
-								 $description,
-								 $category,
-								 $linkUrl,
-								 null,
-								 $fileName,
-								 $fileSize,
+                        $stmt->execute(array(
+                                                                 $materialCode,
+                                                                 $targetCode,
+                                                                 $contentCode,
+                                                                 $titleValue,
+                                                                 $description,
+                                                                 $startDate,
+                                                                 $endDate,
+                                                                 $category,
+                                                                 $linkUrl,
+                                                                 null,
+                                                                 $fileName,
+                                                                 $fileSize,
 								 $ownerCode,
 								 $timestamp,
 								 $timestamp
@@ -322,24 +352,56 @@ $pdo = $this->getPDOTarget();
 			return;
 		}
 
-		$description = null;
-		if (array_key_exists('description', $this->params)) {
-			$descriptionValue = Util::normalizeOptionalString($this->params['description'], 2048);
-			if ($descriptionValue === false) {
-				$this->status = parent::RESULT_ERROR;
-				$this->errorReason = 'invalid';
-				return;
-			}
-			$description = $descriptionValue;
-		} else if (isset($material['description'])) {
-			$description = $material['description'];
-		}
+                $description = null;
+                if (array_key_exists('description', $this->params)) {
+                        $descriptionValue = Util::normalizeOptionalString($this->params['description'], 2048);
+                        if ($descriptionValue === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $description = $descriptionValue;
+                } else if (isset($material['description'])) {
+                        $description = $material['description'];
+                }
 
-		$category = null;
-		if (array_key_exists('category', $this->params)) {
-			$category = trim((string) $this->params['category']);
-			if ($category === '') {
-				$category = null;
+                $startDate = null;
+                if (array_key_exists('startDate', $this->params)) {
+                        $startDateValue = Util::normalizeDate($this->params['startDate']);
+                        if ($startDateValue === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $startDate = $startDateValue;
+                } else if (isset($material['startDate'])) {
+                        $startDate = $material['startDate'];
+                }
+
+                $endDate = null;
+                if (array_key_exists('endDate', $this->params)) {
+                        $endDateValue = Util::normalizeDate($this->params['endDate']);
+                        if ($endDateValue === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $endDate = $endDateValue;
+                } else if (isset($material['endDate'])) {
+                        $endDate = $material['endDate'];
+                }
+
+                if ($startDate !== null && $endDate !== null && strcmp($startDate, $endDate) > 0) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid';
+                        return;
+                }
+
+                $category = null;
+                if (array_key_exists('category', $this->params)) {
+                        $category = trim((string) $this->params['category']);
+                        if ($category === '') {
+                                $category = null;
 			}
 		} else if (isset($material['category'])) {
 			$category = $material['category'];
@@ -443,17 +505,19 @@ $pdo = $this->getPDOTarget();
 		$timestamp = $now->format('Y-m-d H:i:s');
 
 		$pdo = $this->getPDOTarget();
-		try {
-			$pdo->beginTransaction();
+                try {
+                        $pdo->beginTransaction();
 
-			$stmt = $pdo->prepare('UPDATE targetScheduleMaterials SET contentCode = ?, title = ?, description = ?, category = ?, linkUrl = ?, downloadUrl = ?, fileName = ?, fileSize = ?, ownerUserCode = ?, updatedAt = ? WHERE materialCode = ? AND targetCode = ?');
-			$stmt->execute(array(
-				$contentCode,
-				$titleValue,
-				$description,
-				$category,
-				$linkUrl,
-				$downloadUrl,
+                        $stmt = $pdo->prepare('UPDATE targetScheduleMaterials SET contentCode = ?, title = ?, description = ?, startDate = ?, endDate = ?, category = ?, linkUrl = ?, downloadUrl = ?, fileName = ?, fileSize = ?, ownerUserCode = ?, updatedAt = ? WHERE materialCode = ? AND targetCode = ?');
+                        $stmt->execute(array(
+                                $contentCode,
+                                $titleValue,
+                                $description,
+                                $startDate,
+                                $endDate,
+                                $category,
+                                $linkUrl,
+                                $downloadUrl,
 				$fileName,
 				$fileSize,
 				$ownerCode,

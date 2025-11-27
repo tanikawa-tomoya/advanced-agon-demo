@@ -8,11 +8,12 @@
     image: '画像',
     audio: '音声',
     document: 'ファイル',
+    link: 'リンク',
     other: 'ファイル',
     content: 'コンテンツ管理'
   };
 
-  var CATEGORY_ORDER = ['all', 'video', 'image', 'audio', 'document', 'youtube', 'content'];
+  var CATEGORY_ORDER = ['all', 'video', 'image', 'audio', 'document', 'link', 'youtube', 'content'];
 
   var EXTENSION_CATEGORY_MAP = {
     video: ['mp4', 'm4v', 'mov', 'wmv', 'avi', 'mkv', 'webm', 'flv'],
@@ -119,6 +120,11 @@
       return '—';
     }
     return source.charAt(0);
+  }
+
+  function isLikelyUrl(value)
+  {
+    return typeof value === 'string' && /^https?:\/\//i.test(value.trim());
   }
 
   var DOWNLOAD_ICON_HTML =
@@ -1192,6 +1198,8 @@
       }
       var title = raw.title || raw.fileName || raw.name || raw.displayName || code;
       var fileName = raw.fileName || raw.name || '';
+      var startDateValue = raw.startDate || '';
+      var endDateValue = raw.endDate || '';
       var category = normalizeCategoryValue(raw.category || raw.categoryKey || raw.type);
       var previewSourceUrl =
         raw.previewUrl ||
@@ -1283,10 +1291,29 @@
         bitrateValue = null;
       }
 
+      var startDateDisplay = '';
+      if (startDateValue)
+      {
+        startDateDisplay = this.helpers && typeof this.helpers.formatDate === 'function'
+          ? this.helpers.formatDate(startDateValue)
+          : startDateValue;
+      }
+      var endDateDisplay = '';
+      if (endDateValue)
+      {
+        endDateDisplay = this.helpers && typeof this.helpers.formatDate === 'function'
+          ? this.helpers.formatDate(endDateValue)
+          : endDateValue;
+      }
+
       return {
         materialCode: code,
         title: title,
         description: raw.description || raw.summary || '',
+        startDate: startDateValue || '',
+        endDate: endDateValue || '',
+        startDateDisplay: startDateDisplay,
+        endDateDisplay: endDateDisplay,
         category: category,
         categoryLabel: getCategoryLabel(category),
         previewImage: previewImage,
@@ -1338,7 +1365,16 @@
         {
           return true;
         }
-        var haystack = [item.title, item.description, item.ownerDisplayName, item.ownerUserCode, item.categoryLabel]
+        var haystack = [
+          item.title,
+          item.description,
+          item.ownerDisplayName,
+          item.ownerUserCode,
+          item.categoryLabel,
+          item.startDateDisplay,
+          item.endDateDisplay,
+          item.linkUrl
+        ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
@@ -1379,6 +1415,8 @@
         '<th scope="col">サムネイル</th>' +
         '<th scope="col">登録者</th>' +
         '<th scope="col">資料</th>' +
+        '<th scope="col">期間</th>' +
+        '<th scope="col">リンク</th>' +
         '<th scope="col">更新日</th>' +
         '<th scope="col" class="target-schedule__actions-header">操作</th>' +
         '</tr>';
@@ -1426,6 +1464,9 @@
       titleRow.appendChild(titleWrapper);
       infoCell.appendChild(titleRow);
       row.appendChild(infoCell);
+
+      row.appendChild(this.createPeriodCell(item));
+      row.appendChild(this.createLinkCell(item));
 
       var updatedCell = document.createElement('td');
       updatedCell.className = 'target-schedule__update-cell';
@@ -1829,6 +1870,48 @@
       cell.className = 'target-schedule__owner-cell target-detail__submission-user-cell';
       cell.title = formatOwnerSummary(item);
       cell.appendChild(this.createOwnerDisplay(item));
+      return cell;
+    }
+
+    createPeriodCell(item)
+    {
+      var cell = document.createElement('td');
+      cell.className = 'target-schedule__period-cell';
+      var startDisplay = item && item.startDateDisplay ? String(item.startDateDisplay).trim() : '';
+      var endDisplay = item && item.endDateDisplay ? String(item.endDateDisplay).trim() : '';
+      var text = '—';
+      if (startDisplay && endDisplay)
+      {
+        text = startDisplay + ' 〜 ' + endDisplay;
+      }
+      else if (startDisplay)
+      {
+        text = startDisplay + ' 〜';
+      }
+      else if (endDisplay)
+      {
+        text = '〜 ' + endDisplay;
+      }
+      cell.textContent = text;
+      return cell;
+    }
+
+    createLinkCell(item)
+    {
+      var cell = document.createElement('td');
+      cell.className = 'target-schedule__link-cell';
+      if (!item || !item.linkUrl)
+      {
+        cell.textContent = '—';
+        return cell;
+      }
+      var anchor = document.createElement('a');
+      anchor.className = 'target-schedule__link';
+      anchor.href = item.linkUrl;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener';
+      anchor.textContent = item.linkUrl;
+      cell.appendChild(anchor);
       return cell;
     }
 
@@ -2477,6 +2560,21 @@
         '<label class="target-schedule__form-label" for="target-schedule-description">説明 (任意)</label>' +
         '<textarea id="target-schedule-description" class="user-management__input target-schedule__textarea" name="description" rows="3" maxlength="2048"></textarea>' +
         '</div>' +
+        '<div class="target-schedule__form-row target-schedule__form-dates">' +
+        '<div class="target-schedule__form-field">' +
+        '<label class="target-schedule__form-label" for="target-schedule-start">開始日 (任意)</label>' +
+        '<input id="target-schedule-start" class="user-management__input target-schedule__input" name="startDate" type="date" />' +
+        '</div>' +
+        '<div class="target-schedule__form-field">' +
+        '<label class="target-schedule__form-label" for="target-schedule-end">終了日 (任意)</label>' +
+        '<input id="target-schedule-end" class="user-management__input target-schedule__input" name="endDate" type="date" />' +
+        '</div>' +
+        '</div>' +
+        '<div class="target-schedule__form-field target-schedule__form-row--full">' +
+        '<label class="target-schedule__form-label" for="target-schedule-link">リンクURL (任意)</label>' +
+        '<input id="target-schedule-link" class="user-management__input target-schedule__input" name="linkUrl" type="url" placeholder="https://example.com/event" />' +
+        '<p class="target-schedule__form-hint">リンクのみで登録する場合はファイル選択は不要です。</p>' +
+        '</div>' +
         '<div class="target-schedule__form-field">' +
         '<span class="target-schedule__form-label">作成者</span>' +
         '<div class="target-schedule__author" data-target-schedule-author-picker>' +
@@ -2540,6 +2638,9 @@
       var titleInput = form.querySelector('#target-schedule-title');
       var titleField = titleInput ? titleInput.closest('.target-schedule__form-field') : null;
       var descriptionInput = form.querySelector('#target-schedule-description');
+      var startDateInput = form.querySelector('#target-schedule-start');
+      var endDateInput = form.querySelector('#target-schedule-end');
+      var linkInput = form.querySelector('#target-schedule-link');
       var authorField = form.querySelector('.target-schedule__author');
       if (authorField && authorField.closest('.target-schedule__form-field'))
       {
@@ -2584,6 +2685,9 @@
         titleInput: titleInput,
         titleField: titleField,
         descriptionInput: descriptionInput,
+        startDateInput: startDateInput,
+        endDateInput: endDateInput,
+        linkInput: linkInput,
         authorField: authorField,
         authorActions: authorActions,
         authorSummary: authorSummary,
@@ -3211,6 +3315,18 @@
         {
           modal.descriptionInput.value = '';
         }
+        if (modal.startDateInput)
+        {
+          modal.startDateInput.value = '';
+        }
+        if (modal.endDateInput)
+        {
+          modal.endDateInput.value = '';
+        }
+        if (modal.linkInput)
+        {
+          modal.linkInput.value = '';
+        }
         this.updateUploadCounterText(0, modal);
         this.resetContentSelection(modal);
         return;
@@ -3222,6 +3338,18 @@
       if (modal.descriptionInput)
       {
         modal.descriptionInput.value = material.description || '';
+      }
+      if (modal.startDateInput)
+      {
+        modal.startDateInput.value = material.startDate || '';
+      }
+      if (modal.endDateInput)
+      {
+        modal.endDateInput.value = material.endDate || '';
+      }
+      if (modal.linkInput)
+      {
+        modal.linkInput.value = material.linkUrl || '';
       }
       this.setAuthorSelection(modal, {
         displayName: material.ownerDisplayName,
@@ -3391,6 +3519,9 @@
         return {
           title: '',
           description: '',
+          startDate: '',
+          endDate: '',
+          linkUrl: '',
           authorDisplayName: '',
           authorCode: ''
         };
@@ -3399,6 +3530,9 @@
       return {
         title: modal.titleInput.value.trim(),
         description: modal.descriptionInput.value.trim(),
+        startDate: modal.startDateInput ? modal.startDateInput.value.trim() : '',
+        endDate: modal.endDateInput ? modal.endDateInput.value.trim() : '',
+        linkUrl: modal.linkInput ? modal.linkInput.value.trim() : '',
         authorDisplayName: selectedUser && selectedUser.displayName ? String(selectedUser.displayName).trim() : '',
         authorCode: selectedUser && selectedUser.userCode ? String(selectedUser.userCode).trim() : ''
       };
@@ -3429,6 +3563,9 @@
       this.setFieldErrorState(modal.titleInput, false);
       this.setFieldErrorState(modal.titleField, false);
       this.setFieldErrorState(modal.authorField, false);
+      this.setFieldErrorState(modal.startDateInput, false);
+      this.setFieldErrorState(modal.endDateInput, false);
+      this.setFieldErrorState(modal.linkInput, false);
       this.setFieldErrorState(modal.uploadField, false);
     }
 
@@ -3446,7 +3583,10 @@
         modal.authorSelectButton,
         modal.contentOpenButton,
         modal.contentClearButton,
-        modal.contentCloseButton
+        modal.contentCloseButton,
+        modal.startDateInput,
+        modal.endDateInput,
+        modal.linkInput
       ];
       for (var i = 0; i < targets.length; i += 1)
       {
@@ -3502,6 +3642,27 @@
         }
         return;
       }
+      if (values.startDate && values.endDate && values.startDate > values.endDate)
+      {
+        this.setModalFeedback('終了日は開始日以降の日付を入力してください。', 'error');
+        this.setFieldErrorState(modal.startDateInput, true);
+        this.setFieldErrorState(modal.endDateInput, true);
+        if (modal.endDateInput && typeof modal.endDateInput.focus === 'function')
+        {
+          modal.endDateInput.focus();
+        }
+        return;
+      }
+      if (values.linkUrl && !isLikelyUrl(values.linkUrl))
+      {
+        this.setModalFeedback('リンクURLは http(s) から始まる形式で入力してください。', 'error');
+        this.setFieldErrorState(modal.linkInput, true);
+        if (modal.linkInput && typeof modal.linkInput.focus === 'function')
+        {
+          modal.linkInput.focus();
+        }
+        return;
+      }
       var needsUpload = this.hasUploadQueueItems();
       var hasExistingContent = !!(currentMaterial && (
         currentMaterial.contentCode ||
@@ -3511,12 +3672,14 @@
         currentMaterial.embedUrl ||
         currentMaterial.youtubeUrl
       ));
+      var hasLinkValue = !!values.linkUrl;
       var hasSelectedContents = Array.isArray(modal.selectedContents) && modal.selectedContents.length > 0;
       var selectedAttachment = hasSelectedContents ? modal.selectedContents[0] : null;
-      if (!needsUpload && !hasExistingContent && !hasSelectedContents)
+      if (!needsUpload && !hasExistingContent && !hasSelectedContents && !hasLinkValue)
       {
-        this.setModalFeedback('コンテンツファイルを選択してください。', 'error');
+        this.setModalFeedback('リンクまたはコンテンツを追加してください。', 'error');
         this.setFieldErrorState(modal.uploadField, true);
+        this.setFieldErrorState(modal.linkInput, true);
         return;
       }
       this.setModalSubmitting(modal, true);
@@ -3538,7 +3701,7 @@
           }
         }
         this.setModalFeedback('スケジュールを登録しています…', 'info');
-        var derivedCategory = 'document';
+        var derivedCategory = currentMaterial && currentMaterial.category ? currentMaterial.category : 'document';
         if (uploadedContent)
         {
           var categoryFromMime = deriveCategoryFromMime(uploadedContent.contentType || uploadedContent.mimeType);
@@ -3564,6 +3727,10 @@
             derivedCategory = selectedCategory;
           }
         }
+        else if (values.linkUrl)
+        {
+          derivedCategory = 'link';
+        }
         else if (currentMaterial && currentMaterial.category)
         {
           derivedCategory = currentMaterial.category;
@@ -3573,6 +3740,9 @@
           title: values.title,
           category: derivedCategory || 'document'
         };
+        params.startDate = values.startDate;
+        params.endDate = values.endDate;
+        params.linkUrl = values.linkUrl;
         if (isEditMode && currentMaterial && currentMaterial.materialCode)
         {
           params.materialCode = currentMaterial.materialCode;
@@ -3611,7 +3781,10 @@
             description: values.description,
             ownerDisplayName: values.authorDisplayName || currentMaterial.ownerDisplayName,
             ownerUserCode: values.authorCode || currentMaterial.ownerUserCode,
-            category: derivedCategory || currentMaterial.category
+            category: derivedCategory || currentMaterial.category,
+            startDate: values.startDate || null,
+            endDate: values.endDate || null,
+            linkUrl: values.linkUrl || ''
           });
           if (params.contentCode && !material.contentCode)
           {
