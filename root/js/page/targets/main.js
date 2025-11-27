@@ -836,7 +836,7 @@
         'displayGoals',
         'displayAgreements',
         'displayAnnouncements',
-        'displayResources',
+        'displayReferences',
         'displayChat',
         'displaySubmissions',
         'displayReviews',

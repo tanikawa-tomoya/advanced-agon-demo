@@ -500,7 +500,7 @@ CREATE TABLE IF NOT EXISTS targets (
     displayGoals INTEGER DEFAULT 1,
     displayAgreements INTEGER DEFAULT 1,
     displayAnnouncements INTEGER DEFAULT 1,
-    displayResources INTEGER DEFAULT 1,
+    displayReferences INTEGER DEFAULT 1,
     displayChat INTEGER DEFAULT 1,
     displayBbs INTEGER DEFAULT 1,
     displaySubmissions INTEGER DEFAULT 1,
@@ -1659,7 +1659,7 @@ INSERT OR REPLACE INTO targets (
     targetCode, title, description, imageFile, status, priority, dueDate,
     startDate, endDate, assignedUserCode, assignedGroupCode,
     displayGuidance, displayGoals, displayAgreements, displayAnnouncements,
-    displayResources, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
+    displayReferences, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
     createdByUserCode, createdAt, updatedAt, isDeleted
 )
 VALUES (

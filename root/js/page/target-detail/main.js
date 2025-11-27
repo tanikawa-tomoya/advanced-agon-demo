@@ -2,13 +2,13 @@
 {
   'use strict';
 
-  var TAB_ORDER = ['basic', 'announcements', 'resources', 'chat', 'bbs', 'submissions', 'reviews', 'badges', 'survey'];
+  var TAB_ORDER = ['basic', 'announcements', 'references', 'chat', 'bbs', 'submissions', 'reviews', 'badges', 'survey'];
   var DISPLAY_FLAG_KEYS = [
     'displayGuidance',
     'displayGoals',
     'displayAgreements',
     'displayAnnouncements',
-    'displayResources',
+    'displayReferences',
     'displayChat',
     'displayBbs',
     'displaySubmissions',
@@ -1479,7 +1479,7 @@
 
       this.tabJobMap = {
         announcements: { key: 'announcement', ctor: JobAnnouncement },
-        resources: { key: 'reference', ctor: JobReference },
+        references: { key: 'reference', ctor: JobReference },
         chat: { key: 'chat', ctor: JobChat },
         bbs: { key: 'bbs', ctor: JobBbs },
         submissions: { key: 'submission', ctor: JobSubmission },
@@ -2354,7 +2354,7 @@
       var tabs = ['basic'];
       var mapping = {
         announcements: 'displayAnnouncements',
-        resources: 'displayResources',
+        references: 'displayReferences',
         chat: 'displayChat',
         bbs: 'displayBbs',
         submissions: 'displaySubmissions',

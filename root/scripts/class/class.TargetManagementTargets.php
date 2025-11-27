@@ -4,13 +4,13 @@ Base::requireFromShm('class/class.TargetManagementUtil.php');
 
 class TargetManagementTargets extends Base
 {
-        private $sectionViewKeys = array('resources', 'goals', 'chat', 'submissions', 'reviews', 'badges');
+        private $sectionViewKeys = array('references', 'goals', 'chat', 'submissions', 'reviews', 'badges');
         private $displayFlagKeys = array(
                 'displayGuidance',
                 'displayGoals',
                 'displayAgreements',
                 'displayAnnouncements',
-                'displayResources',
+                'displayReferences',
                 'displayChat',
                 'displaySubmissions',
                 'displayReviews',
@@ -972,7 +972,7 @@ class TargetManagementTargets extends Base
                         $creatorCode = $this->getLoginUserCode();
                 }
 
-                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayResources, displayChat, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayReferences, displayChat, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
                 $stmt->execute(array(
                         $targetCode,
                         $title,
@@ -988,7 +988,7 @@ class TargetManagementTargets extends Base
                         $displayFlags['displayGoals'],
                         $displayFlags['displayAgreements'],
                         $displayFlags['displayAnnouncements'],
-                        $displayFlags['displayResources'],
+                        $displayFlags['displayReferences'],
                         $displayFlags['displayChat'],
                         $displayFlags['displaySubmissions'],
                         $displayFlags['displayReviews'],
@@ -1796,7 +1796,7 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
                                          'displayGoals' => $displayFlags['displayGoals'],
                                          'displayAgreements' => $displayFlags['displayAgreements'],
                                          'displayAnnouncements' => $displayFlags['displayAnnouncements'],
-                                         'displayResources' => $displayFlags['displayResources'],
+                                         'displayReferences' => $displayFlags['displayReferences'],
                                          'displayChat' => $displayFlags['displayChat'],
                                          'displaySubmissions' => $displayFlags['displaySubmissions'],
                                          'displayReviews' => $displayFlags['displayReviews'],
@@ -2423,7 +2423,7 @@ $pdo = $chatDependencies['pdo'];
 							  . 'LIMIT 1'
 							  );
 		$stmt->execute(array($targetCode));
-		$map['resources'] = $this->buildSectionActivityEntryFromRow($stmt->fetch(PDO::FETCH_ASSOC));
+		$map['references'] = $this->buildSectionActivityEntryFromRow($stmt->fetch(PDO::FETCH_ASSOC));
 
 		$stmt = $pdo->prepare(
 							  'SELECT updatedByUserCode AS actorCode, COALESCE(updatedAt, createdAt) AS activityAt '

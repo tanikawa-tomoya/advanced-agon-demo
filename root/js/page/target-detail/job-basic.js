@@ -5,8 +5,9 @@
   var TAB_DEFINITIONS = [
     { id: 'basic', label: '基本情報' },
     { id: 'announcements', label: 'お知らせ' },
-    { id: 'resources', label: '参考資料' },
+    { id: 'references', label: '参考資料' },
     { id: 'chat', label: 'チャット' },
+    { id: 'bbs', label: '掲示板' },
     { id: 'submissions', label: '提出' },
     { id: 'reviews', label: 'レビュー' },
     { id: 'badges', label: 'バッジ' },

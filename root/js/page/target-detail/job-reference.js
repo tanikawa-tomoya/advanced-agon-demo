@@ -321,7 +321,7 @@
     {
       this.canManage = this.page && typeof this.page.canManageTargetContent === 'function'
         && this.page.canManageTargetContent();
-      this.refs.container = this.page.refs.tabPanels && this.page.refs.tabPanels.resources;
+      this.refs.container = this.page.refs.tabPanels && this.page.refs.tabPanels.references;
       if (!this.refs.container)
       {
         return;
