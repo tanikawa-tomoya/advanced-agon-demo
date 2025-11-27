@@ -26,6 +26,35 @@ require_command() {
     fi
 }
 
+print_installed_software() {
+    log_action "Checking installed software availability"
+
+    local cmd
+    for cmd in ffmpeg convert sqlite3; do
+        local version_output=""
+        case "$cmd" in
+            ffmpeg)
+                version_output=$(ffmpeg -version 2>/dev/null | head -n 1)
+                ;;
+            convert)
+                version_output=$(convert -version 2>/dev/null | head -n 1)
+                ;;
+            sqlite3)
+                version_output=$(sqlite3 --version 2>/dev/null | head -n 1)
+                ;;
+        esac
+
+        local command_path
+        command_path=$(command -v "$cmd" 2>/dev/null || true)
+
+        if [[ -n "$version_output" ]]; then
+            echo " - ${cmd}: ${version_output} (${command_path})"
+        else
+            echo " - ${cmd}: not found"
+        fi
+    done
+}
+
 usage() {
     cat <<USAGE
 Usage: $0 [options] --domain <domain> --support-mail <address> --site-title <title> <site-id>
@@ -56,6 +85,8 @@ INCLUDE_FULL_TEST_DATA=false
 require_command "ffmpeg"
 require_command "convert"
 require_command "sqlite3"
+
+print_installed_software
 
 ADMIN_USER_CODE="admin-001"
 OPERATOR_USER_CODES=("operator-001" "operator-002")
@@ -1481,51 +1512,46 @@ WHERE userCode IN ('${USER_CODES[2]}', '${USER_CODES[3]:-${USER_CODES[0]}}') AND
 SQL
 }
 
-seed_user_contents_samples() {
+seed_user_content_templates() {
     local db_path="$1"
-    local -a templates=(
-        "document|application/pdf|0|reference-guide.pdf"
-        "image|image/png|0|team-overview.png"
-        "note|text/plain|2048|coaching-memo.txt"
-        "video|video/mp4|0|highlight.mp4"
-        "audio|audio/wav|0|sweep.wav"
-    )
+    local user_code="$2"
+    local templates_ref_name="$3"
+    local -n templates_ref="$templates_ref_name"
 
-    local user_code
-    for user_code in "${USER_CODES[@]}"; do
-        local idx=0
-        local template
-        for template in "${templates[@]}"; do
-            idx=$((idx + 1))
-            printf -v padded_idx '%02d' "$idx"
-            IFS='|' read -r content_type mime_type file_size file_stub <<<"${template}"
-            local content_code="contents-${user_code}-${padded_idx}"
-            local extension="${file_stub##*.}"
-            local file_name="${user_code}-${file_stub}"
-            local file_path="content/${content_code}.${extension}"
-            local duration="NULL"
-            local width="NULL"
-            local height="NULL"
+    local idx=0
+    local template
+    for template in "${templates_ref[@]}"; do
+        idx=$((idx + 1))
+        printf -v padded_idx '%02d' "$idx"
+        IFS='|' read -r content_type mime_type file_size file_stub <<<"${template}" || true
 
-            if [[ "${content_type}" == "video" ]]; then
-                file_size=$(generate_sample_video "${user_code}" "${file_path}")
-                duration=3
-                width=1920
-                height=1080
-            elif [[ "${content_type}" == "audio" ]]; then
-                file_size=$(generate_sample_audio "${user_code}" "${file_path}")
-                duration=10
-            elif [[ "${content_type}" == "document" ]]; then
-                file_size=$(generate_sample_pdf "${user_code}" "${file_path}")
-            elif [[ "${content_type}" == "image" ]]; then
-                file_size=$(generate_sample_image "${user_code}" "${file_path}")
-                width=1280
-                height=720
-            fi
+        local content_code="contents-${user_code}-${padded_idx}"
+        local extension="${file_stub##*.}"
+        local file_name="${user_code}-${file_stub}"
+        local file_path="content/${content_code}.${extension}"
+        local duration="NULL"
+        local width="NULL"
+        local height="NULL"
 
-            file_size=${file_size:-0}
+        if [[ "${content_type}" == "video" ]]; then
+            file_size=$(generate_sample_video "${user_code}" "${file_path}")
+            duration=3
+            width=1920
+            height=1080
+        elif [[ "${content_type}" == "audio" ]]; then
+            file_size=$(generate_sample_audio "${user_code}" "${file_path}")
+            duration=10
+        elif [[ "${content_type}" == "document" ]]; then
+            file_size=$(generate_sample_pdf "${user_code}" "${file_path}")
+        elif [[ "${content_type}" == "image" ]]; then
+            file_size=$(generate_sample_image "${user_code}" "${file_path}")
+            width=1280
+            height=720
+        fi
 
-            sqlite3 "$db_path" <<SQL
+        file_size=${file_size:-0}
+
+        sqlite3 "$db_path" <<SQL
 INSERT OR REPLACE INTO userContents (
     contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
 ) VALUES (
@@ -1545,8 +1571,36 @@ INSERT OR REPLACE INTO userContents (
     datetime('now','localtime')
 );
 SQL
-        done
     done
+}
+
+seed_user_contents_samples() {
+    local db_path="$1"
+    local -a templates=(
+        "document|application/pdf|0|reference-guide.pdf"
+        "image|image/png|0|team-overview.png"
+        "note|text/plain|2048|coaching-memo.txt"
+        "video|video/mp4|0|highlight.mp4"
+        "audio|audio/wav|0|sweep.wav"
+    )
+
+    local user_code
+    for user_code in "${USER_CODES[@]}"; do
+        seed_user_content_templates "$db_path" "${user_code}" templates
+    done
+
+    local -a admin_templates=(
+        "video|video/mp4|0|overview-01.mp4"
+        "video|video/mp4|0|overview-02.mp4"
+        "audio|audio/wav|0|announcement-01.wav"
+        "audio|audio/wav|0|announcement-02.wav"
+        "document|application/pdf|0|playbook-01.pdf"
+        "document|application/pdf|0|playbook-02.pdf"
+        "image|image/png|0|dashboard-01.png"
+        "image|image/png|0|dashboard-02.png"
+    )
+
+    seed_user_content_templates "$db_path" "${ADMIN_USER_CODE}" admin_templates
 }
 
 seed_contents_access_test_data() {
