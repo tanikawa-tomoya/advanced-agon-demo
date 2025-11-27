@@ -334,7 +334,7 @@
 
     buildLayout()
     {
-      var root = createElement('div', 'target-bbs');
+      var root = createElement('div', 'target-bbs target-bbs--board-view');
 
       var header = createElement('header', 'target-bbs__header');
       var headerTop = createElement('div', 'target-bbs__header-top');
@@ -361,7 +361,7 @@
       header.appendChild(headerTop);
 
       var summary = createElement('p', 'target-bbs__summary');
-      summary.textContent = '担当者とのやり取りや連絡事項をスレッド単位で管理できます。';
+      summary.textContent = '掲示板形式でやり取りを残し、履歴を時系列で追いながらチームと情報共有できます。';
       header.appendChild(summary);
       root.appendChild(header);
 
@@ -433,16 +433,25 @@
       messageHeader.appendChild(recipientActions);
       messagePane.appendChild(messageHeader);
 
-      var messageViewport = createElement('div', 'target-bbs__message-viewport');
+      var messageIntro = createElement('div', 'target-bbs__board-guide');
+      var introTitle = createElement('p', 'target-bbs__board-guide-title');
+      introTitle.textContent = '投稿は上から時系列順に並びます。議事録や共有事項など、長文もそのまま残せます。';
+      var introMeta = createElement('p', 'target-bbs__board-guide-meta');
+      introMeta.textContent = '各投稿の右上から削除できます。送信前に内容を確認し、必要に応じて送信者を切り替えてください。';
+      messageIntro.appendChild(introTitle);
+      messageIntro.appendChild(introMeta);
+      messagePane.appendChild(messageIntro);
+
+      var messageViewport = createElement('div', 'target-bbs__message-viewport target-bbs__post-list');
       this.refs.messageViewport = messageViewport;
       messagePane.appendChild(messageViewport);
 
       var composer = createElement('div', 'target-bbs__composer');
       var composerLabel = createElement('label', 'target-bbs__composer-label');
-      composerLabel.textContent = 'メッセージ';
+      composerLabel.textContent = '投稿内容';
       var composerInput = createElement('textarea', 'target-bbs__composer-input');
-      composerInput.rows = 3;
-      composerInput.placeholder = 'メッセージを入力';
+      composerInput.rows = 5;
+      composerInput.placeholder = '本文を入力（議事録・議題・連絡事項など）';
       this.refs.composerInput = composerInput;
       composerLabel.appendChild(composerInput);
       composer.appendChild(composerLabel);
@@ -461,6 +470,9 @@
       });
       composerButtons.appendChild(sendButton);
       composerActions.appendChild(composerButtons);
+      var composerNote = createElement('p', 'target-bbs__composer-note');
+      composerNote.textContent = '投稿はスレッド全員に公開されます。箇条書きや小見出しを活用し、経緯がわかるように記載してください。';
+      composerActions.appendChild(composerNote);
       composer.appendChild(composerActions);
       this.refs.messagePlaceholder = composer;
       messagePane.appendChild(composer);
@@ -1021,76 +1033,83 @@
         this.renderMessagePlaceholder(BBS_EMPTY_TEXT);
         return;
       }
+      var list = createElement('div', 'target-bbs__post-stack');
       for (var i = 0; i < thread.messages.length; i += 1)
       {
         var message = thread.messages[i];
         var item = this.renderMessage(message, thread);
-        this.refs.messageViewport.appendChild(item);
+        list.appendChild(item);
       }
+      this.refs.messageViewport.appendChild(list);
       this.bindAvatarPopovers(this.refs.messageViewport);
-      this.refs.messageViewport.scrollTop = this.refs.messageViewport.scrollHeight;
     }
 
     renderMessage(message, thread)
     {
       var senderCode = message ? normalizeText(message.senderUserCode || message.senderCode) : '';
       var isSelf = Boolean(this.state.viewer && senderCode && this.state.viewer.userCode === senderCode);
-      var wrapper = createElement('article', 'target-bbs__message');
-      wrapper.classList.add(isSelf ? 'target-bbs__message--self' : 'target-bbs__message--other');
+      var wrapper = createElement('article', 'target-bbs__message target-bbs__message--board');
+      if (isSelf)
+      {
+        wrapper.classList.add('target-bbs__message--owner');
+      }
 
-      var row = createElement('div', 'target-bbs__message-row');
+      var participant = resolveParticipantFromThread(thread, senderCode) || (senderCode ? { userCode: senderCode, displayName: senderCode } : null);
+      var authorName = participant && (participant.displayName || participant.userCode) ? (participant.displayName || participant.userCode) : '不明なユーザー';
 
-      var metaColumn = createElement('div', 'target-bbs__message-meta-block');
-      var timestamp = createElement('time', 'target-bbs__message-time');
+      var header = createElement('header', 'target-bbs__post-header');
+      var authorBlock = createElement('div', 'target-bbs__post-author');
+      var avatarWrapper = createElement('div', 'target-bbs__post-avatar');
+      avatarWrapper.appendChild(createMessageAvatar(participant, this.getAvatarService(), this.avatarServiceBootPromise));
+      authorBlock.appendChild(avatarWrapper);
+
+      var authorInfo = createElement('div', 'target-bbs__post-author-info');
+      var authorRow = createElement('div', 'target-bbs__post-author-row');
+      var author = createElement('span', 'target-bbs__post-author-name');
+      author.textContent = authorName;
+      authorRow.appendChild(author);
+      var roleBadge = createElement('span', 'target-bbs__post-role');
+      roleBadge.textContent = isSelf ? 'あなたの投稿' : 'スレッド参加者';
+      authorRow.appendChild(roleBadge);
+      authorInfo.appendChild(authorRow);
+
+      var metaRow = createElement('div', 'target-bbs__post-meta-row');
+      var timestamp = createElement('time', 'target-bbs__post-time');
       if (message.sentAt)
       {
         timestamp.setAttribute('datetime', message.sentAt);
       }
       timestamp.textContent = message.sentAtDisplay || '';
-      metaColumn.appendChild(timestamp);
+      metaRow.appendChild(timestamp);
+      authorInfo.appendChild(metaRow);
 
+      authorBlock.appendChild(authorInfo);
+      header.appendChild(authorBlock);
+
+      var actionBlock = createElement('div', 'target-bbs__post-actions');
       if (this.canDeleteMessage(message))
       {
         var deleteButton = this.createRoundActionButton('delete', {
           label: '',
-          hoverLabel: '削除',
-          ariaLabel: 'このメッセージを削除',
-          srLabel: 'メッセージを削除'
+          hoverLabel: '投稿を削除',
+          ariaLabel: 'この投稿を削除',
+          srLabel: '投稿を削除'
         }, 'target-bbs__message-delete');
         deleteButton.addEventListener('click', () =>
         {
           this.handleDeleteMessage(thread, message, deleteButton);
         });
-        metaColumn.appendChild(deleteButton);
+        actionBlock.appendChild(deleteButton);
       }
+      header.appendChild(actionBlock);
 
-      var body = createElement('div', 'target-bbs__message-body');
-      if (!isSelf)
-      {
-        var participant = resolveParticipantFromThread(thread, senderCode) || (senderCode ? { userCode: senderCode, displayName: senderCode } : null);
-        var avatarWrapper = createElement('div', 'target-bbs__message-avatar-wrapper');
-        avatarWrapper.appendChild(createMessageAvatar(participant, this.getAvatarService(), this.avatarServiceBootPromise));
-        body.appendChild(avatarWrapper);
-      }
-
-      var bubble = createElement('div', 'target-bbs__bubble');
-      var content = createElement('p', 'target-bbs__message-info');
+      var body = createElement('div', 'target-bbs__post-body');
+      var content = createElement('p', 'target-bbs__post-text');
       content.textContent = message.content || '';
-      bubble.appendChild(content);
-      body.appendChild(bubble);
+      body.appendChild(content);
 
-      if (isSelf)
-      {
-        row.appendChild(metaColumn);
-        row.appendChild(body);
-      }
-      else
-      {
-        row.appendChild(body);
-        row.appendChild(metaColumn);
-      }
-
-      wrapper.appendChild(row);
+      wrapper.appendChild(header);
+      wrapper.appendChild(body);
       return wrapper;
     }
 
