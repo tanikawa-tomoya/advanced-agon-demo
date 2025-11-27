@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>阿含宗デモサイト | 管理者 | 購入管理</title>
+    <link rel="shortcut icon" href="image/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="js/entrypoint.js?v=1"></script>
+  </head>
+  <body data-page="admin-purchase">
+    <header class="site-header">
+      <a class="site-header__logo" href="/index" data-logo-label="阿含宗デモサイト">阿含宗デモサイト</a>
+      <button
+        class="site-header__menu-toggle"
+        type="button"
+        aria-controls="site-header-nav"
+        aria-expanded="false"
+        aria-label="ナビゲーションメニュー"
+      >
+        <span class="site-header__menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-header__nav" id="site-header-nav" aria-label="主要ナビゲーション">
+        <div class="site-header__links" data-nav-menu></div>
+      </nav>
+      <a class="site-header__cta" href="login.html">ログイン</a>
+      <div class="site-header__overlay" data-menu-overlay aria-hidden="true"></div>
+    </header>
+
+    <main class="screen-page">
+      <section class="screen-intro">
+        <div class="screen-intro__title-row">
+          <h1 class="screen-intro__title">購入管理</h1>
+          <button
+            type="button"
+            class="screen-help-button"
+            id="purchase-help-button"
+            aria-haspopup="dialog"
+            aria-controls="purchase-help-modal"
+            aria-expanded="false"
+            aria-label="購入管理のヘルプを開く"
+          >
+            <span class="screen-help-icon" aria-hidden="true">?</span>
+            <span class="visually-hidden">購入管理のヘルプ</span>
+          </button>
+        </div>
+        <p class="screen-intro__summary">
+          定期課金・単発購入の状況を横断して確認し、領収書の再送や自動更新の管理を行います。
+        </p>
+      </section>
+
+      <section class="screen-preview purchase" id="purchase-root" data-purchase-root>
+        <div class="purchase__header">
+          <div class="purchase__summary" data-purchase-summary>
+            <div class="purchase__stat">
+              <p class="purchase__stat-label">総注文数</p>
+              <p class="purchase__stat-value" data-purchase-total>0</p>
+              <p class="purchase__stat-note">課金形態を問わず集計</p>
+            </div>
+            <div class="purchase__stat">
+              <p class="purchase__stat-label">処理中</p>
+              <p class="purchase__stat-value" data-purchase-processing>0</p>
+              <p class="purchase__stat-note">決済審査・オーソリ待ち</p>
+            </div>
+            <div class="purchase__stat">
+              <p class="purchase__stat-label">要対応</p>
+              <p class="purchase__stat-value" data-purchase-attention>0</p>
+              <p class="purchase__stat-note">エラー・キャンセル申請</p>
+            </div>
+          </div>
+          <div class="purchase__controls">
+            <form class="purchase__filters" id="purchase-filter-form" data-purchase-filter-form>
+              <label class="purchase__filter-field">
+                <span class="purchase__filter-label">ステータス</span>
+                <select name="status" class="purchase__filter-select" id="purchase-filter-status" data-purchase-filter-status>
+                  <option value="">すべて</option>
+                  <option value="paid">決済済み</option>
+                  <option value="processing">処理中</option>
+                  <option value="refunded">返金済み</option>
+                  <option value="failed">失敗</option>
+                </select>
+              </label>
+              <label class="purchase__filter-field">
+                <span class="purchase__filter-label">プラン</span>
+                <select name="plan" class="purchase__filter-select" id="purchase-filter-plan" data-purchase-filter-plan>
+                  <option value="">すべて</option>
+                  <option value="standard">スタンダード</option>
+                  <option value="premium">プレミアム</option>
+                  <option value="one-time">単発購入</option>
+                </select>
+              </label>
+              <label class="purchase__filter-field">
+                <span class="purchase__filter-label">期間</span>
+                <select name="period" class="purchase__filter-select" id="purchase-filter-period" data-purchase-filter-period>
+                  <option value="7d">直近7日</option>
+                  <option value="30d">直近30日</option>
+                  <option value="90d">直近90日</option>
+                  <option value="all">全期間</option>
+                </select>
+              </label>
+              <div class="purchase__filter-actions">
+                <button type="submit" class="btn btn--ghost">絞り込む</button>
+              </div>
+            </form>
+            <div class="purchase__refresh-row">
+              <button type="button" class="btn btn--ghost" id="purchase-refresh" data-purchase-refresh>
+                最新の情報を取得
+              </button>
+              <p class="purchase__updated" id="purchase-updated" data-purchase-updated aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="purchase__feedback" id="purchase-feedback" data-purchase-feedback aria-live="polite"></div>
+
+        <div class="purchase__table-wrapper" role="region" aria-label="購入履歴一覧">
+          <table class="purchase__table">
+            <thead>
+              <tr>
+                <th scope="col">注文番号</th>
+                <th scope="col">会員</th>
+                <th scope="col">プラン</th>
+                <th scope="col">ステータス</th>
+                <th scope="col">決済日</th>
+                <th scope="col">次回請求</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody id="purchase-table-body" data-purchase-tbody>
+              <tr>
+                <td colspan="7">読み込み中…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div
+      class="c-help-modal"
+      id="purchase-help-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="購入管理について"
+      aria-describedby="purchase-help-modal-body"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="c-help-modal__overlay" data-modal-close></div>
+      <div class="c-help-modal__content">
+        <button
+          type="button"
+          class="c-help-modal__close"
+          data-modal-close
+          data-modal-initial-focus
+          aria-label="ヘルプモーダルを閉じる"
+        >
+          ×
+        </button>
+        <div class="c-help-modal__header">
+          <h2 class="c-help-modal__title" id="purchase-help-modal-title">購入管理について</h2>
+          <p class="c-help-modal__summary" id="purchase-help-modal-summary">決済ステータスと顧客対応の状況を確認できます。</p>
+        </div>
+        <div class="c-help-modal__body" id="purchase-help-modal-body">
+          <p>定期課金や単発購入の一覧を確認し、領収書再送や自動更新の管理を行ってください。</p>
+          <ul>
+            <li>ステータスで絞り込み、保留や返金案件の対応を優先できます。</li>
+            <li>操作ボタンから領収書再送や自動更新の停止を行えます。</li>
+            <li>最新の情報が必要な場合は「最新の情報を取得」を押してください。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
