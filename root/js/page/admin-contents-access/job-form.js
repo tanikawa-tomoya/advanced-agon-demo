@@ -223,7 +223,7 @@
         label: submit ? submit.textContent : '保存'
       }) || submit;
       const decoratedCancel = this.page.decorateActionButton(cancel, {
-        buttonType: 'pill-button/ghost',
+        buttonType: 'pill-button/outline',
         baseClass: 'btn btn--ghost',
         label: cancel ? cancel.textContent : 'キャンセル'
       }) || cancel;
