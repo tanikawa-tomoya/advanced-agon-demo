@@ -2,7 +2,7 @@
 {
   'use strict';
 
-  var TAB_ORDER = ['basic', 'announcements', 'resources', 'chat', 'submissions', 'reviews', 'badges', 'survey'];
+  var TAB_ORDER = ['basic', 'announcements', 'resources', 'chat', 'bbs', 'submissions', 'reviews', 'badges', 'survey'];
   var DISPLAY_FLAG_KEYS = [
     'displayGuidance',
     'displayGoals',
@@ -10,6 +10,7 @@
     'displayAnnouncements',
     'displayResources',
     'displayChat',
+    'displayBbs',
     'displaySubmissions',
     'displayReviews',
     'displayBadges',
@@ -79,6 +80,16 @@
         '.target-chat__composer-send'
       ]
     },
+    {
+      role: 'all',
+      selectors: [
+        '.target-bbs__thread-add',
+        '.target-bbs__thread-delete',
+        '.target-bbs__reload',
+        '.target-bbs__message-delete',
+        '.target-bbs__composer-send'
+      ]
+    },    
     {
       role: 'manage',
       selectors: ['.target-detail__submission-add', '.target-detail__submission-action--edit', '.target-detail__submission-action--delete']
@@ -248,6 +259,9 @@
     return normalized.charAt(0);
   }
 
+  //
+  // chat
+  //  
   function normalizeChatParticipantData(entry)
   {
     if (!entry)
@@ -328,6 +342,92 @@
     });
     return values;
   }
+  // chat
+
+  //
+  // bbs
+  //  
+  function normalizeBbsParticipantData(entry)
+  {
+    if (!entry)
+    {
+      return null;
+    }
+    if (typeof entry === 'string')
+    {
+      var label = normalizeText(entry);
+      if (!label)
+      {
+        return null;
+      }
+      return {
+        userCode: label,
+        displayName: label,
+        role: 'student',
+        avatarInitial: deriveParticipantInitial(label, '？'),
+        avatarUrl: '',
+        avatarTransform: ''
+      };
+    }
+    if (typeof entry !== 'object')
+    {
+      return null;
+    }
+    var userCode = normalizeText(entry.userCode || entry.code || entry.id);
+    var displayName = normalizeText(entry.displayName || entry.name || entry.userName || userCode);
+    if (!userCode && !displayName)
+    {
+      return null;
+    }
+    var roleRaw = normalizeText(entry.role || entry.type || entry.position || '');
+    var role = roleRaw === 'coach' || roleRaw === 'mentor' || roleRaw === 'operator' ? 'coach' : 'student';
+    var avatarUrl = normalizeText(
+      entry.avatarUrl || entry.photoUrl || entry.imageUrl || entry.iconUrl || entry.thumbnailUrl || ''
+    );
+    var avatarInitial = normalizeText(entry.avatarInitial || entry.initial || '');
+    if (!avatarInitial)
+    {
+      avatarInitial = deriveParticipantInitial(displayName || userCode, '');
+    }
+    return {
+      userCode: userCode || displayName,
+      displayName: displayName || userCode || 'ユーザー',
+      role: role || 'student',
+      avatarUrl: avatarUrl,
+      avatarInitial: avatarInitial,
+      avatarTransform: normalizeText(entry.avatarTransform || '')
+    };
+  }
+
+  function dedupeBbsParticipants(list)
+  {
+    var map = Object.create(null);
+    list.forEach(function (participant)
+    {
+      if (!participant)
+      {
+        return;
+      }
+      var key = normalizeText(participant.userCode || participant.displayName);
+      if (!key)
+      {
+        return;
+      }
+      if (!map[key])
+      {
+        map[key] = participant;
+        return;
+      }
+      map[key] = Object.assign({}, map[key], participant);
+    });
+    var values = [];
+    Object.keys(map).forEach(function (key)
+    {
+      values.push(map[key]);
+    });
+    return values;
+  }
+  // bbs  
 
   function extractAvatarUrl(candidate)
   {
@@ -461,6 +561,9 @@
     return String(text).replace(/\s+/g, ' ').slice(0, 60);
   }
 
+  //
+  // chat
+  //
   function normalizeChatAttachmentData(entry)
   {
     if (!entry || typeof entry !== 'object')
@@ -642,6 +745,193 @@
       createdByDisplayName: normalizeText(entry.createdByDisplayName || entry.creatorDisplayName || '')
     };
   }
+  // chat
+
+  //
+  // bbs
+  //
+  function normalizeBbsAttachmentData(entry)
+  {
+    if (!entry || typeof entry !== 'object')
+    {
+      return null;
+    }
+    var attachmentCode = normalizeText(entry.attachmentCode || entry.contentCode || entry.id || entry.code);
+    var typeRaw = normalizeText(entry.type || entry.category || entry.format || '');
+    var type = typeRaw;
+    if (!type) {
+      type = 'file';
+    }
+    if (type === 'doc' || type === 'document') {
+      type = 'file';
+    }
+    if (type === 'url') {
+      type = 'link';
+    }
+    var sizeDisplay = normalizeText(entry.sizeDisplay || '');
+    if (!sizeDisplay && Helpers) {
+      sizeDisplay = Helpers.formatFileSize(entry.size);
+    }
+    return {
+      attachmentCode: attachmentCode || 'attachment-' + Math.random().toString(16).slice(2),
+      name: normalizeText(entry.name || entry.title || entry.fileName) || '添付ファイル',
+      type: type,
+      typeLabel: normalizeText(entry.typeLabel || entry.categoryLabel || ''),
+      sizeDisplay: sizeDisplay,
+      url: normalizeText(entry.url || entry.href || entry.downloadUrl || entry.linkUrl || ''),
+      uploadedAtDisplay: normalizeText(entry.uploadedAtDisplay || entry.createdAtDisplay || '')
+    };
+  }
+
+  function normalizeBbsMessageData(entry, participants)
+  {
+    if (!entry || typeof entry !== 'object')
+    {
+      return null;
+    }
+    var messageCode = normalizeText(entry.messageCode || entry.messageId || entry.id || '');
+    if (!messageCode)
+    {
+      messageCode = 'message-' + Math.random().toString(16).slice(2);
+    }
+    var senderUserCode = normalizeText(
+      entry.senderUserCode || entry.senderCode || entry.userCode || entry.authorCode || ''
+    );
+    var senderCode = senderUserCode;
+    var participantRecord = null;
+    if (senderCode && Array.isArray(participants))
+    {
+      participantRecord = participants.find(function (participant)
+      {
+        return participant && participant.userCode === senderCode;
+      }) || null;
+    }
+    var senderName = normalizeText(
+      entry.senderName
+      || entry.senderUserName
+      || entry.senderUserDisplayName
+      || entry.userDisplayName
+      || (participantRecord && participantRecord.displayName)
+      || ''
+    );
+    var content = normalizeText(entry.content || entry.body || entry.text);
+    var sentAt = entry.sentAt || entry.createdAt || entry.timestamp || '';
+    var sentAtValue = parseTimestampValue(sentAt);
+    var sentAtDisplay = entry.sentAtDisplay || entry.createdAtDisplay || formatDisplayTimestamp(sentAt);
+    var attachments = Array.isArray(entry.attachments)
+      ? entry.attachments.map(normalizeBbsAttachmentData).filter(Boolean)
+      : [];
+    return {
+      messageCode: messageCode,
+      senderCode: senderCode,
+      senderName: senderName || senderCode || 'ユーザー',
+      content: content || '—',
+      sentAt: sentAt || '',
+      sentAtDisplay: sentAtDisplay || '',
+      sentAtValue: sentAtValue,
+      attachments: attachments,
+      senderUserCode: senderUserCode,
+      isLocal: Boolean(entry.isLocal)
+    };
+  }
+
+  function normalizeBbsThreadData(entry, participantsDirectory)
+  {
+    if (!entry || typeof entry !== 'object') {
+      return null;
+    }
+    var threadCode = normalizeText(entry.threadCode || entry.threadId || entry.id || '');
+    if (!threadCode) {
+      threadCode = 'thread-' + Math.random().toString(16).slice(2);
+    }
+    var rawParticipants = [];
+    if (Array.isArray(entry.participants)) {
+      rawParticipants = entry.participants.slice();
+    }
+    else if (Array.isArray(entry.members)) {
+      rawParticipants = entry.members.slice();
+    }
+    else if (Array.isArray(entry.userCodes)) {
+      rawParticipants = entry.userCodes.slice();
+    }
+    var normalizedParticipants = rawParticipants
+      .map(function (participant)
+      {
+        if (typeof participant === 'string') {
+          return { userCode: participant };
+        }
+        return participant;
+      })
+      .map(normalizeBbsParticipantData)
+      .filter(Boolean);
+    if (Array.isArray(participantsDirectory) && participantsDirectory.length) {
+      normalizedParticipants = normalizedParticipants.map(function (participant)
+      {
+        if (!participant || !participant.userCode)
+        {
+          return participant;
+        }
+        var fallback = participantsDirectory.find(function (entry)
+        {
+          return entry && entry.userCode === participant.userCode;
+        });
+        if (!fallback)
+        {
+          return participant;
+        }
+        return Object.assign({}, fallback, participant);
+      });
+    }
+    normalizedParticipants = dedupeBbsParticipants(normalizedParticipants);
+    var messages = Array.isArray(entry.messages)
+        ? entry.messages.map(function (message) {
+          return normalizeBbsMessageData(message, participantsDirectory);
+        }).filter(Boolean)
+        : [];
+    messages.sort(function (a, b) {
+      return (a ? a.sentAtValue || 0 : 0) - (b ? b.sentAtValue || 0 : 0);
+    });
+    var typeRaw = normalizeText(entry.type || entry.threadType || '');
+    var type = typeRaw === 'direct' || typeRaw === 'dm' ? 'direct' : 'group';
+    var lastMessage = messages.length ? messages[messages.length - 1] : null;
+    var fallbackTimestamp = entry.lastActivityAt || entry.updatedAt || entry.createdAt || '';
+    var lastActivityAt = lastMessage ? lastMessage.sentAt : fallbackTimestamp;
+    var lastActivityDisplay = lastMessage
+      ? lastMessage.sentAtDisplay
+      : entry.lastActivityDisplay || entry.updatedAtDisplay || formatDisplayTimestamp(fallbackTimestamp);
+    var lastActivityValue = lastMessage ? lastMessage.sentAtValue : parseTimestampValue(fallbackTimestamp);
+    var title = normalizeText(entry.title || entry.threadTitle || '');
+    if (!title) {
+      if (type === 'direct' && normalizedParticipants.length) {
+        var students = normalizedParticipants.filter(function (participant) {
+          return participant && participant.role !== 'coach';
+        });
+        var source = students.length ? students : normalizedParticipants;
+        title = source.map(function (participant) {
+          return participant.displayName || participant.userCode;
+        }).join('・');
+      } else {
+        title = 'チャット';
+      }
+    }
+    return {
+      threadCode: threadCode,
+      type: type,
+      typeLabel: '',
+      title: title,
+      description: normalizeText(entry.description || entry.summary || ''),
+      participants: normalizedParticipants,
+      messages: messages,
+      unreadCount: Math.max(0, Number(entry.unreadCount || entry.unread || 0)),
+      lastActivityAt: lastActivityAt || '',
+      lastActivityDisplay: lastActivityDisplay || '',
+      lastActivityValue: lastActivityValue,
+      lastMessageSnippet: entry.lastMessageSnippet || createThreadPreview(lastMessage ? lastMessage.content : ''),
+      createdByUserCode: normalizeText(entry.createdByUserCode || entry.creatorCode || ''),
+      createdByDisplayName: normalizeText(entry.createdByDisplayName || entry.creatorDisplayName || '')
+    };
+  }
+  // bbs  
 
   class TargetDetail
   {
@@ -663,7 +953,8 @@
           submissions: [],
           references: [],
           reviews: [],
-          chats: {},
+          chats: {},          
+          bbss: {},
           badges: { awards: [], catalog: [], palettes: [] },
           announcements: []
         }
@@ -677,6 +968,7 @@
         references: null,
         reviews: null,
         chats: null,
+        bbss: null,
         badges: null,
         announcements: null,
         survey: null,
@@ -1163,6 +1455,7 @@
         base + 'job-survey.js',
         base + 'job-reference.js',
         base + 'job-chat.js',
+        base + 'job-bbs.js',
         base + 'job-submission.js',
         base + 'job-review.js',
         base + 'job-badge.js',
@@ -1178,6 +1471,7 @@
       var JobAnnouncement = NS.JobAnnouncement;
       var JobReference = NS.JobReference;
       var JobChat = NS.JobChat;
+      var JobBbs = NS.JobBbs;      
       var JobSubmission = NS.JobSubmission;
       var JobReview = NS.JobReview;
       var JobBadge = NS.JobBadge;
@@ -1187,6 +1481,7 @@
         announcements: { key: 'announcement', ctor: JobAnnouncement },
         resources: { key: 'reference', ctor: JobReference },
         chat: { key: 'chat', ctor: JobChat },
+        bbs: { key: 'bbs', ctor: JobBbs },
         submissions: { key: 'submission', ctor: JobSubmission },
         reviews: { key: 'review', ctor: JobReview },
         badges: { key: 'badge', ctor: JobBadge },
@@ -1333,6 +1628,9 @@
       return this.state.reviews;
     }
 
+    //
+    // chat
+    // 
     async loadChats(options)
     {
       var forceReload = options && options.force;
@@ -1508,6 +1806,187 @@
       };
       return this.state.badges;
     }
+    // chat
+
+    //
+    // bbs
+    // 
+    async loadBbss(options)
+    {
+      var forceReload = options && options.force;
+      if (!forceReload && this.state.bbss) {
+        return this.state.bbss;
+      }
+
+      if (forceReload) {
+        this.state.bbss = null;
+      }
+
+      try {
+        var payload = await this.callApi(
+          'TargetBbsThreadList',
+          { targetCode: this.state.targetCode },
+          { requestType: 'TargetManagementBbs' }
+        );
+        var context = this.normalizeBbsContext(payload);
+        this.state.bbss = context;
+      } catch (error) {
+        console.warn('[target-detail] TargetBbsThreadList fallback', error);
+        this.state.bbss = this.normalizeBbsContext(this.config.fallback.bbss);
+      }
+
+      if (this.state.target && this.state.bbss && Array.isArray(this.state.bbss.participants) ){
+        this.state.target.bbsParticipants = this.state.bbss.participants.slice();
+      }
+      return this.state.bbss;
+    }
+
+    async createBbsThread(payload)
+    {
+      var params = {
+        targetCode: this.state.targetCode,
+        content: payload && payload.content,
+        recipientCodes: payload && Array.isArray(payload.recipientCodes)
+          ? JSON.stringify(payload.recipientCodes)
+          : JSON.stringify([]),
+        threadType: payload && payload.threadType
+      };
+      var result = await this.callApi(
+        'TargetBbsThreadCreate',
+        params,
+        { requestType: 'TargetManagementBbs' }
+      );
+      var context = this.normalizeBbsContext(result);
+      var threadCode = result && result.threadCode;
+      if ((!context || !Array.isArray(context.threads) || context.threads.length === 0) && threadCode)
+      {
+        try
+        {
+          var fetched = await this.callApi(
+            'TargetBbsThreadList',
+            {
+              targetCode: this.state.targetCode,
+              threadCodes: JSON.stringify([threadCode])
+            },
+            { requestType: 'TargetManagementBbs' }
+          );
+          var normalized = this.normalizeBbsContext(fetched);
+          normalized.threadCode = threadCode;
+          return normalized;
+        }
+        catch (error)
+        {
+          console.warn('[target-detail] TargetBbsThreadList after create failed', error);
+        }
+      }
+      if (context)
+      {
+        context.threadCode = threadCode || null;
+      }
+      return context;
+    }
+
+    async createBbsMessage(threadCode, content, senderUserCode)
+    {
+      var params = {
+        targetCode: this.state.targetCode,
+        threadCode: threadCode,
+        content: content
+      };
+      if (senderUserCode)
+      {
+        params.senderUserCode = String(senderUserCode).trim();
+      }
+      var result = await this.callApi(
+        'TargetBbsMessageCreate',
+        params,
+        { requestType: 'TargetManagementBbs' }
+      );
+      return this.normalizeBbsContext(result);
+    }
+
+    async deleteBbsMessage(threadCode, messageCode)
+    {
+      var result = await this.callApi(
+        'TargetBbsMessageDelete',
+        {
+          targetCode: this.state.targetCode,
+          threadCode: threadCode,
+          messageCode: messageCode
+        },
+        { requestType: 'TargetManagementBbs' }
+      );
+      return this.normalizeBbsContext(result);
+    }
+
+    async deleteBbsThread(threadCode)
+    {
+      var result = await this.callApi(
+        'TargetBbsThreadDelete',
+        {
+          targetCode: this.state.targetCode,
+          threadCode: threadCode
+        },
+        { requestType: 'TargetManagementBbs' }
+      );
+      return this.normalizeBbsContext(result);
+    }
+
+    async loadBadges(options)
+    {
+      var forceReload = options && options.force;
+
+      if (!forceReload && this.state.badges) {
+        return this.state.badges;
+      }
+
+      if (forceReload) {
+        this.state.badges = null;
+      }
+
+      var awards = [];
+      var catalog = [];
+      var palettes = [];
+      try {
+        var payload = await this.callApi(
+          'TargetBadgeList',
+          { targetCode: this.state.targetCode },
+          { requestType: 'TargetManagementBadges' }
+        );
+        awards = Array.isArray(payload && payload.awards) ? payload.awards : [];
+        catalog = Array.isArray(payload && payload.catalog) ? payload.catalog : [];
+        palettes = Array.isArray(payload && payload.palettes) ? payload.palettes : [];
+      } catch (error) {
+        console.warn('[target-detail] TargetBadgeList fallback', error);
+        awards = this.config.fallback.badges.awards.slice();
+        catalog = this.config.fallback.badges.catalog.slice();
+        palettes = (this.config.fallback.badges.palettes || []).slice();
+      }
+
+      if (!catalog.length) {
+        try {
+          var catalogPayload = await this.callApi(
+            'BadgeCatalog',
+            { mine: true },
+        { requestType: 'TargetManagementBadges' }
+      );
+      catalog = Array.isArray(catalogPayload && catalogPayload.badges)
+        ? catalogPayload.badges
+        : Array.isArray(catalogPayload) ? catalogPayload : [];
+        } catch (catalogError) {
+          console.warn('[target-detail] BadgeCatalog fallback', catalogError);
+          catalog = catalog && catalog.length ? catalog : this.config.fallback.badges.catalog.slice();
+        }
+      }
+
+      this.state.badges = {
+        awards: awards,
+        catalog: catalog,
+        palettes: palettes
+      };
+      return this.state.badges;
+    }
+    // bbs    
 
     async loadSurvey(options)
     {
@@ -1813,7 +2292,12 @@
           ? dedupeChatParticipants(
             raw.chatParticipants.map(function (participant) { return normalizeChatParticipantData(participant); }).filter(Boolean)
           )
-          : [],
+        : [],
+        bbsParticipants: Array.isArray(raw.bbsParticipants)
+          ? dedupeBbsParticipants(
+            raw.bbsParticipants.map(function (participant) { return normalizeBbsParticipantData(participant); }).filter(Boolean)
+          )
+          : [],        
         agreements: this.normalizeAgreements(raw.agreements),
         basicInfoConfirmation: this.normalizeBasicInfoConfirmation(raw.basicInfoConfirmation),
         basicInfoConfirmations: this.normalizeBasicInfoConfirmations(
@@ -1872,6 +2356,7 @@
         announcements: 'displayAnnouncements',
         resources: 'displayResources',
         chat: 'displayChat',
+        bbs: 'displayBbs',
         submissions: 'displaySubmissions',
         reviews: 'displayReviews',
         badges: 'displayBadges',
@@ -2557,6 +3042,9 @@
       this.toastService.info(message);
     }
 
+    // 
+    // chat
+    //
     normalizeChatContext(payload)
     {
       var viewerCandidate = null;
@@ -2606,6 +3094,61 @@
         viewer: viewer || null
       };
     }
+    // chat
+
+    // 
+    // bbs
+    //
+    normalizeBbsContext(payload)
+    {
+      var viewerCandidate = null;
+      if (this.state && this.state.profile)
+      {
+        viewerCandidate = normalizeBbsParticipantData({
+          userCode: this.state.profile.userCode || this.state.profile.user_code || this.state.profile.code || '',
+          displayName: this.state.profile.displayName || this.state.profile.name || this.state.profile.fullName || '',
+          role: this.state.profile.role,
+          avatarUrl: this.state.profile.avatarUrl || this.state.profile.photoUrl || this.state.profile.imageUrl || ''
+        });
+      }
+
+      var participantSource = Array.isArray(payload && payload.participants) ? payload.participants : [];
+      var normalizedParticipants = dedupeBbsParticipants(
+        participantSource.map(function (participant)
+        {
+          return normalizeBbsParticipantData(participant);
+        }).filter(Boolean)
+      );
+      var viewer = payload && payload.viewer ? normalizeBbsParticipantData(payload.viewer) : null;
+      if (!viewer && viewerCandidate)
+      {
+        viewer = viewerCandidate;
+      }
+      if (!viewer && normalizedParticipants.length)
+      {
+        viewer = normalizedParticipants.find(function (participant)
+        {
+          return participant && participant.role === 'coach';
+        }) || normalizedParticipants[0];
+      }
+      var threadsSource = Array.isArray(payload && payload.threads) ? payload.threads : [];
+      var normalizedThreads = threadsSource
+        .map(function (thread)
+        {
+          return normalizeBbsThreadData(thread, normalizedParticipants);
+        })
+        .filter(Boolean);
+      normalizedThreads.sort(function (a, b)
+      {
+        return (b ? b.lastActivityValue || 0 : 0) - (a ? a.lastActivityValue || 0 : 0);
+      });
+      return {
+        threads: normalizedThreads,
+        participants: normalizedParticipants,
+        viewer: viewer || null
+      };
+    }
+    // bbs    
 
     async callApi(type, params, options)
     {

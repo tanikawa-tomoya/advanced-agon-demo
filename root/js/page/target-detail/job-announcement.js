@@ -2463,6 +2463,10 @@
       {
         candidates = candidates.concat(target.chatParticipants);
       }
+      if (target && Array.isArray(target.bbsParticipants))
+      {
+        candidates = candidates.concat(target.bbsParticipants);
+      }      
       var seen = Object.create(null);
       var normalized = [];
       candidates.forEach(function (entry)

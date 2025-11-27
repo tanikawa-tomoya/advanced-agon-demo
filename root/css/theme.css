@@ -5432,6 +5432,17 @@ body.is-modal-open {
   height: 10px;
 }
 
+.target-bbs__thread-delete.table-action-button {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+}
+
+.target-bbs__thread-delete.table-action-button svg {
+  width: 10px;
+  height: 10px;
+}
+
 .table-action-button--delete {
   color: #f44336;
   border-color: #f44336;
