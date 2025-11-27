@@ -184,6 +184,16 @@
       return false;
     }
 
+    _normalizeRoleFlag(value)
+    {
+      if (value === true || value === 1 || value === '1') { return true; }
+      if (typeof value === 'string') {
+        const normalized = value.toLowerCase();
+        return normalized === 'true' || normalized === 'yes' || normalized === 'on';
+      }
+      return false;
+    }
+
     _cloneMenu(items) {
       if (this.jobMenu && typeof this.jobMenu.cloneMenu === 'function') {
         return this.jobMenu.cloneMenu(items);
@@ -320,8 +330,11 @@
     resolveMenuByRole(user)
     {
       const presets = this.MENU_PRESETS || {};
-      const isSupervisor = !!(user && user.isSupervisor === 1) || this._hasRoleName(user, ['supervisor']);
-      const isOperator = !!(user && user.isOperator === 1) || this._hasRoleName(user, ['operator']) || isSupervisor;
+      const isSupervisor = this._normalizeRoleFlag(user && user.isSupervisor)
+        || this._hasRoleName(user, ['supervisor']);
+      const isOperator = this._normalizeRoleFlag(user && user.isOperator)
+        || this._hasRoleName(user, ['operator'])
+        || isSupervisor;
       const allowContents = this._isContentsManagementEnabled(user);
 
       if (isSupervisor && presets.supervisor) {
@@ -676,6 +689,7 @@
         announcements: Object.freeze({ key: 'announcements', label: 'お知らせ管理', href: '/admin-announcements' }),
         users: Object.freeze({ key: 'users', label: 'ユーザー管理', href: '/admin-users' }),
         queue: Object.freeze({ key: 'queue', label: 'キュー管理', href: '/admin-queue' }),
+        purchase: Object.freeze({ key: 'purchase', label: '購入管理', href: '/admin-purchase' }),
         contactlog: Object.freeze({ key: 'contactlog', label: '問い合わせ管理', href: '/admin-contactlog' }),
         system: Object.freeze({ key: 'system', label: 'システム管理', href: '/admin-system' }),
         targets: Object.freeze({ key: 'targets', label: 'ターゲット管理', href: '/targets' }),
@@ -688,6 +702,7 @@
           this.MENU_ITEMS.announcements,
           this.MENU_ITEMS.users,
           this.MENU_ITEMS.queue,
+          this.MENU_ITEMS.purchase,
           this.MENU_ITEMS.contactlog,
           this.MENU_ITEMS.system,
           this.MENU_ITEMS.targets,
