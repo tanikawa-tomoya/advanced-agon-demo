@@ -1705,7 +1705,7 @@ INSERT OR REPLACE INTO targets (
     targetCode, title, description, imageFile, status, priority, dueDate,
     startDate, endDate, assignedUserCode, assignedGroupCode,
     displayGuidance, displayGoals, displayAgreements, displayAnnouncements,
-    displayReferences, displaySchedule, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
+    displayReferences, displaySchedules, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
     createdByUserCode, createdAt, updatedAt, isDeleted
 )
 VALUES (
