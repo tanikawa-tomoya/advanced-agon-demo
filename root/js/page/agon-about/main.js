@@ -1,7 +1,7 @@
 (function () {
 
   'use strict';
-  
+
   class AgonAbout
   {
     constructor(name)
@@ -9,7 +9,7 @@
       this.name = name || 'agon-about';
     }
 
-    // このページではSessionServiceでのログイン状態のチェックは不要         
+    // このページではSessionServiceでのログイン状態のチェックは不要
     async boot()
     {
       await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
@@ -18,7 +18,7 @@
                                           { src: '/js/page/agon-about/job-view.js' }]);
 
       this.initConfig();
-      
+
       this.headerService = new window.Services.Header({display: {forceLoginButton: true, hideLoginButton: false, showUserInfoWhenLoggedin: false}});
                   this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
       this.loadingService = new window.Services.Loading(document.querySelector('.login-card') || document.body);
@@ -62,9 +62,9 @@
             }
           }
         }
-      });    
+      });
     }
-    
+
     initConfig()
     {
       var baseConfig = window.AgonAboutConfig || {};
@@ -84,21 +84,11 @@
         backgroundPanels:'#background-panels',
         roleCards:       '#role-cards',
         screenGrid:      '#screen-grid',
-        groupFilter:     '#group-filter',
-        eventFilter:     '#event-filter',
-        trendChart:      '#trend-chart',
-        trendLegend:     '#trend-legend',
-        statusBars:      '#status-bars',
-        eventDonut:      '#event-donut',
-        eventLegend:     '#event-legend',
-        heatmap:         '#heatmap',
-        badgeShowcase:   '#badge-showcase',
-        journey:         '#journey',
         dataTable:       '#data-table',
         apiGrid:         '#api-grid',
         roadmap:         '#roadmap',
         kpiGrid:         '#kpi-grid',
-        contactForm:     '.contact-form'
+        galleryGrid:     '#gallery-grid'
       }, (baseConfig && baseConfig.SELECTOR) || {});
 
       window.AgonAboutConfig = Object.assign({}, baseConfig, {

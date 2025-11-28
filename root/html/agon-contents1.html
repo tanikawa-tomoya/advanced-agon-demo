@@ -16,9 +16,9 @@
       rel="stylesheet"
     />
     <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
-	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-	<script src="js/entrypoint.js?v=1"></script>							
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+        <script src="js/entrypoint.js?v=1"></script>
   </head>
   <body class="page--contents1">
     <header class="site-header" data-disable-account-ui>
@@ -28,19 +28,72 @@
 
     <main>
       <section class="hero" id="overview">
-        <div class="hero__content hero__content--buttons">
-          <div class="hero__button-list">
-            <a class="btn btn--primary hero__nav-button" href="/agon-event">最新情報</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-about">阿含宗とは 理念と教学</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-contents1">映像で見る 阿含の歩み</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-contents2">音声で聴く 開祖著作</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-wellness">心と体の健康のために</a>
-          </div>
+        <div class="hero__content">
+          <p class="hero__eyebrow">Agon Sample</p>
+          <h1 class="hero__title">映像で見る歩みのモック</h1>
+          <p class="hero__summary">ダミー映像カードや表組みを並べたサンプルページです。各ブロックは全てプレースホルダーの情報で構成しています。</p>
         </div>
         <div class="hero__glance" role="presentation">
           <div class="hero-card" id="hero-glance"></div>
         </div>
       </section>
+
+      <section class="section section--panels">
+        <div class="section__inner">
+          <h2 class="section__title">ハイライトパネル</h2>
+          <div class="panel-grid" id="background-panels"></div>
+        </div>
+      </section>
+
+      <section class="section section--roles">
+        <div class="section__inner">
+          <h2 class="section__title">カードサンプル</h2>
+          <div class="role-card-grid" id="role-cards"></div>
+        </div>
+      </section>
+
+      <section class="section section--screens">
+        <div class="section__inner">
+          <h2 class="section__title">コンテンツプレビュー</h2>
+          <div class="screen-grid" id="screen-grid"></div>
+        </div>
+      </section>
+
+      <section class="section section--table">
+        <div class="section__inner">
+          <h2 class="section__title">ダミーテーブル</h2>
+          <div class="table-wrapper" id="data-table"></div>
+        </div>
+      </section>
+
+      <section class="section section--apis">
+        <div class="section__inner">
+          <h2 class="section__title">API風カード</h2>
+          <div class="api-grid" id="api-grid"></div>
+        </div>
+      </section>
+
+      <section class="section section--roadmap">
+        <div class="section__inner">
+          <h2 class="section__title">計画モック</h2>
+          <div class="roadmap-grid" id="roadmap"></div>
+        </div>
+      </section>
+
+      <section class="section section--kpi">
+        <div class="section__inner">
+          <h2 class="section__title">KPIダッシュボード</h2>
+          <div class="kpi-grid" id="kpi-grid"></div>
+        </div>
+      </section>
+
+      <section class="section section--gallery">
+        <div class="section__inner">
+          <h2 class="section__title">ギャラリー</h2>
+          <div class="screen-grid screen-grid--gallery" id="gallery-grid"></div>
+        </div>
+      </section>
+    </main>
 
     <footer class="site-footer">
       <p>© 2025 MEDIAPLUS. All rights reserved.</p>
