@@ -12,15 +12,16 @@
 
    class IndexJobView
    {
-     constructor(pageInstance)
-     {
-      this.pageInstance = pageInstance;
-      this.state = {
+    constructor(pageInstance)
+    {
+     this.pageInstance = pageInstance;
+     this.state = {
         dashboardGroup: null,
         dashboardIndex: null
       };
+      this.buttonService = pageInstance && pageInstance.buttonService;
        this.dataset = this._buildDataset();
-     }
+    }
 
      loadPage(page)
      {
@@ -36,10 +37,15 @@
          }
        }
 
-       var hero = document.querySelector(SEL.heroGlance);
-       if (hero) {
-         tasks.push(this.renderHeroGlance(hero));
-       }
+      var hero = document.querySelector(SEL.heroGlance);
+      if (hero) {
+        tasks.push(this.renderHeroGlance(hero));
+      }
+
+      var heroButtons = document.querySelector('.hero__button-list');
+      if (heroButtons) {
+        tasks.push(this.renderHeroButtons(heroButtons));
+      }
 
        var background = document.querySelector(SEL.backgroundPanels);
        if (background) {
@@ -134,12 +140,12 @@
        var eyebrow = document.createElement('p');
        eyebrow.className = 'hero__eyebrow';
        eyebrow.textContent = data.eyebrow;
-       var title = document.createElement('p');
-       title.className = 'hero-card__title';
-       title.textContent = data.title;
-       var highlight = document.createElement('p');
-       highlight.className = 'hero-card__highlight';
-       highlight.textContent = data.highlight;
+      var title = document.createElement('p');
+      title.className = 'hero-card__title';
+      title.textContent = data.title;
+      var highlight = document.createElement('p');
+      highlight.className = 'hero-card__highlight';
+      highlight.textContent = data.highlight;
        var summary = document.createElement('p');
        summary.className = 'hero-card__summary';
        summary.textContent = data.summary;
@@ -152,11 +158,28 @@
        }
        container.appendChild(eyebrow);
        container.appendChild(title);
-       container.appendChild(highlight);
-       container.appendChild(summary);
-       container.appendChild(list);
-       return Promise.resolve();
-     }
+      container.appendChild(highlight);
+      container.appendChild(summary);
+      container.appendChild(list);
+      return Promise.resolve();
+    }
+
+    renderHeroButtons(container)
+    {
+      var buttons = this.dataset.navButtons;
+      var service = this.buttonService;
+      container.innerHTML = '';
+      for (var i = 0; i < buttons.length; i++) {
+        var config = buttons[i];
+        var button = service.createActionButton(config.buttonType, {
+          elementTag: 'a',
+          label: config.label,
+          attributes: Object.freeze({ href: config.href })
+        });
+        container.appendChild(button);
+      }
+      return Promise.resolve();
+    }
 
      renderBackgroundPanels(container)
      {
@@ -662,13 +685,20 @@
        return null;
      }
 
-     _buildDataset()
-     {
-       return {
-         hero: {
-           eyebrow: '現在の接続状況',
-           title: 'マスターズ連携のサマリー',
-           highlight: '8リーグ / 620名が遠隔指導を利用中',
+    _buildDataset()
+    {
+      return {
+        navButtons: [
+          { buttonType: 'index-nav-news', label: '最新情報', href: '/event' },
+          { buttonType: 'index-nav-about', label: '阿含宗とは 理念と教学', href: '/about' },
+          { buttonType: 'index-nav-videos', label: '映像で見る 阿含の歩み', href: '/contents1' },
+          { buttonType: 'index-nav-audio', label: '音声で聴く 開祖著作', href: '/contents2' },
+          { buttonType: 'index-nav-wellness', label: '心と体の健康のために', href: '/wellness' }
+        ],
+        hero: {
+          eyebrow: '現在の接続状況',
+          title: 'マスターズ連携のサマリー',
+          highlight: '8リーグ / 620名が遠隔指導を利用中',
            summary: '合宿遠征なしでも週次レビューと進捗把握が回る体制を、北斎カップの知見をベースに再現しています。',
            metrics: [
              '週次レビュー平均 48 件（72 時間以内に応答）',
