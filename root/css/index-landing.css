@@ -62,7 +62,7 @@ body.index-landing {
   gap: 18px;
   align-self: start;
   width: 100%;
-  max-width: 440px;
+  max-width: 1040px;
   position: relative;
   z-index: 2;
 }
@@ -77,16 +77,18 @@ body.index-landing {
 
 .landing-brand__title {
   margin: 0;
-  font-size: 88px;
+  font-size: clamp(48px, 9vw, 88px);
   font-weight: 900;
   letter-spacing: 0.12em;
   color: #ffffff;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55), 0 0 14px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  line-height: 1.05;
 }
 
 .landing-brand__subtitle {
   margin: 0;
-  font-size: 44px;
+  font-size: clamp(28px, 6vw, 44px);
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #ce0000;
@@ -96,10 +98,12 @@ body.index-landing {
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  line-height: 1.05;
 }
 
 .landing-brand__subtitle .latin {
-  font-size: 48px;
+  font-size: clamp(32px, 7vw, 48px);
   font-weight: 800;
   letter-spacing: 0.22em;
 }
@@ -112,8 +116,8 @@ body.index-landing {
 }
 
 .landing-brand__action .curl-ribbon-button {
-  width: 260px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  width: min(1040px, 90vw);
+  box-shadow: none;
 }
 
 .landing-brand__ribbon {
@@ -130,9 +134,9 @@ body.index-landing {
 }
 
 .landing-actions .curl-ribbon-button {
-  width: 230px;
+  width: min(920px, 90vw);
   text-align: center;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 .curl-ribbon-button__text {
@@ -144,7 +148,7 @@ body.index-landing {
 }
 
 .curl-ribbon-button__main {
-  font-size: 16px;
+  font-size: clamp(18px, 3vw, 32px);
 }
 
 .curl-ribbon-button__sub {
@@ -164,11 +168,11 @@ body.index-landing {
   }
 
   .landing-brand__title {
-    font-size: 68px;
+    font-size: clamp(42px, 12vw, 68px);
   }
 
   .landing-brand__subtitle {
-    font-size: 36px;
+    font-size: clamp(26px, 8vw, 36px);
   }
 
   .landing-actions {
@@ -178,6 +182,6 @@ body.index-landing {
 
   .landing-actions .curl-ribbon-button {
     width: 48%;
-    min-width: 210px;
+    min-width: min(420px, 100%);
   }
 }
