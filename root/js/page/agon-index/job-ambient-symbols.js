@@ -32,21 +32,26 @@
          return Promise.resolve();
        }
 
-       this._primeSymbols(16);
+       this._primeSymbols(8);
        this._startEmitter();
        return Promise.resolve();
      }
 
      _ensureSky()
      {
-       var existing = document.querySelector('.ambient-sky');
+       var main = document.querySelector('.page-main');
+       if (!main) {
+         return null;
+       }
+
+       var existing = main.querySelector('.ambient-sky');
        if (existing) {
          return existing;
        }
 
        var sky = document.createElement('div');
        sky.className = 'ambient-sky';
-       document.body.appendChild(sky);
+       main.appendChild(sky);
        return sky;
      }
 
@@ -62,7 +67,7 @@
        var self = this;
        this.timerId = window.setInterval(function () {
          self._spawnSymbol(false);
-       }, 780);
+       }, 1560);
      }
 
      _spawnSymbol(isInitial)
@@ -70,6 +75,19 @@
        if (!this.skyRoot) {
          return;
        }
+
+       var main = document.querySelector('.page-main');
+       var sections = main ? main.querySelectorAll('.section') : null;
+       if (!main || !sections || !sections.length) {
+         return;
+       }
+
+       var section = sections[Math.floor(Math.random() * sections.length)];
+       var mainRect = main.getBoundingClientRect();
+       var sectionRect = section.getBoundingClientRect();
+
+       var centerX = sectionRect.left + sectionRect.width / 2 - mainRect.left;
+       var centerY = sectionRect.top + sectionRect.height / 2 - mainRect.top;
 
        var symbol = document.createElement('span');
        symbol.className = 'ambient-sky__symbol';
@@ -85,7 +103,17 @@
          symbol.textContent = LETTERS.charAt(letterIndex);
        }
 
-       symbol.style.left = (Math.random() * 100).toFixed(2) + '%';
+       symbol.style.left = centerX.toFixed(1) + 'px';
+       symbol.style.top = centerY.toFixed(1) + 'px';
+
+       var angle = Math.random() * Math.PI * 2;
+       var distanceBase = Math.max(sectionRect.width, sectionRect.height) * 0.55 + 80;
+       var travel = distanceBase + Math.random() * 120;
+       var dx = Math.cos(angle) * travel;
+       var dy = Math.sin(angle) * travel;
+
+       symbol.style.setProperty('--dx', dx.toFixed(1) + 'px');
+       symbol.style.setProperty('--dy', dy.toFixed(1) + 'px');
        symbol.style.fontSize = (12 + Math.random() * 22).toFixed(1) + 'px';
        symbol.style.animationDuration = (9 + Math.random() * 7).toFixed(1) + 's';
        symbol.style.animationDelay = isInitial ? (-1 * Math.random() * 9).toFixed(1) + 's' : '0s';
@@ -98,7 +126,7 @@
          }
        });
 
-       if (this.skyRoot.childElementCount > 120) {
+       if (this.skyRoot.childElementCount > 60) {
          this.skyRoot.removeChild(this.skyRoot.firstChild);
        }
 
