@@ -14982,3 +14982,145 @@ body.is-modal-open {
   --hero-nav-color: var(--accent);
   --hero-nav-shadow: color-mix(in srgb, var(--accent) 16%, transparent);
 }
+
+/* Dashboard (light theme) */
+:root[data-theme="light"] .dashboard__header {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 12%, #ffffff) 0%,
+    color-mix(in srgb, var(--surface-alt) 85%, #ffffff) 100%
+  );
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+  box-shadow: 0 16px 36px rgba(12, 18, 28, 0.12);
+}
+
+:root[data-theme="light"] .dashboard__header::after {
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 20%, transparent), transparent 65%);
+}
+
+:root[data-theme="light"] .dashboard__eyebrow {
+  color: color-mix(in srgb, var(--accent) 62%, rgba(44, 42, 39, 0.7));
+}
+
+:root[data-theme="light"] .dashboard__description {
+  color: color-mix(in srgb, var(--text-muted) 72%, rgba(44, 42, 39, 0.72));
+}
+
+:root[data-theme="light"] .dashboard__select {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(12, 18, 28, 0.08);
+}
+
+:root[data-theme="light"] .dashboard__select:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+:root[data-theme="light"] .dashboard__refresh {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 82%, #ffffff) 0%,
+    color-mix(in srgb, var(--accent-strong) 76%, #ffffff) 100%
+  );
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  color: #2c2a27;
+  box-shadow: 0 14px 28px rgba(12, 18, 28, 0.14);
+}
+
+:root[data-theme="light"] .dashboard__refresh:hover,
+:root[data-theme="light"] .dashboard__refresh:focus-visible {
+  box-shadow: 0 16px 36px rgba(12, 18, 28, 0.16);
+  filter: brightness(1.04);
+}
+
+:root[data-theme="light"] .metric-card,
+:root[data-theme="light"] .chart-card,
+:root[data-theme="light"] .list-card {
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--surface) 90%, #ffffff) 0%,
+    color-mix(in srgb, var(--surface-alt) 90%, #ffffff) 100%
+  );
+  border-color: color-mix(in srgb, var(--accent) 10%, var(--border));
+  box-shadow: 0 12px 26px rgba(12, 18, 28, 0.12);
+}
+
+:root[data-theme="light"] .metric-card::after {
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 32%, transparent), transparent 65%);
+}
+
+:root[data-theme="light"] .metric-card__label {
+  color: color-mix(in srgb, var(--accent) 58%, rgba(44, 42, 39, 0.7));
+}
+
+:root[data-theme="light"] .chart-card__canvas {
+  background: color-mix(in srgb, var(--surface-muted) 80%, rgba(255, 255, 255, 0.92));
+  border-color: color-mix(in srgb, var(--accent) 8%, var(--border));
+}
+
+:root[data-theme="light"] .chart-card__legend-item.group-legend {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: color-mix(in srgb, var(--accent) 10%, var(--border));
+  box-shadow: 0 8px 18px rgba(12, 18, 28, 0.1);
+}
+
+:root[data-theme="light"] .chart-card__legend-item--highlight,
+:root[data-theme="light"] .chart-card__legend-value--highlight {
+  color: color-mix(in srgb, var(--accent) 78%, #2c2a27);
+}
+
+:root[data-theme="light"] .chart-card__legend-item--highlight {
+  background: color-mix(in srgb, var(--accent) 14%, rgba(255, 255, 255, 0.9));
+  box-shadow: 0 8px 18px rgba(12, 18, 28, 0.08);
+}
+
+:root[data-theme="light"] .chart-card__legend-swatch {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+:root[data-theme="light"] .chart-card__legend-item.group-legend .group-legend__title {
+  color: var(--text);
+}
+
+:root[data-theme="light"] .list-card__empty,
+:root[data-theme="light"] .due-item,
+:root[data-theme="light"] .queue-list__item {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: color-mix(in srgb, var(--accent) 10%, var(--border));
+  box-shadow: 0 8px 18px rgba(12, 18, 28, 0.08);
+}
+
+:root[data-theme="light"] .due-item__date {
+  color: color-mix(in srgb, var(--text-muted) 80%, rgba(44, 42, 39, 0.72));
+}
+
+:root[data-theme="light"] .queue-list__badge {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: color-mix(in srgb, var(--accent) 72%, #2c2a27);
+}
+
+:root[data-theme="light"] .queue-list__badge--alert,
+:root[data-theme="light"] .status-badge--alert {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: color-mix(in srgb, var(--danger) 80%, #2c2a27);
+}
+
+:root[data-theme="light"] .status-badge,
+:root[data-theme="light"] .queue-list__badge,
+:root[data-theme="light"] .status-badge--positive,
+:root[data-theme="light"] .status-badge--warning {
+  color: color-mix(in srgb, var(--accent) 70%, #2c2a27);
+  background: color-mix(in srgb, var(--accent) 12%, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="light"] .status-badge--positive {
+  background: color-mix(in srgb, #6ee7b7 16%, rgba(255, 255, 255, 0.92));
+  color: color-mix(in srgb, #0f5132 68%, #2c2a27);
+}
+
+:root[data-theme="light"] .status-badge--warning {
+  background: color-mix(in srgb, #f6c94c 18%, rgba(255, 255, 255, 0.92));
+  color: color-mix(in srgb, #8a6d1f 68%, #2c2a27);
+}
