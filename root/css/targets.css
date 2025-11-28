@@ -13,10 +13,8 @@
   gap: clamp(24px, 3vw, 40px);
   padding: clamp(24px, 3vw, 40px);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(122, 207, 255, 0.25);
-  background: radial-gradient(circle at 10% 20%, rgba(80, 160, 255, 0.18), transparent 45%),
-    radial-gradient(circle at 90% 10%, rgba(122, 255, 244, 0.2), transparent 55%),
-    rgba(13, 26, 46, 0.85);
+  border: 1px solid var(--border, rgba(122, 207, 255, 0.25));
+  background: var(--hero-gradient), var(--surface-alt);
   box-shadow: var(--shadow-lg);
   color: var(--text);
 }
@@ -27,7 +25,7 @@
   align-items: flex-end;
   gap: 16px 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border);
 }
 
 .targets__search {
@@ -41,8 +39,8 @@
 .targets__form-grid textarea {
   width: 100%;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(12, 24, 44, 0.65);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.16));
+  background: var(--surface, rgba(12, 24, 44, 0.65));
   color: var(--text);
   padding: 12px 16px;
   font-size: 0.95rem;
@@ -67,12 +65,12 @@
 .targets__form-grid select:focus,
 .targets__form-grid textarea:focus {
   outline: none;
-  border-color: rgba(125, 217, 255, 0.8);
-  box-shadow: 0 0 0 3px rgba(72, 166, 255, 0.25);
+  border-color: var(--accent, rgba(125, 217, 255, 0.8));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #48a6ff) 25%, transparent);
 }
 
 .targets__search input::placeholder {
-  color: rgba(244, 246, 251, 0.45);
+  color: var(--text-muted, rgba(244, 246, 251, 0.45));
 }
 
 .targets__filters {
@@ -97,8 +95,8 @@
 
 .targets__list {
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 21, 36, 0.75);
+  border: 1px solid var(--border);
+  background: var(--surface);
   overflow-x: auto;
 }
 
@@ -128,9 +126,9 @@
   aspect-ratio: 16 / 9;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #0b1728;
-  box-shadow: 0 14px 28px rgba(6, 12, 24, 0.55);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
   isolation: isolate;
 }
 
@@ -151,8 +149,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: linear-gradient(180deg, rgba(6, 14, 28, 0) 0%, rgba(6, 14, 28, 0.4) 45%, rgba(6, 14, 28, 0.82) 100%);
-  color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg, #060e1c) 0%, transparent) 0%, color-mix(in srgb, var(--bg, #060e1c) 40%, transparent) 45%, color-mix(in srgb, var(--bg, #060e1c) 80%, transparent) 100%);
+  color: var(--text);
   pointer-events: none;
   text-align: center;
 }
@@ -173,9 +171,9 @@
   align-self: center;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(244, 246, 251, 0.92);
+  border: 1px solid var(--border);
+  background: var(--surface-muted, rgba(255, 255, 255, 0.12));
+  color: var(--text);
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -187,9 +185,9 @@
   left: 10px;
   padding: 4px 8px;
   border-radius: 999px;
-  background: linear-gradient(145deg, rgba(29, 46, 72, 0.92), rgba(15, 27, 46, 0.95));
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(244, 246, 251, 0.9);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--surface, #1d2e48) 92%, transparent), color-mix(in srgb, var(--surface, #0f1b2e) 95%, transparent));
+  border: 1px solid var(--border);
+  color: var(--text);
   font-weight: 700;
   font-size: 0.7rem;
   letter-spacing: 0.06em;
