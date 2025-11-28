@@ -16,14 +16,12 @@
 </head>
 <body class="page page--events" data-page="agon-index">
     <header class="site-header">
-        <div class="brand">阿含情報館 <span style="font-size: 18px;">AGON Information</span></div>
+        <a class="brand brand--button" href="/">
+            <span class="brand__label">阿含情報館</span>
+            <span class="brand__english">AGON Information</span>
+        </a>
         <nav class="main-nav">
             <a href="#contents1">映像</a>
-            <a href="#contents2">音声</a>
-            <a href="#about">理念と教学</a>
-            <a href="#wellness">健康</a>
-            <a href="#pattern-begin">デザインパーツ</a>
-            <a href="#contact">お問い合わせ</a>
         </nav>
         <div class="header-actions">
           <a class="btn btn--ghost" href="login.html">ログイン</a>
@@ -38,20 +36,103 @@
                         <div class="hero-kicker">AGON Information</div>
                         <div class="hero-lead">阿含の行事をデジタルでつなぎ、参詣の準備から当日の導線までシームレスに体験できます。家族や仲間との共有機能や、ライブ視聴を深める解説も一体でお届けします。</div>
                         <div class="hero-meta">
-                          <a class="btn btn--primary" href="#schedule">最新情報</a>
+                          <a class="btn btn--primary" href="#eventarchive">最新の行事映像</a>
+                          <a class="btn btn--ghost" href="#schedule">今後の行事予定</a>
                           <a class="btn btn--ghost" href="#about">阿含宗とは 理念と教学</a>
-						  <a class="btn btn--ghost" href="#contents1">映像でみる 阿含の歩み</a>
-						  <a class="btn btn--ghost" href="#contents2">音声で聴く 開祖著作</a>
-						  <a class="btn btn--ghost" href="#wellness">心と身体の健康のために</a>
+                                                  <a class="btn btn--ghost" href="#contents1">映像でみる 阿含の歩み</a>
+                                                  <a class="btn btn--ghost" href="#contents2">音声で聴く 開祖著作</a>
+                                                  <a class="btn btn--ghost" href="#wellness">心と身体の健康のために</a>
                         </div>
                     </div>
                     <div class="hero-right">
                         <h1 class="hero-title">点火まであと<span>66日</span></h1>
                         <div class="hero-visual">
-                            <img src="https://picsum.photos/800/520?blur=2" alt="護摩の準備をイメージしたビジュアル" />
+                            <img src="https://picsum.photos/seed/goma-prep/800/520?blur=2" alt="護摩の準備をイメージしたビジュアル" />
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <section class="section pattern pattern--panel-grid event-archive" id="eventarchive">
+            <div class="pattern-head">
+                <p class="pattern-kicker">Pattern 06</p>
+                <h2 class="section-title">最新の行事映像</h2>
+                <p class="section-lead">最近の大法要や供養法要を映像アーカイブとしてまとめました。再生ボタンからそのまま鑑賞できます。</p>
+            </div>
+            <div class="pattern-panel-grid event-archive__grid">
+                <article class="pattern-panel event-archive__card">
+                    <div class="event-card__thumb">
+                        <img src="https://picsum.photos/seed/agon-event-1012/520/320" alt="開祖十回忌涅槃会大法要の動画サムネイル" />
+                        <div class="event-card__play">
+                            <button class="event-card__play-button" type="button" data-video-src="/image/sample/contents-sample-001-01.mp4" data-poster="/image/sample/contents-sample-001-01.mp4_thumbnail" data-media-type="video" data-video-title="開祖十回忌涅槃会大法要">
+                                <span class="visually-hidden">開祖十回忌涅槃会大法要を再生</span>
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pattern-panel__body">
+                        <p class="pattern-label">10月12日</p>
+                        <h3>開祖十回忌涅槃会大法要</h3>
+                        <div class="event-card__actions">
+                            <button class="btn btn--ghost btn--sm" type="button" data-video-src="/image/sample/contents-sample-001-01.mp4" data-poster="/image/sample/contents-sample-001-01.mp4_thumbnail" data-media-type="video" data-video-title="開祖十回忌涅槃会大法要">再生する</button>
+                        </div>
+                    </div>
+                </article>
+                <article class="pattern-panel event-archive__card">
+                    <div class="event-card__thumb">
+                        <img src="https://picsum.photos/seed/agon-event-0815/520/320" alt="総本殿万燈先祖供養法要の動画サムネイル" />
+                        <div class="event-card__play">
+                            <button class="event-card__play-button" type="button" data-video-src="/image/sample/contents-sample-001-01.mp4" data-poster="/image/sample/contents-sample-001-01.mp4_thumbnail" data-media-type="video" data-video-title="総本殿万燈先祖供養法要">
+                                <span class="visually-hidden">総本殿万燈先祖供養法要を再生</span>
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pattern-panel__body">
+                        <p class="pattern-label">8月15日</p>
+                        <h3>総本殿万燈先祖供養法要</h3>
+                        <div class="event-card__actions">
+                            <button class="btn btn--ghost btn--sm" type="button" data-video-src="/image/sample/contents-sample-001-01.mp4" data-poster="/image/sample/contents-sample-001-01.mp4_thumbnail" data-media-type="video" data-video-title="総本殿万燈先祖供養法要">再生する</button>
+                        </div>
+                    </div>
+                </article>
+                <article class="pattern-panel event-archive__card">
+                    <div class="event-card__thumb">
+                        <img src="https://picsum.photos/seed/agon-event-0715/520/320" alt="千鳥ヶ淵万燈供養法要の動画サムネイル" />
+                        <div class="event-card__play">
+                            <button class="event-card__play-button" type="button" data-video-src="/image/sample/contents-sample-001-01.mp4" data-poster="/image/sample/contents-sample-001-01.mp4_thumbnail" data-media-type="video" data-video-title="千鳥ヶ淵万燈供養法要">
+                                <span class="visually-hidden">千鳥ヶ淵万燈供養法要を再生</span>
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pattern-panel__body">
+                        <p class="pattern-label">7月15日</p>
+                        <h3>千鳥ヶ淵万燈供養法要</h3>
+                        <div class="event-card__actions">
+                            <button class="btn btn--ghost btn--sm" type="button" data-video-src="/image/sample/contents-sample-001-01.mp4" data-poster="/image/sample/contents-sample-001-01.mp4_thumbnail" data-media-type="video" data-video-title="千鳥ヶ淵万燈供養法要">再生する</button>
+                        </div>
+                    </div>
+                </article>
+                <article class="pattern-panel event-archive__card">
+                    <div class="event-card__thumb">
+                        <img src="https://picsum.photos/seed/agon-event-0615/520/320" alt="西日本大柴燈護摩供の動画サムネイル" />
+                        <div class="event-card__play">
+                            <button class="event-card__play-button" type="button" data-video-src="/image/sample/contents-sample-001-01.mp4" data-poster="/image/sample/contents-sample-001-01.mp4_thumbnail" data-media-type="video" data-video-title="西日本大柴燈護摩供">
+                                <span class="visually-hidden">西日本大柴燈護摩供を再生</span>
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pattern-panel__body">
+                        <p class="pattern-label">6月15日</p>
+                        <h3>西日本大柴燈護摩供</h3>
+                        <div class="event-card__actions">
+                            <button class="btn btn--ghost btn--sm" type="button" data-video-src="/image/sample/contents-sample-001-01.mp4" data-poster="/image/sample/contents-sample-001-01.mp4_thumbnail" data-media-type="video" data-video-title="西日本大柴燈護摩供">再生する</button>
+                        </div>
+                    </div>
+                </article>
             </div>
         </section>
 
@@ -421,32 +502,39 @@
             </div>
         </section>
 
-        <section class="section pattern pattern--list" id="pattern-list">
+        <section class="section pattern pattern--list" id="schedule">
             <div class="pattern-head">
                 <p class="pattern-kicker">Pattern 04</p>
-                <h2 class="section-title">シグナルリスト</h2>
-                <p class="section-lead">短いシグナルを積み重ねて、実務で役立つトピックをぎゅっとまとめたリスト型セクション。</p>
+                <h2 class="section-title">今後の行事予定</h2>
+                <p class="section-lead">年末年始の大切な法要スケジュールです。参拝やオンライン視聴の準備にお役立てください。</p>
             </div>
-            <div class="pattern-signal-list">
+            <div class="pattern-signal-list pattern-signal-list--schedule">
                 <article class="pattern-signal">
-                    <span class="pattern-signal__badge">A</span>
+                    <span class="pattern-signal__badge">12/20・21</span>
                     <div>
-                        <h3>多拠点の同時モニタリング</h3>
-                        <p>ドローン映像・カメラ映像を一つの画面に合流させ、イベント中のリスクを即時把握します。</p>
+                        <h3>12月例祭 関東別院ご新修</h3>
+                        <p>冬至の祈りを関東別院より奉修。受付時間と席次は後日お知らせします。</p>
                     </div>
                 </article>
                 <article class="pattern-signal">
-                    <span class="pattern-signal__badge">B</span>
+                    <span class="pattern-signal__badge">12/31</span>
                     <div>
-                        <h3>FAQを自動で拡張</h3>
-                        <p>参加者からの問い合わせを収集し、ナレッジベースを自動更新。スタッフの対応時間を削減します。</p>
+                        <h3>除夜の鐘 総本殿鐘楼堂</h3>
+                        <p>新年を迎える鐘撞き式。整理券の配布は当日17:00より開始予定です。</p>
                     </div>
                 </article>
                 <article class="pattern-signal">
-                    <span class="pattern-signal__badge">C</span>
+                    <span class="pattern-signal__badge">1/1</span>
                     <div>
-                        <h3>バックアップ動線の確保</h3>
-                        <p>予備ルートや退避ポイントを図示し、万一の際もスムーズに誘導できるようガイドを整備。</p>
+                        <h3>阿含の初護摩 総本殿</h3>
+                        <p>一年の無事を祈る初護摩を厳修。オンライン配信と併せて奉修いたします。</p>
+                    </div>
+                </article>
+                <article class="pattern-signal">
+                    <span class="pattern-signal__badge">1/24・25</span>
+                    <div>
+                        <h3>1月例祭 関西総本部ご新修</h3>
+                        <p>新春の例祭を関西総本部からお届け。団体参拝バスの申込みはお早めに。</p>
                     </div>
                 </article>
             </div>
