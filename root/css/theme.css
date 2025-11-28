@@ -6593,6 +6593,23 @@ body.is-modal-open {
   gap: 16px;
 }
 
+.hero__content--buttons {
+  display: flex;
+  align-items: center;
+}
+
+.hero__button-list {
+  display: grid;
+  gap: 12px;
+  width: min(520px, 100%);
+}
+
+.hero__nav-button {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
 .btn,
 .site-header__cta {
   display: inline-flex;
