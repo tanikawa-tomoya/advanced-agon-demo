@@ -14929,6 +14929,52 @@ body.is-modal-open {
   box-shadow: 0 14px 30px rgba(12, 18, 28, 0.16);
 }
 
+:root[data-theme="light"] :is(.btn--primary, .site-header__cta) {
+  color: #2c2a27;
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 36%, #ffffff) 0%,
+    color-mix(in srgb, var(--accent-strong) 72%, #ffffff) 55%,
+    color-mix(in srgb, var(--accent-strong) 88%, #ffffff) 100%
+  );
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--accent-strong) 32%, rgba(12, 18, 28, 0.24)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+:root[data-theme="light"] :is(.btn--primary, .site-header__cta):hover,
+:root[data-theme="light"] :is(.btn--primary, .site-header__cta):focus {
+  background-position: 70% 30%;
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--accent-strong) 38%, rgba(12, 18, 28, 0.24)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+:root[data-theme="light"] :is(.btn--primary, .site-header__cta):focus-visible {
+  outline-color: color-mix(in srgb, var(--accent-strong) 52%, transparent);
+}
+
+:root[data-theme="light"] .target-management__icon-button--primary .target-management__icon,
+:root[data-theme="light"] .target-management__icon-button--primary .target-management__icon svg {
+  color: var(--accent);
+}
+
+:root[data-theme="light"] .screen-help-button,
+:root[data-theme="light"] .queue-monitor__help-button {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(12, 18, 28, 0.16);
+  color: var(--accent);
+  box-shadow: 0 8px 18px rgba(12, 18, 28, 0.08);
+}
+
+:root[data-theme="light"] .screen-help-button:hover,
+:root[data-theme="light"] .screen-help-button:focus-visible,
+:root[data-theme="light"] .queue-monitor__help-button:hover,
+:root[data-theme="light"] .queue-monitor__help-button:focus-visible {
+  background: color-mix(in srgb, var(--accent) 18%, #ffffff);
+  border-color: color-mix(in srgb, var(--accent) 46%, rgba(12, 18, 28, 0.16));
+  color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-strong) 28%, transparent);
+}
+
 :root[data-theme="light"] .hero__nav-button--tinted {
   --hero-nav-bg: color-mix(in srgb, var(--accent) 8%, transparent);
   --hero-nav-bg-hover: color-mix(in srgb, var(--accent) 14%, transparent);
