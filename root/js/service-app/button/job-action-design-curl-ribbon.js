@@ -49,5 +49,8 @@
   if (!ButtonNS.JobActionDesignCurlRibbon) {
     ButtonNS.JobActionDesignCurlRibbon = ButtonJobActionDesignCurlRibbon;
     registerDesignJob(ButtonNS, ButtonJobActionDesignCurlRibbon);
+    console.log('[ButtonJobActionDesignCurlRibbon] Registered curl-ribbon design job', {
+      keys: TYPE_DEFINITIONS.map(function (definition) { return definition.key; })
+    });
   }
 })(window);

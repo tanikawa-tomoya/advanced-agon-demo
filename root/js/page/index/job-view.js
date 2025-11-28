@@ -14,11 +14,18 @@
 
      async loadPage()
      {
+       console.log('[IndexJobView] loadPage: start loading button and overlay services.');
        await w.Utils.loadScriptsSync([
          { src: '/js/service-app/button/main.js' },
          { src: '/js/service-app/fixed-overlay-vertical-block/main.js' },
          { src: '/js/service-app/fixed-overlay-block/main.js' }
        ]);
+
+       console.log('[IndexJobView] loadPage: service scripts loaded', {
+         hasButtonService: !!(w.Services && w.Services.button),
+         hasVerticalBlockService: !!(w.Services && w.Services.FixedOverlayVerticalBlock),
+         hasOverlayBlockService: !!(w.Services && w.Services.FixedOverlayBlock)
+       });
 
        this.buttonService = new w.Services.button();
        this.verticalBlockService = new w.Services.FixedOverlayVerticalBlock();
@@ -30,45 +37,68 @@
          this.overlayBlockService.boot()
        ]);
 
+       console.log('[IndexJobView] loadPage: services booted', {
+         hasButtonConfig: !!(this.buttonService && this.buttonService._CFG),
+         verticalBlockReady: !!this.verticalBlockService,
+         overlayBlockReady: !!this.overlayBlockService
+       });
+
        this.renderButtonList();
        this.renderQuoteBlock();
        this.renderFestivalBlock();
      }
 
-     renderButtonList()
-     {
-       var container = document.querySelector('#primary-actions');
-       if (!container) { return; }
+    renderButtonList()
+    {
+      var container = document.querySelector('#primary-actions');
+      if (!container) {
+        console.log('[IndexJobView] renderButtonList: #primary-actions not found.');
+        return;
+      }
 
-       var items = [
-         { main: '最新情報', sub: "What's new" },
-         { main: '阿含宗とは', sub: '理念と教学' },
-         { main: '映像でみる', sub: '阿含の歩み' },
-         { main: '音声で聴く', sub: '開祖著作' },
-         { main: '心と体の健康のために', sub: '' }
-       ];
+      var items = [
+        { main: '最新情報', sub: "What's new" },
+        { main: '阿含宗とは', sub: '理念と教学' },
+        { main: '映像でみる', sub: '阿含の歩み' },
+        { main: '音声で聴く', sub: '開祖著作' },
+        { main: '心と体の健康のために', sub: '' }
+      ];
 
-       container.innerHTML = '';
+      console.log('[IndexJobView] renderButtonList: rendering curl-ribbon buttons', {
+        count: items.length
+      });
 
-       for (var i = 0; i < items.length; i++) {
-         var entry = items[i];
-         var subText = entry.sub ? '<span class="curl-ribbon-button__sub">' + entry.sub + '</span>' : '';
-         var labelHtml = '<span class="curl-ribbon-button__text">' +
-           '<span class="curl-ribbon-button__main">' + entry.main + '</span>' +
-           subText +
-           '</span>';
-         var button = this.buttonService.createActionButton('curl-ribbon', {
-           labelHtml: labelHtml,
-           backgroundColor: '#c13d36',
-           backgroundOpacity: 0.9,
-           borderColor: '#f0e9d8',
-           borderWidth: '2px',
-           hoverLabel: entry.main
-         });
-         button.classList.add('landing-action');
-         container.appendChild(button);
-       }
-     }
+      container.innerHTML = '';
+
+      for (var i = 0; i < items.length; i++) {
+        var entry = items[i];
+        var subText = entry.sub ? '<span class="curl-ribbon-button__sub">' + entry.sub + '</span>' : '';
+        var labelHtml = '<span class="curl-ribbon-button__text">' +
+          '<span class="curl-ribbon-button__main">' + entry.main + '</span>' +
+          subText +
+          '</span>';
+        var button = this.buttonService.createActionButton('curl-ribbon', {
+          labelHtml: labelHtml,
+          backgroundColor: '#c13d36',
+          backgroundOpacity: 0.9,
+          borderColor: '#f0e9d8',
+          borderWidth: '2px',
+          hoverLabel: entry.main
+        });
+        console.log('[IndexJobView] renderButtonList: created button', {
+          index: i,
+          main: entry.main,
+          hasElement: !!button,
+          classes: button && button.className
+        });
+        button.classList.add('landing-action');
+        container.appendChild(button);
+      }
+
+      console.log('[IndexJobView] renderButtonList: finished rendering', {
+        renderedCount: container.querySelectorAll('.curl-ribbon-button').length
+      });
+    }
 
      renderQuoteBlock()
      {
