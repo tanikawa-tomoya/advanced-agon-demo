@@ -21,6 +21,7 @@
 
 body {
     margin: 0;
+    --anchor-offset: clamp(96px, 12vh, 140px);
     font-family: var(--font-sans);
     line-height: 1.7;
     color: #f7f8ff;
@@ -334,6 +335,11 @@ body::after {
     padding: clamp(2.5rem, 6vw, 4rem) clamp(1.8rem, 5vw, 3.5rem) clamp(5rem, 8vw, 7rem);
     max-width: var(--max-width);
     margin: 0 auto;
+}
+
+.section,
+.hero {
+    scroll-margin-top: var(--anchor-offset);
 }
 
 .hero {
@@ -1197,6 +1203,34 @@ body.is-modal-open {
     border: 1px solid rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.07);
     font-size: 0.85rem;
+    letter-spacing: 0.05em;
+}
+
+.pattern-divider {
+    position: relative;
+    max-width: var(--max-width);
+    margin: clamp(2.5rem, 6vw, 3.5rem) auto;
+    text-align: center;
+    color: rgba(245, 246, 255, 0.9);
+}
+
+.pattern-divider::before {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: translateY(-50%);
+}
+
+.pattern-divider__label {
+    position: relative;
+    display: inline-block;
+    padding: 0.6rem 1.6rem;
+    background: rgba(6, 8, 18, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    box-shadow: 0 16px 32px -26px rgba(0, 0, 0, 0.85);
     letter-spacing: 0.05em;
 }
 

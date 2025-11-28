@@ -81,7 +81,7 @@
       return iframe;
     }
 
-    buildHtml5Video(src, autoplay) {
+    buildHtml5Video(src, autoplay, poster) {
       var video = document.createElement('video');
       video.setAttribute('controls', 'controls');
       video.setAttribute('playsinline', 'playsinline');
@@ -90,6 +90,9 @@
         video.muted = true;
       }
       video.src = src;
+      if (poster) {
+        video.setAttribute('poster', poster);
+      }
       video.style.width = '100%';
       video.style.height = '100%';
       return video;

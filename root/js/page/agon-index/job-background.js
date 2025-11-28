@@ -34,10 +34,10 @@
        var standardSections = document.querySelectorAll('.page-main .section');
 
        var mapping = [
-         { element: hero, image: '/image/sample/open-book-1428428_1920.jpg', key: 'hero' },
-         { element: standardSections[0], image: '/image/sample/particles-4822857_1920.jpg', key: 'schedule' },
-         { element: standardSections[1], image: '/image/sample/fire-184885_1920.jpg', key: 'features' },
-         { element: standardSections[2], image: '/image/sample/fujisan-6195139_1920.jpg', key: 'flow' }
+         { element: hero, image: 'https://picsum.photos/seed/agon-hero-backdrop/1920/1080', key: 'hero' },
+         { element: standardSections[0], image: 'https://picsum.photos/seed/agon-schedule/1920/1080', key: 'schedule' },
+         { element: standardSections[1], image: 'https://picsum.photos/seed/agon-features/1920/1080', key: 'features' },
+         { element: standardSections[2], image: 'https://picsum.photos/seed/agon-flow/1920/1080', key: 'flow' }
        ];
 
        for (var i = 0; i < mapping.length; i++) {

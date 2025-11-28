@@ -170,7 +170,7 @@
       if (provider === 'html5') {
         var safe = this.jobs.embed.sanitizeUrl(spec.src || '', this.ALLOWED_IFRAME_HOSTS);
         if (!safe) throw new Error('video-modal: src must be https or relative');
-        return this.jobs.embed.buildHtml5Video(safe, !!opts.autoplay);
+        return this.jobs.embed.buildHtml5Video(safe, !!opts.autoplay, opts.poster);
       }
       throw new Error('video-modal: unsupported provider: ' + provider);
     }
@@ -273,7 +273,7 @@
         return this.openHtml5(fallbackSrc, Object.assign({}, opts, { title: title }));
       }
 
-      var videoEl = this.jobs.embed.buildHtml5Video(initialVariant.src, !!opts.autoplay);
+      var videoEl = this.jobs.embed.buildHtml5Video(initialVariant.src, !!opts.autoplay, opts.poster);
       var playerNode = document.createElement('div');
       playerNode.className = this.CSS.player;
       playerNode.appendChild(videoEl);
