@@ -16,6 +16,10 @@
   --border: rgba(255, 255, 255, 0.08);
   --hero-gradient: radial-gradient(circle at top left, rgba(45, 140, 255, 0.35), transparent 55%),
     radial-gradient(circle at bottom right, rgba(94, 236, 255, 0.25), transparent 60%);
+  --hero-spot-1: rgba(45, 140, 255, 0.2);
+  --hero-spot-2: rgba(45, 140, 255, 0);
+  --hero-spot-3: rgba(94, 236, 255, 0.18);
+  --hero-spot-4: rgba(94, 236, 255, 0);
   --radius-lg: 28px;
   --radius-md: 18px;
   --radius-sm: 12px;
@@ -25,6 +29,33 @@
   --transition: 200ms ease;
   --site-header-height: 72px;
   --toast-offset-from-header: 12px;
+}
+
+:root[data-theme="light"] {
+  --bg: #f7f7f5;
+  --bg-alt: #f0eee8;
+  --accent: #545147;
+  --accent-soft: rgba(84, 81, 71, 0.12);
+  --accent-strong: rgba(225, 173, 1, 0.85);
+  --danger: #d93025;
+  --danger-strong: rgba(217, 48, 37, 0.92);
+  --danger-soft: rgba(217, 48, 37, 0.12);
+  --danger-border: rgba(217, 48, 37, 0.52);
+  --surface: #ffffff;
+  --surface-alt: #f5f3ec;
+  --surface-muted: rgba(12, 18, 28, 0.04);
+  --text: #2c2a27;
+  --text-muted: rgba(44, 42, 39, 0.72);
+  --border: rgba(12, 18, 28, 0.12);
+  --hero-gradient: radial-gradient(circle at top left, rgba(84, 81, 71, 0.22), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(225, 173, 1, 0.22), transparent 60%);
+  --hero-spot-1: rgba(84, 81, 71, 0.16);
+  --hero-spot-2: rgba(84, 81, 71, 0);
+  --hero-spot-3: rgba(225, 173, 1, 0.18);
+  --hero-spot-4: rgba(225, 173, 1, 0);
+  --shadow-lg: 0 24px 60px rgba(12, 18, 28, 0.16);
+  --shadow-md: 0 12px 32px rgba(12, 18, 28, 0.14);
+  --shadow-sm: 0 8px 20px rgba(12, 18, 28, 0.12);
 }
 
 * {
@@ -61,14 +92,14 @@ body::after {
   height: 120vmax;
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(45, 140, 255, 0.2) 12%, rgba(45, 140, 255, 0) 65%);
+  background: radial-gradient(circle, var(--hero-spot-1) 12%, var(--hero-spot-2) 65%);
   opacity: 0.18;
   transform: translate(-50%, -50%) scale(0.78);
   z-index: 0;
 }
 
 body::after {
-  background: radial-gradient(circle, rgba(94, 236, 255, 0.18) 18%, rgba(94, 236, 255, 0) 72%);
+  background: radial-gradient(circle, var(--hero-spot-3) 18%, var(--hero-spot-4) 72%);
   opacity: 0.14;
 }
 

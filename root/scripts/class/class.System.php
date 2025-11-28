@@ -2,6 +2,9 @@
 
 class System extends Base
 {
+        private $defaultSiteTheme = 'classic';
+        private $allowedSiteThemes = array('classic', 'light');
+
         public function __construct($context)
         {
                 parent::__construct($context);
@@ -16,14 +19,18 @@ class System extends Base
         {
         }
 
-	protected function validationSiteGetPublic()
-	{
-	}
+        protected function validationSiteGetPublic()
+        {
+        }
 
-	protected function validationSiteSettingSave()
-	{
-		$this->requireParams(['key']);
-	}
+        protected function validationSiteThemeGet()
+        {
+        }
+
+        protected function validationSiteSettingSave()
+        {
+                $this->requireParams(['key']);
+        }
 
 	protected function validationSiteStorageUsageGet()
 	{
@@ -64,17 +71,28 @@ class System extends Base
                 }
         }
 
-	public function procSiteGet()
-	{
-		$stmt = $this->getPDOCommon()->prepare("SELECT * FROM siteSettings");
-		$stmt->execute(array());
-		$this->response = $stmt->fetchAll(PDO::FETCH_ASSOC);
-	}
+        public function procSiteGet()
+        {
+                $stmt = $this->getPDOCommon()->prepare("SELECT * FROM siteSettings");
+                $stmt->execute(array());
+                $this->response = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
 
-	public function procSiteSettingSave()
-	{
-		$this->validationCommon();
-		$this->validationSiteSettingSave();
+        public function procSiteThemeGet()
+        {
+                $this->validationSiteThemeGet();
+                $theme = $this->getSiteTheme();
+                $this->response = array(
+                        'theme' => $theme,
+                        'options' => $this->allowedSiteThemes,
+                );
+                $this->status = parent::RESULT_SUCCESS;
+        }
+
+        public function procSiteSettingSave()
+        {
+                $this->validationCommon();
+                $this->validationSiteSettingSave();
 
 		$key = trim($this->params['key']);
 		if ($key === '') {
@@ -83,12 +101,19 @@ class System extends Base
 			return;
 		}
 
-		$value = $this->params['value'] ?? '';
-		if (is_array($value)) {
-			$value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-		} else {
-			$value = (string) $value;
-		}
+                $value = $this->params['value'] ?? '';
+                if ($key === 'siteTheme') {
+                        $value = $this->normalizeSiteThemeValue($value);
+                        if ($value === null) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid_siteTheme';
+                                return;
+                        }
+                } elseif (is_array($value)) {
+                        $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                } else {
+                        $value = (string) $value;
+                }
 
 		$stmt = $this->getPDOCommon()->prepare(
 											   "INSERT INTO siteSettings (key, value) VALUES (?, ?) " .
@@ -96,14 +121,36 @@ class System extends Base
 											   );
 		$stmt->execute(array($key, $value));
 
-		$this->response = array('key' => $key, 'value' => $value);
-		$this->status = parent::RESULT_SUCCESS;
-	}
+                $this->response = array('key' => $key, 'value' => $value);
+                $this->status = parent::RESULT_SUCCESS;
+        }
 
-	public function procSiteStorageUsageGet()
-	{
-		$this->validationCommon();
-		$this->validationSiteStorageUsageGet();
+        private function getSiteTheme(): string
+        {
+                $stmt = $this->getPDOCommon()->prepare("SELECT value FROM siteSettings WHERE key = ?");
+                $stmt->execute(array('siteTheme'));
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $value = $row && isset($row['value']) ? $row['value'] : $this->defaultSiteTheme;
+                $normalized = $this->normalizeSiteThemeValue($value);
+                if ($normalized === null) {
+                        return $this->defaultSiteTheme;
+                }
+                return $normalized;
+        }
+
+        private function normalizeSiteThemeValue($value): ?string
+        {
+                $normalized = is_string($value) ? trim($value) : (string) $value;
+                if ($normalized === '') {
+                        return $this->defaultSiteTheme;
+                }
+                return array_search($normalized, $this->allowedSiteThemes, true) !== false ? $normalized : null;
+        }
+
+        public function procSiteStorageUsageGet()
+        {
+                $this->validationCommon();
+                $this->validationSiteStorageUsageGet();
 
 		$pageRaw = $this->getSafeParam('page', '');
 		$page = (int) filter_var($pageRaw, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)));
