@@ -473,9 +473,9 @@ PY
         return
     fi
 
-    convert -background '#111827' -fill '#f9fafb' -gravity center \
-        -size 256x256 -font 'DejaVu-Sans' -pointsize 180 -weight Bold \
-        "label:${initial}" -define icon:auto-resize=64,48,32,16 "${favicon_path}"
+    convert -size 256x256 "canvas:#111827" -gravity center -font 'DejaVu-Sans' \
+        -pointsize 180 -weight Bold -fill '#f9fafb' -annotate 0 "${initial}" \
+        -define icon:auto-resize=256,128,64,48,32,16 "${favicon_path}"
 }
 
 create_db_common() {
