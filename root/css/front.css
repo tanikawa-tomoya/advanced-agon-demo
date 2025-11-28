@@ -45,6 +45,32 @@ body::after {
     animation: rotateGlow 38s linear infinite;
 }
 
+.section-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.section-backdrop__layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(22px);
+    transform: scale(1.06);
+    opacity: 0;
+    transition: opacity 1s ease, filter 1s ease, transform 1s ease;
+}
+
+.section-backdrop__layer.is-active {
+    opacity: 0.92;
+    filter: blur(16px);
+    transform: scale(1.04);
+}
+
 @keyframes rotateGlow {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
