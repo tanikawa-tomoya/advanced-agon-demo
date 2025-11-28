@@ -244,6 +244,36 @@ body::after {
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: #ffffff;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.brand--button {
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.brand--button:hover,
+.brand--button:focus-visible {
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.brand__label {
+    color: #ffffff;
+}
+
+.brand__english {
+    color: #e53935;
+    font-size: 0.98rem;
+    letter-spacing: 0.2em;
 }
 
 .main-nav {
@@ -414,7 +444,7 @@ body::after {
     font-size: 0.75rem;
     letter-spacing: 0.5em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
+    color: #e53935;
     margin-bottom: 1.2rem;
 }
 
@@ -1524,6 +1554,38 @@ body.is-modal-open {
 .pattern-panel__body p {
     margin: 0;
     color: rgba(235, 238, 255, 0.78);
+}
+
+.event-archive__grid {
+    gap: 1.2rem;
+}
+
+.event-archive__card {
+    grid-template-rows: auto 1fr;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.event-archive__card .pattern-panel__body {
+    gap: 0.6rem;
+}
+
+.event-archive__card .pattern-label {
+    color: #ff8a80;
+    letter-spacing: 0.08em;
+}
+
+.pattern-signal-list--schedule .pattern-signal {
+    align-items: center;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+}
+
+.pattern-signal-list--schedule .pattern-signal__badge {
+    width: auto;
+    min-width: 98px;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    text-align: center;
 }
 
 .pattern-quotes {
