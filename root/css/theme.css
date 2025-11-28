@@ -6545,6 +6545,26 @@ body.is-modal-open {
   background: var(--hero-gradient);
 }
 
+.page--event .hero {
+  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/particles-4822857_1920.jpg') center/cover no-repeat;
+}
+
+.page--about .hero {
+  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/fujisan-6195139_1920.jpg') center/cover no-repeat;
+}
+
+.page--history .hero {
+  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/fire-184885_1920.jpg') center/cover no-repeat;
+}
+
+.page--contents1 .hero {
+  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/autumnal-leaves-2704406_1920.jpg') center/cover no-repeat;
+}
+
 .hero__eyebrow {
   color: var(--accent);
   font-weight: 600;
