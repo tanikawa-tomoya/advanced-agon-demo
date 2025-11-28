@@ -296,7 +296,40 @@ body::after {
 .hero-content {
     position: relative;
     z-index: 1;
-    max-width: 720px;
+    max-width: 100%;
+}
+
+.hero-layout {
+    display: flex;
+    gap: clamp(1.5rem, 4vw, 2.8rem);
+    align-items: stretch;
+}
+
+.hero-left {
+    flex: 0 0 60%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+}
+
+.hero-right {
+    flex: 0 0 40%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    justify-content: center;
+}
+
+.hero-visual {
+    width: 100%;
+}
+
+.hero-visual img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    box-shadow: var(--elevation-soft);
+    object-fit: cover;
 }
 
 .hero-kicker {
@@ -351,6 +384,11 @@ body::after {
     display: flex;
     flex-wrap: wrap;
     gap: 0.9rem;
+}
+
+.hero-actions--stacked {
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .section {
@@ -711,6 +749,13 @@ body::after {
     }
     .hero {
         padding: clamp(2.4rem, 6vw, 3.2rem);
+    }
+    .hero-layout {
+        flex-direction: column;
+    }
+    .hero-left,
+    .hero-right {
+        flex: 1 1 100%;
     }
     .hero-meta {
         flex-direction: column;
