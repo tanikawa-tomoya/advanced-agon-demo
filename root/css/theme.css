@@ -20,6 +20,14 @@
   --hero-spot-2: rgba(45, 140, 255, 0);
   --hero-spot-3: rgba(94, 236, 255, 0.18);
   --hero-spot-4: rgba(94, 236, 255, 0);
+  --header-surface: rgba(9, 18, 32, 0.88);
+  --modal-backdrop: rgba(3, 9, 20, 0.82);
+  --modal-surface: rgba(12, 22, 39, 0.94);
+  --modal-strong-surface: rgba(9, 16, 30, 0.96);
+  --screen-preview-bg: rgba(14, 24, 43, 0.72);
+  --login-hero-bg: #0b162b;
+  --login-hero-spot-1: rgba(120, 206, 255, 0.18);
+  --login-hero-spot-2: rgba(158, 140, 255, 0.16);
   --radius-lg: 28px;
   --radius-md: 18px;
   --radius-sm: 12px;
@@ -53,6 +61,14 @@
   --hero-spot-2: rgba(84, 81, 71, 0);
   --hero-spot-3: rgba(225, 173, 1, 0.18);
   --hero-spot-4: rgba(225, 173, 1, 0);
+  --header-surface: rgba(255, 255, 255, 0.9);
+  --modal-backdrop: rgba(18, 20, 24, 0.32);
+  --modal-surface: rgba(255, 255, 255, 0.94);
+  --modal-strong-surface: rgba(245, 243, 236, 0.98);
+  --screen-preview-bg: rgba(255, 255, 255, 0.82);
+  --login-hero-bg: #f5f3ec;
+  --login-hero-spot-1: rgba(84, 81, 71, 0.18);
+  --login-hero-spot-2: rgba(225, 173, 1, 0.14);
   --shadow-lg: 0 24px 60px rgba(12, 18, 28, 0.16);
   --shadow-md: 0 12px 32px rgba(12, 18, 28, 0.14);
   --shadow-sm: 0 8px 20px rgba(12, 18, 28, 0.12);
@@ -162,7 +178,7 @@ body.has-mobile-menu-open {
 .c-video-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(3, 9, 20, 0.82);
+  background: var(--modal-backdrop);
   backdrop-filter: blur(6px);
 }
 
@@ -188,7 +204,7 @@ body.has-mobile-menu-open {
 .c-audio-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(3, 9, 20, 0.82);
+  background: var(--modal-backdrop);
   backdrop-filter: blur(6px);
 }
 
@@ -215,7 +231,7 @@ body.has-mobile-menu-open {
 .c-pdf-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(7, 15, 27, 0.82), rgba(5, 11, 20, 0.9));
+  background: var(--modal-backdrop);
   backdrop-filter: blur(10px);
 }
 
@@ -230,8 +246,8 @@ body.has-mobile-menu-open {
   flex-direction: column;
   border-radius: 18px;
   overflow: hidden;
-  background: linear-gradient(160deg, rgba(21, 45, 74, 0.98), rgba(14, 31, 53, 0.98));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--modal-surface);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
 }
 
@@ -247,13 +263,13 @@ body.has-mobile-menu-open {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 18px;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
 }
 
 .c-pdf-modal__footer {
   border-bottom: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border);
 }
 
 .c-pdf-modal__title {
@@ -266,9 +282,9 @@ body.has-mobile-menu-open {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   cursor: pointer;
   font-size: 1.2rem;
   line-height: 1;
@@ -278,17 +294,17 @@ body.has-mobile-menu-open {
 .c-pdf-modal__close:hover,
 .c-pdf-modal__close:focus-visible {
   outline: none;
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.26);
+  background: var(--surface-alt);
+  border-color: var(--border);
   transform: translateY(-1px);
 }
 
 .c-pdf-modal__body {
   position: relative;
   flex: 1;
-  background: radial-gradient(circle at 30% 20%, rgba(45, 140, 255, 0.12), transparent 30%),
-    radial-gradient(circle at 80% 10%, rgba(94, 236, 255, 0.14), transparent 32%),
-    rgba(7, 15, 27, 0.65);
+  background: radial-gradient(circle at 30% 20%, var(--accent-soft), transparent 30%),
+    radial-gradient(circle at 80% 10%, var(--accent-soft), transparent 32%),
+    var(--surface);
   overflow: hidden;
 }
 
@@ -318,7 +334,7 @@ body.has-mobile-menu-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.65), rgba(4, 10, 22, 0.65));
+  background: linear-gradient(135deg, var(--modal-backdrop), var(--modal-backdrop));
   z-index: 2;
 }
 
@@ -371,7 +387,7 @@ body.has-mobile-menu-open {
   width: min(520px, calc(100vw - 48px));
   padding: 24px 24px 20px;
   border-radius: 18px;
-  background: rgba(12, 22, 39, 0.96);
+  background: var(--modal-strong-surface);
   box-shadow: var(--shadow-lg);
   color: var(--text);
   display: flex;
@@ -397,8 +413,8 @@ body.has-mobile-menu-open {
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: var(--text);
   font-size: 1.4rem;
   line-height: 1;
@@ -412,8 +428,8 @@ body.has-mobile-menu-open {
 .c-audio-modal__close:hover,
 .c-audio-modal__close:focus-visible {
   outline: none;
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--surface-alt);
+  border-color: var(--border);
   transform: scale(1.04);
 }
 
@@ -428,7 +444,7 @@ body.has-mobile-menu-open {
   position: relative;
   z-index: 1;
   border-radius: 20px;
-  background: rgba(12, 22, 39, 0.94);
+  background: var(--modal-surface);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
@@ -470,8 +486,8 @@ body.has-mobile-menu-open {
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(3, 9, 20, 0.6);
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: var(--text);
   font-size: 1.4rem;
   cursor: pointer;
@@ -495,7 +511,7 @@ body.has-mobile-menu-open {
   max-width: calc(100vw - 64px);
   height: calc(100vh - 64px);
   max-height: calc(100vh - 64px);
-  background: rgba(9, 16, 30, 0.96);
+  background: var(--modal-strong-surface);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -720,7 +736,7 @@ body.is-modal-open {
   align-items: center;
   justify-content: space-between;
   padding: 18px 56px;
-  background: rgba(9, 18, 32, 0.88);
+  background: var(--header-surface);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   z-index: 20;
@@ -1047,7 +1063,7 @@ body.is-modal-open {
 .site-header__overlay {
   position: fixed;
   inset: 0;
-  background: rgba(9, 18, 32, 0.75);
+  background: var(--modal-backdrop);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition);
@@ -1220,7 +1236,7 @@ body.is-modal-open {
 }
 
 .screen-preview {
-  background: rgba(14, 24, 43, 0.72);
+  background: var(--screen-preview-bg);
   border-radius: var(--radius-lg);
   padding: 36px;
   box-shadow: var(--shadow-md);
@@ -6192,9 +6208,9 @@ body.is-modal-open {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at top left, rgba(120, 206, 255, 0.18), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(158, 140, 255, 0.16), transparent 45%),
-    #0b162b;
+  background: radial-gradient(circle at top left, var(--login-hero-spot-1), transparent 55%),
+    radial-gradient(circle at bottom right, var(--login-hero-spot-2), transparent 45%),
+    var(--login-hero-bg);
   color: var(--text);
 }
 
@@ -6248,11 +6264,12 @@ body.is-modal-open {
 }
 
 .login-card {
-  background: rgba(9, 18, 32, 0.8);
+  background: var(--modal-surface);
   border-radius: 28px;
   padding: 48px;
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
 }
 
 .login-form {
@@ -6285,8 +6302,8 @@ body.is-modal-open {
   width: 100%;
   padding: 14px 16px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(120, 206, 255, 0.18);
-  background: rgba(4, 12, 26, 0.8);
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: var(--text);
   font-size: 1rem;
 }
@@ -6433,7 +6450,7 @@ body.is-modal-open {
   align-items: center;
   justify-content: center;
   padding: 32px 20px;
-  background: rgba(7, 12, 22, 0.62);
+  background: var(--modal-backdrop);
   backdrop-filter: blur(10px);
   opacity: 0;
   visibility: hidden;
@@ -6454,8 +6471,8 @@ body.is-modal-open {
 .login-reset-modal__dialog {
   position: relative;
   width: min(540px, 100%);
-  background: linear-gradient(160deg, rgba(16, 30, 55, 0.95), rgba(9, 16, 32, 0.95));
-  border: 1px solid rgba(120, 206, 255, 0.25);
+  background: var(--modal-surface);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 28px;
   box-shadow: 0 28px 60px rgba(8, 18, 38, 0.65);
@@ -6476,8 +6493,8 @@ body.is-modal-open {
 }
 
 .login-reset-modal__close {
-  background: rgba(120, 206, 255, 0.16);
-  border: 1px solid rgba(120, 206, 255, 0.3);
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--text);
   width: 40px;
   height: 40px;
@@ -6488,7 +6505,7 @@ body.is-modal-open {
 
 .login-reset-modal__close:hover,
 .login-reset-modal__close:focus-visible {
-  background: rgba(120, 206, 255, 0.28);
+  background: var(--surface-alt);
   transform: translateY(-1px);
   outline: none;
 }
