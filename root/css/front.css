@@ -73,6 +73,54 @@ body::after {
     transform: scale(1.02);
 }
 
+.ambient-sky {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    mix-blend-mode: screen;
+}
+
+.ambient-sky__symbol {
+    position: absolute;
+    bottom: -10vh;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));
+    animation-name: ambientFloat;
+    animation-timing-function: ease-out;
+    animation-iteration-count: infinite;
+    white-space: pre;
+}
+
+.ambient-sky__symbol.is-icon {
+    font-weight: 400;
+}
+
+.ambient-sky__symbol .fa-solid {
+    color: inherit;
+}
+
+@keyframes ambientFloat {
+    0% {
+        transform: translateY(12vh) translateX(0) scale(0.9);
+        opacity: 0;
+    }
+    12% {
+        opacity: 0.75;
+    }
+    65% {
+        opacity: 0.55;
+    }
+    100% {
+        transform: translateY(-24vh) translateX(6px) scale(1.18);
+        opacity: 0;
+    }
+}
+
 @keyframes rotateGlow {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
