@@ -77,7 +77,7 @@ body.index-landing {
 
 .landing-brand__title {
   margin: 0;
-  font-size: 44px;
+  font-size: 88px;
   font-weight: 900;
   letter-spacing: 0.12em;
   color: #ffffff;
@@ -86,7 +86,7 @@ body.index-landing {
 
 .landing-brand__subtitle {
   margin: 0;
-  font-size: 22px;
+  font-size: 44px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #ce0000;
@@ -99,7 +99,7 @@ body.index-landing {
 }
 
 .landing-brand__subtitle .latin {
-  font-size: 24px;
+  font-size: 48px;
   font-weight: 800;
   letter-spacing: 0.22em;
 }
@@ -164,11 +164,11 @@ body.index-landing {
   }
 
   .landing-brand__title {
-    font-size: 34px;
+    font-size: 68px;
   }
 
   .landing-brand__subtitle {
-    font-size: 18px;
+    font-size: 36px;
   }
 
   .landing-actions {
