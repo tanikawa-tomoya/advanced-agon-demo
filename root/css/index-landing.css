@@ -7,7 +7,7 @@ body.index-landing {
   margin: 0;
   color: #f7f5f0;
   font-family: 'Noto Sans JP', 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
-  background: #000 url('https://picsum.photos/1920/1080?blur=2') center/cover no-repeat fixed;
+  background: #000 url('/image/sample/open-book-1428428_1920.jpg') center/cover no-repeat fixed;
   overflow: hidden;
 }
 
