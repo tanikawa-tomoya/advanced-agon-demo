@@ -953,5 +953,10 @@
   }
 
   window.Services = window.Services || {};
-  window.Services.button = ButtonService;
+  window.Services.Button = window.Services.Button || {};
+  window.Services.Button.ButtonService = ButtonService;
+
+  if (!window.Services.button) {
+    window.Services.button = ButtonService;
+  }
 })(window, document);
