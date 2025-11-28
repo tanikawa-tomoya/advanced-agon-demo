@@ -16,9 +16,9 @@
      'fa-feather-pointed'
    ];
 
-   var INITIAL_SYMBOLS = 14;
-   var EMIT_INTERVAL = 1200;
-   var MAX_SYMBOLS = 90;
+  var INITIAL_SYMBOLS = 10;
+  var EMIT_INTERVAL = 1800;
+  var MAX_SYMBOLS = 60;
 
    class AgonIndexJobAmbientSymbols
    {
@@ -119,8 +119,8 @@
        symbol.style.setProperty('--dx', dx.toFixed(1) + 'px');
        symbol.style.setProperty('--dy', dy.toFixed(1) + 'px');
        symbol.style.fontSize = (12 + Math.random() * 22).toFixed(1) + 'px';
-       symbol.style.animationDuration = (9 + Math.random() * 7).toFixed(1) + 's';
-       symbol.style.animationDelay = isInitial ? (-1 * Math.random() * 9).toFixed(1) + 's' : '0s';
+       symbol.style.animationDuration = (7 + Math.random() * 6).toFixed(1) + 's';
+       symbol.style.animationDelay = isInitial ? (-1 * Math.random() * 7).toFixed(1) + 's' : '0s';
        symbol.style.opacity = (0.38 + Math.random() * 0.32).toFixed(2);
 
        var self = this;
