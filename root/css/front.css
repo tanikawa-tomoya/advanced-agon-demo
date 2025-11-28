@@ -74,9 +74,9 @@ body::after {
 }
 
 .ambient-sky {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
+    position: absolute;
+    inset: -8% -12%;
+    z-index: -1;
     pointer-events: none;
     overflow: hidden;
     mix-blend-mode: screen;
@@ -84,13 +84,12 @@ body::after {
 
 .ambient-sky__symbol {
     position: absolute;
-    bottom: -10vh;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.78);
     font-weight: 700;
     letter-spacing: 0.05em;
     text-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));
-    animation-name: ambientFloat;
+    animation-name: ambientBurst;
     animation-timing-function: ease-out;
     animation-iteration-count: infinite;
     white-space: pre;
@@ -104,19 +103,19 @@ body::after {
     color: inherit;
 }
 
-@keyframes ambientFloat {
+@keyframes ambientBurst {
     0% {
-        transform: translateY(12vh) translateX(0) scale(0.9);
+        transform: translate(0, 0) scale(0.7);
         opacity: 0;
     }
-    12% {
-        opacity: 0.75;
+    18% {
+        opacity: 0.85;
     }
     65% {
         opacity: 0.55;
     }
     100% {
-        transform: translateY(-24vh) translateX(6px) scale(1.18);
+        transform: translate(var(--dx), var(--dy)) scale(1.2);
         opacity: 0;
     }
 }
@@ -312,6 +311,8 @@ body::after {
 }
 
 .page-main {
+    position: relative;
+    z-index: 0;
     padding: clamp(2.5rem, 6vw, 4rem) clamp(1.8rem, 5vw, 3.5rem) clamp(5rem, 8vw, 7rem);
     max-width: var(--max-width);
     margin: 0 auto;
