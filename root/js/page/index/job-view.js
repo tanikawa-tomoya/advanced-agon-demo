@@ -30,35 +30,9 @@
         this.overlayBlockService.boot()
       ]);
 
-      this.renderBrandRibbon();
       this.renderButtonList();
       this.renderQuoteBlock();
       this.renderFestivalBlock();
-    }
-
-    renderBrandRibbon()
-    {
-      var container = document.querySelector('#brand-ribbon');
-      if (!container) { return; }
-
-      container.innerHTML = '';
-
-      var labelHtml = '<span class="curl-ribbon-button__text">' +
-        '<span class="curl-ribbon-button__main">情報館に入る</span>' +
-        '<span class="curl-ribbon-button__sub">Enter the AGON archive</span>' +
-        '</span>';
-
-      var button = this.buttonService.createActionButton('curl-ribbon', {
-        labelHtml: labelHtml,
-        backgroundColor: '#c13d36',
-        backgroundOpacity: 0.94,
-        borderColor: '#f6e7d0',
-        borderWidth: '2px',
-        hoverLabel: '情報館に入る'
-      });
-
-      button.classList.add('landing-brand__ribbon');
-      container.appendChild(button);
     }
 
     renderButtonList()
@@ -67,29 +41,31 @@
       if (!container) { return; }
 
        var items = [
-         { main: '最新情報', sub: "What's new" },
-         { main: '阿含宗とは', sub: '理念と教学' },
-         { main: '映像でみる', sub: '阿含の歩み' },
-         { main: '音声で聴く', sub: '開祖著作' },
-         { main: '心と体の健康のために', sub: '' }
+         { main: '最新情報', color: '#B93C29', border: '#7a241a', href: '/event' },
+         { main: '阿含宗とは', color: '#438793', border: '#2e5c63', href: '/about' },
+         { main: '映像でみる阿含の歩み', color: '#AF9C13', border: '#7c6d0e', href: '/contents1' },
+         { main: '音声で聴く開祖著作', color: '#7D7B32', border: '#595825', href: '/contents2' },
+         { main: '心と身体の健康のために', color: '#AB716F', border: '#7a4f4d', href: '/wellness' }
        ];
 
        container.innerHTML = '';
 
        for (var i = 0; i < items.length; i++) {
          var entry = items[i];
-         var subText = entry.sub ? '<span class="curl-ribbon-button__sub">' + entry.sub + '</span>' : '';
          var labelHtml = '<span class="curl-ribbon-button__text">' +
            '<span class="curl-ribbon-button__main">' + entry.main + '</span>' +
-           subText +
            '</span>';
          var button = this.buttonService.createActionButton('curl-ribbon', {
            labelHtml: labelHtml,
-           backgroundColor: '#c13d36',
-           backgroundOpacity: 0.9,
-           borderColor: '#f0e9d8',
-           borderWidth: '2px',
-           hoverLabel: entry.main
+           backgroundColor: entry.color,
+           backgroundOpacity: 1,
+           borderColor: entry.border,
+           borderWidth: '8px',
+           hoverLabel: entry.main,
+           elementTag: 'a',
+           attributes: {
+             href: entry.href
+           }
          });
          button.classList.add('landing-action');
          container.appendChild(button);

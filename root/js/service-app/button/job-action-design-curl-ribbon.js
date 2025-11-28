@@ -15,10 +15,21 @@
         type: 'button',
         srLabelClass: 'visually-hidden',
         hoverLabel: '',
-        backgroundColor: '#c13d36',
-        backgroundOpacity: 0.9,
-        borderColor: '#8f2622',
-        borderWidth: '2px',
+        backgroundColor: '#eebe6f',
+        backgroundOpacity: 1,
+        borderColor: '#000000',
+        borderWidth: '8px',
+        iconHtml: [
+          '<svg class="curl-ribbon-button__bg-shape" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 250"',
+          '  aria-hidden="true" focusable="false">',
+          '  <path d="M30 60',
+          '       C 220 10 430 110 600 60',
+          '       L 600 210',
+          '       C 430 240 220 150 30 210',
+          '       Z" fill="#eebe6f" stroke="#000000" stroke-width="8" stroke-linejoin="round"></path>',
+          '</svg>'
+        ].join(''),
+        iconAriaHidden: true,
         labelHtml: '<span class="curl-ribbon-button__text">Curl ribbon</span>'
       }, config || {}))
     });

@@ -131,26 +131,24 @@ body.index-landing {
 
 .landing-actions .curl-ribbon-button {
   width: 230px;
-  text-align: left;
+  text-align: center;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 .curl-ribbon-button__text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-weight: 700;
+  display: block;
+  font-weight: 800;
   color: #fdfbf5;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .curl-ribbon-button__main {
   font-size: 16px;
-  letter-spacing: 0.04em;
 }
 
 .curl-ribbon-button__sub {
-  font-size: 12px;
-  opacity: 0.85;
+  display: none;
 }
 
 @media (max-width: 768px) {
