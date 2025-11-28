@@ -18,6 +18,7 @@
       this._modalForm = null;
       this._lastFocus = null;
       this._productSelectButton = null;
+      this._userSelectButton = null;
     }
 
     async run()
@@ -327,7 +328,10 @@
                         '<span class="user-management__field-label">ユーザーコード</span>',
                         '<span class="user-management__field-badge user-management__field-badge--required">必須</span>',
                       '</div>',
-                      '<input type="text" name="userCode" required class="user-management__input" />',
+                      '<div class="user-form__field-control">',
+                        '<input type="text" name="userCode" required class="user-management__input" data-admin-purchase-user-input />',
+                        '<button type="button" class="btn btn--ghost admin-purchase__user-select" data-admin-purchase-user-select>ユーザーを選択</button>',
+                      '</div>',
                     '</div>',
                     '<div class="announcement-management__form-field user-form__field" data-field-name="price">',
                       '<div class="user-form__field-header">',
@@ -384,6 +388,7 @@
       this._modal = modal;
       this._modalForm = modal.querySelector('[data-admin-purchase-create-form]');
       this._productSelectButton = modal.querySelector('[data-admin-purchase-product-select]');
+      this._userSelectButton = modal.querySelector('[data-admin-purchase-user-select]');
 
       modal.addEventListener('click', (ev) => {
         const target = ev.target instanceof Element ? ev.target.closest('[data-modal-close]') : null;
@@ -415,6 +420,13 @@
         this._productSelectButton.addEventListener('click', (ev) => {
           ev.preventDefault();
           this._openProductSelectModal();
+        });
+      }
+      if (this._userSelectButton)
+      {
+        this._userSelectButton.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          this._openUserSelectModal();
         });
       }
       jQuery(document).off('submit.purchaseCreateForm').on('submit.purchaseCreateForm', '[data-admin-purchase-create-form]', async (ev) => {
@@ -538,6 +550,45 @@
       {
         console.error('[AdminPurchase:JobTable] failed to open product select modal', error);
         this.page.showToast('商品を選択できませんでした。', 'error');
+      }
+    }
+
+    _openUserSelectModal()
+    {
+      const service = this.page && this.page.userSelectModalService;
+      const input = this._modalForm ? this._modalForm.querySelector('[data-admin-purchase-user-input]') : null;
+      if (!service || typeof service.open !== 'function' || !input)
+      {
+        this.page.showToast('ユーザー選択モーダルを利用できません。', 'error');
+        return;
+      }
+
+      const currentCode = (input.value || '').toString().trim();
+      const trigger = this._userSelectButton;
+      try
+      {
+        service.open({
+          multiple: false,
+          selectedCodes: currentCode ? [currentCode] : [],
+          initialKeyword: currentCode,
+          onSelect: (user) => {
+            const code = user && (user.userCode || user.userId || user.id || '');
+            input.value = code || '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            try { input.focus(); } catch (_) {}
+          },
+          onClose: () => {
+            if (trigger && typeof trigger.focus === 'function')
+            {
+              try { trigger.focus(); } catch (_) {}
+            }
+          }
+        });
+      }
+      catch (error)
+      {
+        console.error('[AdminPurchase:JobTable] failed to open user select modal', error);
+        this.page.showToast('ユーザーを選択できませんでした。', 'error');
       }
     }
 

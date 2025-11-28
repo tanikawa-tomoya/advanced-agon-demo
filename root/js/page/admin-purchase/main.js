@@ -18,6 +18,7 @@
       this.buttonService = null;
       this.confirmDialogService = null;
       this.productSelectModalService = null;
+      this.userSelectModalService = null;
     }
 
     async boot()
@@ -68,7 +69,8 @@
         { src: '/js/service-app/breadcrumb/main.js' },
         { src: '/js/service-app/button/main.js' },
         { src: '/js/service-app/confirm-dialog/main.js' },
-        { src: '/js/service-app/product-select-modal/main.js' }
+        { src: '/js/service-app/product-select-modal/main.js' },
+        { src: '/js/service-app/user-select-modal/main.js' }
       ];
 
       await window.Utils.loadScriptsSync(scripts);
@@ -82,6 +84,16 @@
       this.buttonService = new window.Services.button();
       this.confirmDialogService = new window.Services.ConfirmDialog();
       this.productSelectModalService = new window.Services.ProductSelectModal({ multiple: false, targetCode: 'target-001' });
+      this.userSelectModalService = new window.Services.UserSelectModal({
+        multiple: false,
+        userListType: 'UserGetAll',
+        resultLimit: 200,
+        text: {
+          modalTitle: 'ユーザーを選択',
+          modalDescription: '全ユーザーを検索して選択します。',
+          applyLabel: 'このユーザーを指定'
+        }
+      });
 
       await Promise.all([
         this.headerService.boot('.site-header'),
@@ -91,7 +103,8 @@
         this.breadcrumbService.boot(breadcrumbContainer),
         this.buttonService.boot(),
         this.confirmDialogService.boot(),
-        this.productSelectModalService.boot()
+        this.productSelectModalService.boot(),
+        this.userSelectModalService.boot()
       ]);
     }
 
