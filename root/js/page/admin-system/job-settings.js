@@ -37,9 +37,9 @@
 
     _bindEvents() {
       var self = this;
-      this.dom.body.addEventListener('input', function (event) {
+      var handleInputChange = function (event) {
         var target = event.target;
-        if (!target || target.tagName !== 'INPUT') {
+        if (!target || (target.tagName !== 'INPUT' && target.tagName !== 'SELECT')) {
           return;
         }
         var row = target.closest('tr[data-setting-key]');
@@ -47,7 +47,10 @@
           return;
         }
         self._updateDirtyState(row, target);
-      });
+      };
+
+      this.dom.body.addEventListener('input', handleInputChange);
+      this.dom.body.addEventListener('change', handleInputChange);
 
       this.dom.body.addEventListener('click', function (event) {
         var target = event.target;
@@ -140,6 +143,10 @@
     }
 
     _createRow(setting) {
+      if (setting.key === 'siteTheme') {
+        return this._createSelectRow(setting, this._getThemeOptions());
+      }
+
       var row = document.createElement('tr');
       row.className = 'system-settings__row';
       row.setAttribute('data-setting-key', setting.key);
@@ -172,6 +179,57 @@
       row.appendChild(valueCell);
       row.appendChild(actionCell);
       return row;
+    }
+
+    _createSelectRow(setting, options) {
+      var row = document.createElement('tr');
+      row.className = 'system-settings__row';
+      row.setAttribute('data-setting-key', setting.key);
+      row.dataset.originalValue = setting.value || '';
+
+      var heading = createElement('th', 'system-settings__row-heading', setting.key);
+      heading.scope = 'row';
+      heading.setAttribute('title', setting.key);
+
+      var valueCell = createElement('td', 'system-settings__row-value');
+      var select = document.createElement('select');
+      select.className = 'system-settings__value-input';
+      select.setAttribute('data-setting-input', 'true');
+      select.setAttribute('aria-label', setting.key + ' の値');
+
+      for (var i = 0; i < options.length; i += 1) {
+        var option = options[i];
+        var optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.label;
+        if (option.value === setting.value) {
+          optionEl.selected = true;
+        }
+        select.appendChild(optionEl);
+      }
+
+      valueCell.appendChild(select);
+
+      var actionCell = createElement('td', 'system-settings__row-actions');
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'system-settings__save-button';
+      button.setAttribute('data-action', 'save-setting');
+      button.textContent = '保存';
+      button.disabled = true;
+      actionCell.appendChild(button);
+
+      row.appendChild(heading);
+      row.appendChild(valueCell);
+      row.appendChild(actionCell);
+      return row;
+    }
+
+    _getThemeOptions() {
+      return [
+        { value: 'classic', label: 'クラシック（紺色）' },
+        { value: 'light', label: 'ライト（#545147 / #e1ad01）' }
+      ];
     }
 
     _updateDirtyState(row, input) {
@@ -211,6 +269,7 @@
         row.dataset.originalValue = value;
         this._updateDirtyState(row, input);
         this.pageInstance.showToast('「' + key + '」を保存しました。', 'success');
+        this._handleSideEffectsAfterSave(key, value);
       } catch (error) {
         console.error('[admin-system] failed to save setting:', error);
         this.pageInstance.showToast('設定の保存に失敗しました。', 'error');
@@ -218,6 +277,16 @@
       } finally {
         row.dataset.busy = 'false';
         button.textContent = '保存';
+      }
+    }
+
+    _handleSideEffectsAfterSave(key, value) {
+      if (key !== 'siteTheme') {
+        return;
+      }
+      var themeHelper = document && document.entrypoint && document.entrypoint.theme;
+      if (themeHelper && typeof themeHelper.applyThemePreset === 'function') {
+        themeHelper.applyThemePreset(value, { persist: true, silent: true });
       }
     }
 
