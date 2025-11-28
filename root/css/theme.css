@@ -145,6 +145,12 @@ main {
   padding-top: 92px;
 }
 
+.page--agon:not(.index-landing) main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 92px clamp(24px, 6vw, 72px) 0;
+}
+
 html.has-mobile-menu-open,
 body.has-mobile-menu-open {
   overflow: hidden;
@@ -6597,6 +6603,21 @@ body.is-modal-open {
   align-items: center;
   padding: 120px 7vw 96px;
   background: var(--hero-gradient);
+}
+
+.page--agon:not(.index-landing) .hero {
+  padding: 120px 0 96px;
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 640px) {
+  .page--agon:not(.index-landing) main {
+    padding: 88px 20px 0;
+  }
+
+  .page--agon:not(.index-landing) .hero {
+    padding: 96px 0 72px;
+  }
 }
 
 .page--index .hero {
