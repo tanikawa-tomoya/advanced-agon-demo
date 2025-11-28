@@ -167,6 +167,10 @@
             </div>
         </section>
 
+        <div class="pattern-divider">
+            <span class="pattern-divider__text">以下は使用可能なデザインパーツです。用途に応じて選択してください。</span>
+        </div>
+
         <section class="section pattern pattern--aurora" id="pattern-aurora">
             <div class="pattern-head">
                 <p class="pattern-kicker">Pattern 01</p>
@@ -490,12 +494,13 @@
                     var container = document.getElementById(targetId);
                     if (!container) { return; }
 
+                    var track = container.querySelector('.pattern-carousel__track');
                     var viewport = container.querySelector('.pattern-carousel__viewport');
-                    if (!viewport) { return; }
+                    if (!track || !viewport) { return; }
 
                     var direction = button.getAttribute('data-direction') === 'next' ? 1 : -1;
                     var amount = viewport.clientWidth * 0.9;
-                    viewport.scrollBy({ left: amount * direction, behavior: 'smooth' });
+                    track.scrollBy({ left: amount * direction, behavior: 'smooth' });
                 });
             });
         })();

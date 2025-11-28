@@ -902,6 +902,32 @@ body::after {
     margin-bottom: 1.6rem;
 }
 
+.pattern-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin: clamp(2rem, 6vw, 3rem) 0 1rem;
+    color: rgba(235, 238, 255, 0.82);
+    letter-spacing: 0.06em;
+}
+
+.pattern-divider::before,
+.pattern-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.08));
+}
+
+.pattern-divider__text {
+    display: inline-block;
+    font-size: 0.95rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
 .pattern-kicker {
     margin: 0;
     letter-spacing: 0.14em;
@@ -1019,10 +1045,15 @@ body::after {
     padding: 0.3rem;
     scroll-snap-type: x mandatory;
     overflow-x: auto;
+    scroll-behavior: smooth;
 }
+
+.pattern-carousel__track::-webkit-scrollbar { display: none; }
+.pattern-carousel__track { -ms-overflow-style: none; scrollbar-width: none; }
 
 .pattern-carousel__item {
     scroll-snap-align: start;
+    flex: 0 0 auto;
     min-width: min(320px, 80vw);
 }
 
