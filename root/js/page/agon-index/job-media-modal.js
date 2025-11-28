@@ -2,6 +2,11 @@
 {
   'use strict';
 
+  var VIDEO_SRC = '/image/sample/contents-sample-001-01.mp4';
+  var VIDEO_POSTER = '/image/sample/contents-sample-001-01.mp4_thumbnail';
+  var AUDIO_SRC = '/image/sample/contents-sample-001-03.wav';
+  var AUDIO_POSTER = 'https://picsum.photos/seed/agon-audio-modal/960/540';
+
   class AgonIndexJobMediaModal
   {
     constructor(pageInstance)
@@ -45,12 +50,20 @@
       var self = this;
       el.addEventListener('click', function (ev) {
         ev.preventDefault();
-        var src = el.getAttribute('data-video-src');
-        if (!src) {
-          return;
-        }
         var title = el.getAttribute('data-video-title') || '';
-        self.videoModalService.openHtml5(src, { title: title, autoplay: true });
+        var mediaType = (el.getAttribute('data-media-type') || 'video').toLowerCase();
+        var poster = el.getAttribute('data-poster');
+        var src = VIDEO_SRC;
+
+        if (mediaType === 'audio') {
+          src = AUDIO_SRC;
+          poster = poster || AUDIO_POSTER;
+        } else {
+          src = VIDEO_SRC;
+          poster = poster || VIDEO_POSTER;
+        }
+
+        self.videoModalService.openHtml5(src, { title: title, autoplay: true, poster: poster });
       });
     }
   }
