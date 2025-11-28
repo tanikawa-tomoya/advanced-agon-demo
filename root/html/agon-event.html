@@ -22,12 +22,9 @@
     <style>
       .event-layout {
         background: #f7f7f2;
-        padding: 56px 24px;
       }
 
       .event-layout__inner {
-        margin: 0 auto;
-        max-width: 1160px;
         display: grid;
         grid-template-columns: 1.4fr 1fr;
         gap: 24px;
@@ -109,7 +106,7 @@
       }
     </style>
   </head>
-  <body class="page--event">
+  <body class="page page--event">
     <header class="site-header" data-disable-account-ui>
       <a class="site-header__logo" href="/index" data-logo-label="阿含宗デモサイト">阿含宗デモサイト</a>
       <a class="site-header__cta" href="login.html">ログイン</a>
@@ -117,86 +114,89 @@
 
     <main>
       <section class="hero" id="overview">
-        <div class="hero__content hero__content--buttons">
-          <div class="hero__button-list">
-            <a class="btn btn--primary hero__nav-button" href="/agon-event">最新情報</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-about">阿含宗とは 理念と教学</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-contents1">映像で見る 阿含の歩み</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-contents2">音声で聴く 開祖著作</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-wellness">心と体の健康のために</a>
+        <div class="page-main hero__layout">
+          <div class="hero__content hero__content--buttons">
+            <div class="hero__button-list">
+              <a class="btn btn--primary hero__nav-button" href="/agon-event">最新情報</a>
+              <a class="btn btn--ghost hero__nav-button" href="/agon-about">阿含宗とは 理念と教学</a>
+              <a class="btn btn--ghost hero__nav-button" href="/agon-contents1">映像で見る 阿含の歩み</a>
+              <a class="btn btn--ghost hero__nav-button" href="/agon-contents2">音声で聴く 開祖著作</a>
+              <a class="btn btn--ghost hero__nav-button" href="/agon-wellness">心と体の健康のために</a>
+            </div>
           </div>
-        </div>
-        <div class="hero__glance" role="presentation">
-          <div class="hero-card" id="hero-glance"></div>
+          <div class="hero__glance" role="presentation">
+            <div class="hero-card" id="hero-glance"></div>
+          </div>
         </div>
       </section>
 
       <section class="event-layout">
-        <div class="event-layout__inner">
-          <div class="event-layout__column event-layout__column--media">
-            <h2 class="event-section-title">最新の行事映像</h2>
-            <div class="event-media-panel">
-              <article class="event-media-card">
-                <img src="image/sample/mount-fuji-2297961_1920.jpg" alt="護摩供の早朝風景" />
-                <div class="event-media-card__body">
-                  <p class="event-media-card__date">2025/02/21</p>
-                  <p class="event-media-card__title">節分星供養・朝の護摩供ダイジェスト</p>
-                </div>
-              </article>
-              <article class="event-media-card">
-                <img src="image/sample/autumnal-leaves-2704406_1920.jpg" alt="秋季大祭の様子" />
-                <div class="event-media-card__body">
-                  <p class="event-media-card__date">2025/01/30</p>
-                  <p class="event-media-card__title">秋季大祭ライブダイジェスト</p>
-                </div>
-              </article>
-              <article class="event-media-card">
-                <img src="image/sample/fire-184885_1920.jpg" alt="聖火点灯の儀" />
-                <div class="event-media-card__body">
-                  <p class="event-media-card__date">2025/01/10</p>
-                  <p class="event-media-card__title">護摩聖火点灯と祈りの解説</p>
-                </div>
-              </article>
-              <article class="event-media-card">
-                <img src="image/sample/fujisan-6195139_1920.jpg" alt="朝日と富士山" />
-                <div class="event-media-card__body">
-                  <p class="event-media-card__date">2024/12/25</p>
-                  <p class="event-media-card__title">冬至の日の出と晨朝勤行</p>
-                </div>
-              </article>
-              <article class="event-media-card">
-                <img src="image/sample/open-book-1428428_1920.jpg" alt="講話資料" />
-                <div class="event-media-card__body">
-                  <p class="event-media-card__date">2024/12/08</p>
-                  <p class="event-media-card__title">開祖講話「日々の祈り」のまとめ</p>
-                </div>
-              </article>
+        <div class="page-main">
+          <div class="event-layout__inner">
+            <div class="event-layout__column event-layout__column--media">
+              <h2 class="event-section-title">最新の行事映像</h2>
+              <div class="event-media-panel">
+                <article class="event-media-card">
+                  <img src="image/sample/mount-fuji-2297961_1920.jpg" alt="護摩供の早朝風景" />
+                  <div class="event-media-card__body">
+                    <p class="event-media-card__date">2025/02/21</p>
+                    <p class="event-media-card__title">節分星供養・朝の護摩供ダイジェスト</p>
+                  </div>
+                </article>
+                <article class="event-media-card">
+                  <img src="image/sample/autumnal-leaves-2704406_1920.jpg" alt="秋季大祭の様子" />
+                  <div class="event-media-card__body">
+                    <p class="event-media-card__date">2025/01/30</p>
+                    <p class="event-media-card__title">秋季大祭ライブダイジェスト</p>
+                  </div>
+                </article>
+                <article class="event-media-card">
+                  <img src="image/sample/fire-184885_1920.jpg" alt="聖火点灯の儀" />
+                  <div class="event-media-card__body">
+                    <p class="event-media-card__date">2025/01/10</p>
+                    <p class="event-media-card__title">護摩聖火点灯と祈りの解説</p>
+                  </div>
+                </article>
+                <article class="event-media-card">
+                  <img src="image/sample/fujisan-6195139_1920.jpg" alt="朝日と富士山" />
+                  <div class="event-media-card__body">
+                    <p class="event-media-card__date">2024/12/25</p>
+                    <p class="event-media-card__title">冬至の日の出と晨朝勤行</p>
+                  </div>
+                </article>
+                <article class="event-media-card">
+                  <img src="image/sample/open-book-1428428_1920.jpg" alt="講話資料" />
+                  <div class="event-media-card__body">
+                    <p class="event-media-card__date">2024/12/08</p>
+                    <p class="event-media-card__title">開祖講話「日々の祈り」のまとめ</p>
+                  </div>
+                </article>
+              </div>
             </div>
-          </div>
 
-          <div class="event-layout__column event-layout__column--schedule">
-            <h2 class="event-section-title">今後の行事予定</h2>
-            <table class="event-schedule-table">
-              <thead>
-                <tr>
-                  <th scope="col">日付</th>
-                  <th scope="col">タイトル</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>2025/03/03</td>
-                  <td>春季祈願祭（本山）</td>
-                </tr>
-                <tr>
-                  <td>2025/03/10</td>
-                  <td>護摩修法オンライン祈祷</td>
-                </tr>
-                <tr>
-                  <td>2025/03/17</td>
-                  <td>青年部 合同勉強会</td>
-                </tr>
-                <tr>
+            <div class="event-layout__column event-layout__column--schedule">
+              <h2 class="event-section-title">今後の行事予定</h2>
+              <table class="event-schedule-table">
+                <thead>
+                  <tr>
+                    <th scope="col">日付</th>
+                    <th scope="col">タイトル</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>2025/03/03</td>
+                    <td>春季祈願祭（本山）</td>
+                  </tr>
+                  <tr>
+                    <td>2025/03/10</td>
+                    <td>護摩修法オンライン祈祷</td>
+                  </tr>
+                  <tr>
+                    <td>2025/03/17</td>
+                    <td>青年部 合同勉強会</td>
+                  </tr>
+                  <tr>
                   <td>2025/03/24</td>
                   <td>春彼岸 祖霊供養</td>
                 </tr>
