@@ -201,6 +201,42 @@
     linear-gradient(150deg, #0f1f33, #0a1524 40%, #0a1220);
 }
 
+:root[data-theme="light"] .targets {
+  background: var(--hero-gradient), #ffffff;
+  border-color: rgba(12, 18, 28, 0.14);
+  box-shadow: 0 20px 48px rgba(12, 18, 28, 0.14);
+}
+
+:root[data-theme="light"] .targets__list,
+:root[data-theme="light"] .target-card,
+:root[data-theme="light"] .target-card__tag,
+:root[data-theme="light"] .targets__table,
+:root[data-theme="light"] .targets__table tbody tr {
+  background: #ffffff;
+  border-color: rgba(12, 18, 28, 0.12);
+  color: var(--text);
+}
+
+:root[data-theme="light"] .targets__search input,
+:root[data-theme="light"] .targets__filters select,
+:root[data-theme="light"] .targets__form-grid input,
+:root[data-theme="light"] .targets__form-grid select,
+:root[data-theme="light"] .targets__form-grid textarea {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(12, 18, 28, 0.14);
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(12, 18, 28, 0.06);
+}
+
+:root[data-theme="light"] .targets__search input:focus,
+:root[data-theme="light"] .targets__filters select:focus,
+:root[data-theme="light"] .targets__form-grid input:focus,
+:root[data-theme="light"] .targets__form-grid select:focus,
+:root[data-theme="light"] .targets__form-grid textarea:focus {
+  border-color: color-mix(in srgb, var(--accent) 45%, rgba(12, 18, 28, 0.14));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
 .target-table__creator {
   display: flex;
   align-items: center;

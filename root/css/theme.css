@@ -14810,10 +14810,13 @@ body.is-modal-open {
 :root[data-theme="light"] .user-management__select,
 :root[data-theme="light"] .announcement-management__form-field input,
 :root[data-theme="light"] .announcement-management__form-field textarea,
+:root[data-theme="light"] .announcement-management__per-page-select,
+:root[data-theme="light"] .announcement-management__recipients-select,
 :root[data-theme="light"] .survey-management__form-field input,
 :root[data-theme="light"] .survey-management__form-field textarea,
 :root[data-theme="light"] .survey-management__choice-input,
 :root[data-theme="light"] .survey-management__choice-textarea,
+:root[data-theme="light"] .queue-monitor__select,
 :root[data-theme="light"] .target-management__input,
 :root[data-theme="light"] .target-management__textarea,
 :root[data-theme="light"] .contact-form input,
@@ -14831,10 +14834,13 @@ body.is-modal-open {
 :root[data-theme="light"] .user-management__select:focus,
 :root[data-theme="light"] .announcement-management__form-field input:focus,
 :root[data-theme="light"] .announcement-management__form-field textarea:focus,
+:root[data-theme="light"] .announcement-management__per-page-select:focus,
+:root[data-theme="light"] .announcement-management__recipients-select:focus,
 :root[data-theme="light"] .survey-management__form-field input:focus,
 :root[data-theme="light"] .survey-management__form-field textarea:focus,
 :root[data-theme="light"] .survey-management__choice-input:focus,
 :root[data-theme="light"] .survey-management__choice-textarea:focus,
+:root[data-theme="light"] .queue-monitor__select:focus-visible,
 :root[data-theme="light"] .target-management__input:focus,
 :root[data-theme="light"] .target-management__textarea:focus,
 :root[data-theme="light"] .contact-form input:focus,
@@ -14871,6 +14877,20 @@ body.is-modal-open {
   outline-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
+:root[data-theme="light"] .target-management__icon-button--ghost {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(12, 18, 28, 0.14);
+  color: var(--accent);
+}
+
+:root[data-theme="light"] .target-management__icon-button--ghost:hover,
+:root[data-theme="light"] .target-management__icon-button--ghost:focus-visible,
+:root[data-theme="light"] .target-management__icon-button--ghost.is-active {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--accent) 45%, rgba(12, 18, 28, 0.14));
+  color: var(--accent);
+}
+
 :root[data-theme="light"] .c-toast,
 :root[data-theme="light"] .c-toast--error,
 :root[data-theme="light"] .c-toast--success,
@@ -14892,6 +14912,21 @@ body.is-modal-open {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   border-color: color-mix(in srgb, var(--accent) 42%, transparent);
   color: var(--accent);
+}
+
+:root[data-theme="light"] .btn--ghost {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(12, 18, 28, 0.14);
+  color: var(--accent);
+  box-shadow: 0 12px 26px rgba(12, 18, 28, 0.12);
+}
+
+:root[data-theme="light"] .btn--ghost:hover,
+:root[data-theme="light"] .btn--ghost:focus {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--accent) 45%, rgba(12, 18, 28, 0.14));
+  color: var(--accent);
+  box-shadow: 0 14px 30px rgba(12, 18, 28, 0.16);
 }
 
 :root[data-theme="light"] .hero__nav-button--tinted {
