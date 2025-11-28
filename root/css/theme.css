@@ -6016,7 +6016,7 @@ body.is-modal-open {
 .c-loading-overlay__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(4, 12, 24, 0.75);
+  background: var(--modal-backdrop);
   backdrop-filter: blur(2px);
 }
 
@@ -6028,10 +6028,10 @@ body.is-modal-open {
   gap: 18px;
   padding: 32px 40px;
   border-radius: var(--radius-lg);
-  background: rgba(11, 21, 38, 0.92);
+  background: var(--modal-strong-surface);
   color: var(--text);
   min-width: 240px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-lg);
   animation: loadingOverlayFade 0.22s ease;
 }
 
@@ -6040,7 +6040,7 @@ body.is-modal-open {
   height: 54px;
   border-radius: 50%;
   border: 4px solid rgba(255, 255, 255, 0.18);
-  border-top-color: #78ceff;
+  border-top-color: var(--accent);
   animation: loadingOverlaySpin 0.9s linear infinite;
 }
 
@@ -6048,7 +6048,12 @@ body.is-modal-open {
   font-size: 1.05rem;
   font-weight: 600;
   text-align: center;
-  color: #fff;
+  color: var(--text);
+}
+
+:root[data-theme="light"] .c-loading-overlay__spinner {
+  border-color: rgba(44, 42, 39, 0.16);
+  border-top-color: var(--accent);
 }
 
 @keyframes loadingOverlaySpin {
