@@ -16,6 +16,10 @@
      'fa-feather-pointed'
    ];
 
+   var INITIAL_SYMBOLS = 14;
+   var EMIT_INTERVAL = 1200;
+   var MAX_SYMBOLS = 90;
+
    class AgonIndexJobAmbientSymbols
    {
      constructor(pageInstance)
@@ -32,7 +36,7 @@
          return Promise.resolve();
        }
 
-       this._primeSymbols(8);
+       this._primeSymbols(INITIAL_SYMBOLS);
        this._startEmitter();
        return Promise.resolve();
      }
@@ -67,7 +71,7 @@
        var self = this;
        this.timerId = window.setInterval(function () {
          self._spawnSymbol(false);
-       }, 1560);
+       }, EMIT_INTERVAL);
      }
 
      _spawnSymbol(isInitial)
@@ -126,7 +130,7 @@
          }
        });
 
-       if (this.skyRoot.childElementCount > 60) {
+       if (this.skyRoot.childElementCount > MAX_SYMBOLS) {
          this.skyRoot.removeChild(this.skyRoot.firstChild);
        }
 
