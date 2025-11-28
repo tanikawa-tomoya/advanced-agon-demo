@@ -117,6 +117,10 @@ RewriteRule ^extpage/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9]+)$ extpage/$1/$2 [L,QSA]
 RewriteRule ^login$ html/login.html [L,QSA]
 RewriteRule ^app/([a-zA-Z0-9]+)/([a-zA-Z0-9_\.]+)$ app/$1/$2 [L,QSA]
 
+# 既存の画像ファイルは静的配信を優先
+RewriteCond %{REQUEST_URI} ^/image/ [NC]
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
 RewriteRule ^image/([-a-zA-Z0-9]+)/([-a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=MarmoHub&token=1234ABCDabcd&type=AssetGet&kind=image&roomCode=$1&file=$2 [L,QSA]
 RewriteRule ^movie/([-a-zA-Z0-9]+)/([-a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=MarmoHub&token=1234ABCDabcd&type=AssetGet&kind=movie&roomCode=$1&file=$2 [L,QSA]
 RewriteRule ^audio/([-a-zA-Z0-9]+)/([-a-zA-Z0-9_\.]+)$ scripts/request.php?requestType=MarmoHub&token=1234ABCDabcd&type=AssetGet&kind=audio&roomCode=$1&file=$2 [L,QSA]
