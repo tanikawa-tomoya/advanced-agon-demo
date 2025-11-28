@@ -12,27 +12,38 @@
        this.overlayBlockService = null;
      }
 
-     async loadPage()
-     {
-       await w.Utils.loadScriptsSync([
-         { src: '/js/service-app/button/main.js' },
-         { src: '/js/service-app/fixed-overlay-vertical-block/main.js' },
-         { src: '/js/service-app/fixed-overlay-block/main.js' }
-       ]);
+    async loadPage()
+    {
+      console.log('[Index] Start loading page scripts for overlay blocks');
+      await w.Utils.loadScriptsSync([
+        { src: '/js/service-app/button/main.js' },
+        { src: '/js/service-app/fixed-overlay-vertical-block/main.js' },
+        { src: '/js/service-app/fixed-overlay-block/main.js' }
+      ]);
 
-       this.buttonService = new w.Services.button();
-       this.verticalBlockService = new w.Services.FixedOverlayVerticalBlock();
-       this.overlayBlockService = new w.Services.FixedOverlayBlock();
+      console.log('[Index] Loaded overlay-related scripts');
 
-       await Promise.all([
-         this.buttonService.boot(),
-         this.verticalBlockService.boot(),
-         this.overlayBlockService.boot()
-       ]);
+      this.buttonService = new w.Services.button();
+      this.verticalBlockService = new w.Services.FixedOverlayVerticalBlock();
+      this.overlayBlockService = new w.Services.FixedOverlayBlock();
 
-       this.renderButtonList();
-       this.renderQuoteBlock();
-       this.renderFestivalBlock();
+      console.log('[Index] Instantiated services', {
+        buttonService: !!this.buttonService,
+        verticalBlockService: !!this.verticalBlockService,
+        overlayBlockService: !!this.overlayBlockService
+      });
+
+      await Promise.all([
+        this.buttonService.boot(),
+        this.verticalBlockService.boot(),
+        this.overlayBlockService.boot()
+      ]);
+
+      console.log('[Index] Completed service boot for overlay blocks');
+
+      this.renderButtonList();
+      this.renderQuoteBlock();
+      this.renderFestivalBlock();
      }
 
      renderButtonList()
@@ -88,12 +99,12 @@
        });
      }
 
-     renderFestivalBlock()
-     {
-       this.overlayBlockService.render({
-         headerHtml: '天下まであと66日',
-         titleHtml: '阿含の星まつり',
-         footerHtml: '2月8日（日）',
+    renderFestivalBlock()
+    {
+      var options = {
+        headerHtml: '天下まであと66日',
+        titleHtml: '阿含の星まつり',
+        footerHtml: '2月8日（日）',
          position: 'right',
          offsetBottom: 28,
          offsetRight: 28,
@@ -101,14 +112,17 @@
          minHeight: 160,
          borderWidth: 4,
          borderColor: '#d14b2f',
-         backgroundColor: 'rgba(0, 0, 0, 0.72)',
-         backgroundImage: 'https://picsum.photos/600/400?blur=3',
-         imageOpacity: 0.82,
-         imageSize: 'cover',
-         zIndex: 9100
-       });
-     }
-   }
+        backgroundColor: 'rgba(0, 0, 0, 0.72)',
+        backgroundImage: 'https://picsum.photos/600/400?blur=3',
+        imageOpacity: 0.82,
+        imageSize: 'cover',
+        zIndex: 9100
+      };
+
+      console.log('[Index] Render festival block with options', options);
+      this.overlayBlockService.render(options);
+    }
+  }
 
    var NS = w.Index || (w.Index = {});
    NS.JobView = NS.JobView || IndexJobView;

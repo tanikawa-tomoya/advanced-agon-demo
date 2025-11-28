@@ -10,12 +10,19 @@
 
     resolveContainer(ref)
     {
-      if (!ref) return document.body;
+      if (!ref) {
+        console.log('[FixedOverlayBlock] resolveContainer: no ref provided, use body');
+        return document.body;
+      }
       if (typeof ref === 'string') {
         var el = document.querySelector(ref);
+        if (!el) {
+          console.log('[FixedOverlayBlock] resolveContainer: selector not found, use body', ref);
+        }
         return el || document.body;
       }
       if (ref && ref.nodeType === 1) { return ref; }
+      console.log('[FixedOverlayBlock] resolveContainer: unrecognized ref, use body', ref);
       return document.body;
     }
 
