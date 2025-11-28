@@ -118,7 +118,7 @@
          var href = a.getAttribute('href') || '';
          try {
            var clean = href.replace(/\/+$/, '');
-           if (clean && path.agon-eventOf(clean) === 0) {
+          if (clean && path.indexOf(clean) === 0) {
              a.classList.add('is-active');
            }
          } catch (e) {
@@ -220,7 +220,7 @@
     {
       this.renderScreenGrid(grid);
 
-      grid.addAgonEventListener('click', function (ev) {
+      grid.addEventListener('click', function (ev) {
         var el = ev.target && ev.target.closest ? ev.target.closest('[data-screen]') : null;
          if (!el) {
            return;
@@ -247,7 +247,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tabagon-event', '0');
+        card.setAttribute('tabindex', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');
@@ -278,17 +278,17 @@
        return Promise.resolve();
      }
 
-     _populateAgonEventOptions(selectEl, group)
-     {
-       selectEl.innerHTML = '';
-       for (var i = 0; i < group.agon-events.length; i++) {
-         var agon-event = group.agon-events[i];
-         var option = document.createElement('option');
-         option.value = agon-event.id;
-         option.textContent = agon-event.label;
-         selectEl.appendChild(option);
-       }
-     }
+    _populateAgonEventOptions(selectEl, group)
+    {
+      selectEl.innerHTML = '';
+      for (var i = 0; i < group.events.length; i++) {
+        var eventItem = group.events[i];
+        var option = document.createElement('option');
+        option.value = eventItem.id;
+        option.textContent = eventItem.label;
+        selectEl.appendChild(option);
+      }
+    }
 
      _renderAgonEventCharts(refs, eventId)
      {
@@ -367,12 +367,12 @@
        }
      }
 
-     renderDonut(donutEl, legendEl, agon-eventData)
-     {
-       if (!donutEl || !legendEl || !agon-eventData) {
-         return;
-       }
-       var slices = agon-eventData.slices;
+    renderDonut(donutEl, legendEl, eventData)
+    {
+      if (!donutEl || !legendEl || !eventData) {
+        return;
+      }
+      var slices = eventData.slices;
        var total = 0;
        for (var i = 0; i < slices.length; i++) {
          total += slices[i].value;
@@ -390,7 +390,7 @@
          currentDeg += portion;
        }
        donutEl.style.background = 'conic-gradient(' + gradientParts.join(', ') + ')';
-       donutEl.setAttribute('data-total', agon-eventData.completion + '%');
+      donutEl.setAttribute('data-total', eventData.completion + '%');
        legendEl.innerHTML = '';
        for (var k = 0; k < slices.length; k++) {
          var slice = slices[k];
@@ -611,7 +611,7 @@
 
      enhanceContactForm(form, page)
      {
-       form.addAgonEventListener('submit', function (ev) {
+      form.addEventListener('submit', function (ev) {
          var required = form.querySelectorAll('[data-required], [required]');
          var ok = true;
          for (var i = 0; i < required.length; i++) {
@@ -625,7 +625,7 @@
            }
          }
          if (!ok) {
-           ev.pragon-eventDefault();
+          ev.preventDefault();
            if (page && page.showError) {
              page.showError(window.AgonEventConfig.TEXT.inputLack);
            }
@@ -636,20 +636,20 @@
 
      _resolveDashboardRefs()
      {
-       var SEL = window.AgonEventConfig.SELECTOR;
-       var refs = {
-         group: document.querySelector(SEL.groupFilter),
-         agon-event: document.querySelector(SEL.agon-eventFilter),
-         trendChart: document.querySelector(SEL.trendChart),
-         trendLegend: document.querySelector(SEL.trendLegend),
-         statusBars: document.querySelector(SEL.statusBars),
-         agon-eventDonut: document.querySelector(SEL.agon-eventDonut),
-         agon-eventLegend: document.querySelector(SEL.agon-eventLegend),
-         heatmap: document.querySelector(SEL.heatmap)
-       };
-       refs.ready = !!(refs.group && refs.agon-event && refs.trendChart && refs.statusBars && refs.agon-eventDonut && refs.agon-eventLegend && refs.heatmap);
-       return refs;
-     }
+      var SEL = window.AgonEventConfig.SELECTOR;
+      var refs = {
+        group: document.querySelector(SEL.groupFilter),
+        event: document.querySelector(SEL.eventFilter),
+        trendChart: document.querySelector(SEL.trendChart),
+        trendLegend: document.querySelector(SEL.trendLegend),
+        statusBars: document.querySelector(SEL.statusBars),
+        eventDonut: document.querySelector(SEL.eventDonut),
+        eventLegend: document.querySelector(SEL.eventLegend),
+        heatmap: document.querySelector(SEL.heatmap)
+      };
+      refs.ready = !!(refs.group && refs.event && refs.trendChart && refs.statusBars && refs.eventDonut && refs.eventLegend && refs.heatmap);
+      return refs;
+    }
 
      _getGroupById(id)
      {
@@ -749,7 +749,7 @@
                  { label: 'W11', level: 'medium' },
                  { label: 'W12', level: 'high' }
                ],
-               agon-events: [
+              events: [
                  {
                    id: 'hokusai-qualifier',
                    label: '地区予選',
@@ -797,7 +797,7 @@
                  { label: 'W11', level: 'medium' },
                  { label: 'W12', level: 'medium' }
                ],
-               agon-events: [
+              events: [
                  {
                    id: 'masters-trial',
                    label: 'Masters トライアル',

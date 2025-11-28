@@ -118,7 +118,7 @@
          var href = a.getAttribute('href') || '';
          try {
            var clean = href.replace(/\/+$/, '');
-           if (clean && path.agon-contents3Of(clean) === 0) {
+          if (clean && path.indexOf(clean) === 0) {
              a.classList.add('is-active');
            }
          } catch (e) {
@@ -247,7 +247,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tabagon-contents3', '0');
+        card.setAttribute('tabindex', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');

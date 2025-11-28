@@ -124,7 +124,7 @@
          var href = a.getAttribute('href') || '';
          try {
            var clean = href.replace(/\/+$/, '');
-           if (clean && path.agon-indexOf(clean) === 0) {
+          if (clean && path.indexOf(clean) === 0) {
              a.classList.add('is-active');
            }
          } catch (e) {
@@ -270,7 +270,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tabagon-index', '0');
+        card.setAttribute('tabindex', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');
@@ -301,17 +301,17 @@
        return Promise.resolve();
      }
 
-     _populateAgonIndexOptions(selectEl, group)
-     {
-       selectEl.innerHTML = '';
-       for (var i = 0; i < group.agon-indexs.length; i++) {
-         var agon-index = group.agon-indexs[i];
-         var option = document.createElement('option');
-         option.value = agon-index.id;
-         option.textContent = agon-index.label;
-         selectEl.appendChild(option);
-       }
-     }
+    _populateAgonIndexOptions(selectEl, group)
+    {
+      selectEl.innerHTML = '';
+      for (var i = 0; i < group.indexes.length; i++) {
+        var agonIndex = group.indexes[i];
+        var option = document.createElement('option');
+        option.value = agonIndex.id;
+        option.textContent = agonIndex.label;
+        selectEl.appendChild(option);
+      }
+    }
 
      _renderAgonIndexCharts(refs, indexId)
      {
@@ -390,12 +390,12 @@
        }
      }
 
-     renderDonut(donutEl, legendEl, agon-indexData)
-     {
-       if (!donutEl || !legendEl || !agon-indexData) {
-         return;
-       }
-       var slices = agon-indexData.slices;
+    renderDonut(donutEl, legendEl, indexData)
+    {
+      if (!donutEl || !legendEl || !indexData) {
+        return;
+      }
+      var slices = indexData.slices;
        var total = 0;
        for (var i = 0; i < slices.length; i++) {
          total += slices[i].value;
@@ -413,7 +413,7 @@
          currentDeg += portion;
        }
        donutEl.style.background = 'conic-gradient(' + gradientParts.join(', ') + ')';
-       donutEl.setAttribute('data-total', agon-indexData.completion + '%');
+      donutEl.setAttribute('data-total', indexData.completion + '%');
        legendEl.innerHTML = '';
        for (var k = 0; k < slices.length; k++) {
          var slice = slices[k];
@@ -648,7 +648,7 @@
            }
          }
          if (!ok) {
-           ev.pragon-indexDefault();
+          ev.preventDefault();
            if (page && page.showError) {
              page.showError(window.AgonIndexConfig.TEXT.inputLack);
            }
@@ -659,20 +659,20 @@
 
      _resolveDashboardRefs()
      {
-       var SEL = window.AgonIndexConfig.SELECTOR;
-       var refs = {
-         group: document.querySelector(SEL.groupFilter),
-         agon-index: document.querySelector(SEL.agon-indexFilter),
-         trendChart: document.querySelector(SEL.trendChart),
-         trendLegend: document.querySelector(SEL.trendLegend),
-         statusBars: document.querySelector(SEL.statusBars),
-         agon-indexDonut: document.querySelector(SEL.agon-indexDonut),
-         agon-indexLegend: document.querySelector(SEL.agon-indexLegend),
-         heatmap: document.querySelector(SEL.heatmap)
-       };
-       refs.ready = !!(refs.group && refs.agon-index && refs.trendChart && refs.statusBars && refs.agon-indexDonut && refs.agon-indexLegend && refs.heatmap);
-       return refs;
-     }
+      var SEL = window.AgonIndexConfig.SELECTOR;
+      var refs = {
+        group: document.querySelector(SEL.groupFilter),
+        index: document.querySelector(SEL.indexFilter),
+        trendChart: document.querySelector(SEL.trendChart),
+        trendLegend: document.querySelector(SEL.trendLegend),
+        statusBars: document.querySelector(SEL.statusBars),
+        indexDonut: document.querySelector(SEL.indexDonut),
+        indexLegend: document.querySelector(SEL.indexLegend),
+        heatmap: document.querySelector(SEL.heatmap)
+      };
+      refs.ready = !!(refs.group && refs.index && refs.trendChart && refs.statusBars && refs.indexDonut && refs.indexLegend && refs.heatmap);
+      return refs;
+    }
 
      _getGroupById(id)
      {
@@ -779,7 +779,7 @@
                  { label: 'W11', level: 'medium' },
                  { label: 'W12', level: 'high' }
                ],
-               agon-indexs: [
+              indexes: [
                  {
                    id: 'hokusai-qualifier',
                    label: '地区予選',
@@ -827,7 +827,7 @@
                  { label: 'W11', level: 'medium' },
                  { label: 'W12', level: 'medium' }
                ],
-               agon-indexs: [
+              indexes: [
                  {
                    id: 'masters-trial',
                    label: 'Masters トライアル',
