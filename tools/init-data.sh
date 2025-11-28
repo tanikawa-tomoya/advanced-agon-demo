@@ -309,6 +309,7 @@ fi
 create_dir "$DATA_DIR" 0775
 create_dir "$DB_DIR" 0775
 create_dir "${DATA_DIR}/log" 0775
+create_dir "${DATA_DIR}/assets" 0775
 create_dir "$USERDATA_BASE_DIR" 0775
 create_dir "${DATA_DIR}/jwt" 0770
 create_dir "${DATA_DIR}/jwt/archive" 0770
@@ -439,6 +440,42 @@ generate_sample_image() {
     else
         echo 0
     fi
+}
+
+generate_favicon() {
+    local assets_dir="${DATA_DIR}/assets"
+    local favicon_path="${assets_dir}/favicon.ico"
+    local initial=""
+
+    create_dir "${assets_dir}" 0775
+
+    if command -v python3 >/dev/null 2>&1; then
+        if ! initial=$(SITE_TITLE="${SITE_TITLE}" python3 - <<'PY'
+import os
+import sys
+
+title = os.environ.get("SITE_TITLE", "").strip()
+if not title:
+    sys.exit(1)
+
+print(title[0])
+PY
+        ); then
+            echo "Warning: failed to extract site title initial for favicon generation." >&2
+            return
+        fi
+    else
+        initial="${SITE_TITLE:0:1}"
+    fi
+
+    if [[ -z "${initial}" ]]; then
+        echo "Warning: site title initial is empty. Skipping favicon generation." >&2
+        return
+    fi
+
+    convert -background '#111827' -fill '#f9fafb' -gravity center \
+        -size 256x256 -font 'DejaVu-Sans' -pointsize 180 -weight Bold \
+        "label:${initial}" -define icon:auto-resize=64,48,32,16 "${favicon_path}"
 }
 
 create_db_common() {
@@ -3275,6 +3312,8 @@ create_db_purchase "${DB_DIR}/purchase.sqlite"
 create_db_dataservice "${DB_DIR}/dataService.sqlite"
 create_db_queue "${DB_DIR}/queue.sqlite"
 
+generate_favicon
+
 resolve_site_path() {
     local relative_path="$1"
     local candidates=(
@@ -3413,6 +3452,7 @@ MANAGED_PATHS=(
     "$DB_DIR"
     "$USERDATA_BASE_DIR"
     "$DATA_SERVICE_DIR"
+    "${DATA_DIR}/assets"
     "${DATA_DIR}/log"
     "${DATA_DIR}/jwt"
     "${DATA_DIR}/jwt/archive"
