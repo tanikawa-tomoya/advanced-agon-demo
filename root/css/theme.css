@@ -2152,11 +2152,11 @@ body.is-modal-open {
 
 .announcement-management__list {
   position: relative;
-  background: linear-gradient(135deg, rgba(45, 140, 255, 0.18), rgba(18, 41, 68, 0.92));
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--hero-gradient), var(--surface-alt);
+  border: 1px solid var(--border);
   border-radius: 18px;
   padding: 24px;
-  box-shadow: 0 22px 48px rgba(6, 16, 31, 0.45);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -2177,23 +2177,23 @@ body.is-modal-open {
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(244, 246, 251, 0.7);
-  background: rgba(19, 39, 63, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  background: var(--surface, rgba(19, 39, 63, 0.85));
+  border-bottom: 1px solid var(--border);
 }
 
 .targets__table tbody tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(8, 16, 30, 0.75);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
   transition: background var(--transition);
 }
 
 .targets__table tbody tr:nth-child(even) {
-  background: rgba(14, 28, 48, 0.75);
+  background: color-mix(in srgb, var(--surface, rgba(14, 28, 48, 0.75)) 88%, var(--surface-muted, transparent));
 }
 
 .targets__table tbody tr:hover {
-  background: rgba(27, 48, 78, 0.85);
+  background: color-mix(in srgb, var(--surface, rgba(27, 48, 78, 0.85)) 92%, var(--accent-soft, rgba(45, 140, 255, 0.12)));
 }
 
 .targets__table td strong {
@@ -4208,9 +4208,9 @@ body.is-modal-open {
 
 .user-management__table-wrapper {
   border-radius: var(--radius-md);
-  border: 1px solid rgba(120, 206, 255, 0.12);
-  background: rgba(9, 17, 32, 0.85);
-  box-shadow: inset 0 0 0 1px rgba(120, 206, 255, 0.08);
+  border: 1px solid var(--border, rgba(120, 206, 255, 0.12));
+  background: var(--surface, rgba(9, 17, 32, 0.85));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #2d8cff) 12%, transparent);
   overflow-x: auto;
 }
 
@@ -4346,16 +4346,17 @@ body.is-modal-open {
 
 .user-table th,
 .user-table td {
-  padding: 4px 10px;
+  padding: 14px 16px;
   text-align: left;
-  border-bottom: 1px solid rgba(120, 206, 255, 0.12);
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
 .user-table th {
   font-weight: 600;
-  color: rgba(120, 206, 255, 0.85);
-  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .user-table td {
@@ -9802,7 +9803,7 @@ body.is-modal-open {
 .screen-modal__overlay {
   position: absolute;
   inset: 0;
-  background: rgba(6, 14, 24, 0.86);
+  background: var(--modal-backdrop);
   backdrop-filter: blur(10px);
 }
 
@@ -9814,17 +9815,18 @@ body.is-modal-open {
   height: auto;
   margin: 0;
   background:
-    radial-gradient(140% 140% at 100% 0%, rgba(76, 148, 255, 0.14), transparent 65%),
+    radial-gradient(140% 140% at 100% 0%, var(--accent-soft, rgba(76, 148, 255, 0.14)), transparent 65%),
     radial-gradient(180% 120% at 0% 100%, rgba(32, 196, 174, 0.12), transparent 70%),
-    rgba(11, 23, 38, 0.94);
+    var(--modal-surface, rgba(11, 23, 38, 0.94));
   border-radius: 28px;
-  border: 1px solid rgba(143, 213, 255, 0.18);
+  border: 1px solid var(--border, rgba(143, 213, 255, 0.18));
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  color: var(--text);
 }
 
 .c-help-modal__content {
@@ -9882,7 +9884,7 @@ body.is-modal-open {
   font-weight: 700;
   font-size: clamp(96px, 22vw, 180px);
   letter-spacing: 0.6em;
-  color: rgba(143, 213, 255, 0.06);
+  color: color-mix(in srgb, var(--text, #f4f6fb) 10%, transparent);
   text-transform: uppercase;
   pointer-events: none;
   mix-blend-mode: screen;
@@ -9929,8 +9931,8 @@ body.is-modal-open {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(143, 213, 255, 0.3);
-  background: rgba(8, 18, 32, 0.9);
+  border: 1px solid var(--border, rgba(143, 213, 255, 0.3));
+  background: var(--modal-strong-surface, rgba(8, 18, 32, 0.9));
   color: var(--text);
   font-size: 1.6rem;
   line-height: 1;
@@ -9946,15 +9948,15 @@ body.is-modal-open {
 .screen-modal__close:hover,
 .screen-modal__close:focus {
   transform: translateY(-1px);
-  border-color: rgba(143, 213, 255, 0.6);
-  background: rgba(45, 140, 255, 0.18);
+  border-color: var(--accent, rgba(143, 213, 255, 0.6));
+  background: color-mix(in srgb, var(--accent, #2d8cff) 18%, var(--modal-surface, rgba(45, 140, 255, 0.18)));
 }
 
 .c-help-modal__header,
 .screen-modal__header {
   padding: 36px 48px 28px;
-  background: rgba(15, 30, 48, 0.92);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--modal-strong-surface, rgba(15, 30, 48, 0.92));
+  border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -9983,8 +9985,8 @@ body.is-modal-open {
 .screen-modal__meta span {
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(143, 213, 255, 0.35);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border, rgba(143, 213, 255, 0.35));
+  background: var(--surface-muted, rgba(255, 255, 255, 0.04));
 }
 
 .c-help-modal__summary,
@@ -10004,7 +10006,7 @@ body.is-modal-open {
   flex: 1;
   padding: 32px 48px 44px;
   overflow: auto;
-  background: linear-gradient(180deg, rgba(8, 18, 32, 0.65) 0%, rgba(8, 18, 32, 0.4) 100%);
+  background: var(--modal-surface, linear-gradient(180deg, rgba(8, 18, 32, 0.65) 0%, rgba(8, 18, 32, 0.4) 100%));
 }
 
 .screen-modal__footer {
@@ -10012,8 +10014,8 @@ body.is-modal-open {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  background: linear-gradient(180deg, rgba(8, 18, 32, 0.4), rgba(8, 18, 32, 0.7));
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--modal-strong-surface, linear-gradient(180deg, rgba(8, 18, 32, 0.4), rgba(8, 18, 32, 0.7)));
+  border-top: 1px solid var(--border);
 }
 
 .c-help-modal__body {
@@ -13336,8 +13338,8 @@ body.is-modal-open {
 .queue-table__container {
   overflow-x: auto;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 22, 38, 0.92);
+  border: 1px solid var(--border);
+  background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
 
@@ -13350,7 +13352,7 @@ body.is-modal-open {
 .queue-table__table th,
 .queue-table__table td {
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
   font-size: 0.95rem;
@@ -13359,10 +13361,11 @@ body.is-modal-open {
 .queue-table__table th {
   position: sticky;
   top: 0;
-  background: rgba(19, 39, 63, 0.88);
+  background: var(--surface, rgba(19, 39, 63, 0.88));
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.76);
-  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .queue-table__table tr:last-child td {
