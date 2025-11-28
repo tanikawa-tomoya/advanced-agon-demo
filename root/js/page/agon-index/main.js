@@ -13,10 +13,10 @@
     async boot()
     {
       await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
-                                                      { src: '/js/service-app/toast/main.js' },
-                                                      { src: '/js/service-app/loading/main.js' },
-                                                      { src: '/js/service-app/button/main.js' },
-                                                      { src: '/js/service-app/video-modal/main.js' },
+                                          { src: '/js/service-app/toast/main.js' },
+                                          { src: '/js/service-app/loading/main.js' },
+                                          { src: '/js/service-app/button/main.js' },
+                                          { src: '/js/service-app/video-modal/main.js' },
                                           { src: '/js/page/agon-index/job-view.js' },
                                           { src: '/js/page/agon-index/job-background.js' },
                                           { src: '/js/page/agon-index/job-ambient-symbols.js' },
