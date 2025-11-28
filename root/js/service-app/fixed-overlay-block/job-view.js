@@ -32,8 +32,8 @@
         wrapper.style.right = this._toCssLength(options.offsetRight);
         wrapper.style.left = 'auto';
       }
-      wrapper.style.width = this._toCssLength(options.width);
-      wrapper.style.minHeight = this._toCssLength(options.minHeight);
+      wrapper.style.setProperty('--fixed-overlay-block-base-width', this._toCssLength(options.width));
+      wrapper.style.setProperty('--fixed-overlay-block-min-height', this._toCssLength(options.minHeight));
       wrapper.style.zIndex = String(options.zIndex);
 
       if (options.outerLabelHtml) {
@@ -45,11 +45,9 @@
 
       var block = document.createElement('div');
       block.className = 'c-fixed-overlay-block';
-      block.style.borderWidth = this._toCssLength(options.borderWidth);
-      block.style.borderColor = options.borderColor;
-      block.style.borderStyle = 'solid';
-      block.style.backgroundColor = options.backgroundColor;
-      block.style.minHeight = this._toCssLength(options.minHeight);
+      block.style.setProperty('--fixed-overlay-block-border-width', this._toCssLength(options.borderWidth));
+      block.style.setProperty('--fixed-overlay-block-border-color', options.borderColor);
+      block.style.setProperty('--fixed-overlay-block-surface', options.backgroundColor);
 
       var background = document.createElement('div');
       background.className = 'c-fixed-overlay-block__background';

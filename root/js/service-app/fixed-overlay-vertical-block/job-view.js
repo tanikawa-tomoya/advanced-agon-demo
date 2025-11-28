@@ -32,10 +32,9 @@
         block.style.left = this._toCssLength(options.offsetLeft);
         block.style.right = 'auto';
       }
-      block.style.borderWidth = this._toCssLength(options.borderWidth);
-      block.style.borderColor = options.borderColor;
-      block.style.borderStyle = 'solid';
-      block.style.backgroundColor = this._resolveBackgroundColor(options.backgroundColor, options.backgroundOpacity);
+      block.style.setProperty('--fixed-overlay-vertical-block-border-width', this._toCssLength(options.borderWidth));
+      block.style.setProperty('--fixed-overlay-vertical-block-border-color', options.borderColor);
+      block.style.setProperty('--fixed-overlay-vertical-block-surface', this._resolveBackgroundColor(options.backgroundColor, options.backgroundOpacity));
       block.style.zIndex = String(options.zIndex);
 
       var title = document.createElement('div');

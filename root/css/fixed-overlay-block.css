@@ -1,11 +1,14 @@
 .c-fixed-overlay-block-wrapper {
+  --fixed-overlay-block-scale: clamp(0.55, calc(100vw / 1280), 1);
+  --fixed-overlay-block-base-width: 640px;
+  --fixed-overlay-block-min-height: 280px;
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 640px;
+  width: calc(var(--fixed-overlay-block-base-width) * var(--fixed-overlay-block-scale));
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: calc(12px * var(--fixed-overlay-block-scale));
   z-index: 9000;
 }
 
@@ -22,7 +25,7 @@
 }
 
 .c-fixed-overlay-block__outer-label {
-  font-size: 20px;
+  font-size: calc(20px * var(--fixed-overlay-block-scale));
   font-weight: 800;
   color: #f6e7d0;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
@@ -39,15 +42,18 @@
 }
 
 .c-fixed-overlay-block {
+  --fixed-overlay-block-border-width: 8px;
+  --fixed-overlay-block-border-color: #c44732;
+  --fixed-overlay-block-surface: rgba(0, 0, 0, 0.6);
   position: relative;
   width: 100%;
-  min-height: 280px;
+  min-height: calc(var(--fixed-overlay-block-min-height) * var(--fixed-overlay-block-scale));
   color: #ffffff;
-  background-color: rgba(0, 0, 0, 0.6);
-  border: 8px solid #c44732;
-  border-radius: 16px;
+  background-color: var(--fixed-overlay-block-surface);
+  border: calc(var(--fixed-overlay-block-border-width) * var(--fixed-overlay-block-scale)) solid var(--fixed-overlay-block-border-color);
+  border-radius: calc(16px * var(--fixed-overlay-block-scale));
   overflow: hidden;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 calc(16px * var(--fixed-overlay-block-scale)) calc(34px * var(--fixed-overlay-block-scale)) rgba(0, 0, 0, 0.4);
   z-index: 1;
 }
 
@@ -65,25 +71,25 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 24px 26px;
+  gap: calc(16px * var(--fixed-overlay-block-scale));
+  padding: calc(24px * var(--fixed-overlay-block-scale)) calc(26px * var(--fixed-overlay-block-scale));
   line-height: 1.5;
   text-align: left;
 }
 
 .c-fixed-overlay-block__header {
-  font-size: 18px;
+  font-size: calc(18px * var(--fixed-overlay-block-scale));
   font-weight: 800;
   color: #ffd24f;
 }
 
 .c-fixed-overlay-block__title {
-  font-size: 30px;
+  font-size: calc(30px * var(--fixed-overlay-block-scale));
   font-weight: 900;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
 }
 
 .c-fixed-overlay-block__footer {
-  font-size: 20px;
+  font-size: calc(20px * var(--fixed-overlay-block-scale));
   font-weight: 800;
 }
