@@ -21,24 +21,35 @@
 
     createBlock(options)
     {
+      var wrapper = document.createElement('div');
+      wrapper.className = 'c-fixed-overlay-block-wrapper';
+      wrapper.classList.add(options.position === 'left' ? 'is-left' : 'is-right');
+      wrapper.style.bottom = this._toCssLength(options.offsetBottom);
+      if (options.position === 'left') {
+        wrapper.style.left = this._toCssLength(options.offsetLeft);
+        wrapper.style.right = 'auto';
+      } else {
+        wrapper.style.right = this._toCssLength(options.offsetRight);
+        wrapper.style.left = 'auto';
+      }
+      wrapper.style.width = this._toCssLength(options.width);
+      wrapper.style.minHeight = this._toCssLength(options.minHeight);
+      wrapper.style.zIndex = String(options.zIndex);
+
+      if (options.outerLabelHtml) {
+        var label = document.createElement('div');
+        label.className = 'c-fixed-overlay-block__outer-label';
+        label.innerHTML = options.outerLabelHtml;
+        wrapper.appendChild(label);
+      }
+
       var block = document.createElement('div');
       block.className = 'c-fixed-overlay-block';
-      block.classList.add(options.position === 'left' ? 'is-left' : 'is-right');
-      block.style.bottom = this._toCssLength(options.offsetBottom);
-      if (options.position === 'left') {
-        block.style.left = this._toCssLength(options.offsetLeft);
-        block.style.right = 'auto';
-      } else {
-        block.style.right = this._toCssLength(options.offsetRight);
-        block.style.left = 'auto';
-      }
       block.style.borderWidth = this._toCssLength(options.borderWidth);
       block.style.borderColor = options.borderColor;
       block.style.borderStyle = 'solid';
       block.style.backgroundColor = options.backgroundColor;
-      block.style.width = this._toCssLength(options.width);
       block.style.minHeight = this._toCssLength(options.minHeight);
-      block.style.zIndex = String(options.zIndex);
 
       var background = document.createElement('div');
       background.className = 'c-fixed-overlay-block__background';
@@ -69,17 +80,24 @@
 
       block.appendChild(background);
       block.appendChild(content);
+      wrapper.appendChild(block);
 
-      return block;
+      return wrapper;
     }
 
     updateBlock(node, options)
     {
-      if (!node || node.className.indexOf('c-fixed-overlay-block') === -1) { return null; }
-      var parent = node.parentNode;
+      if (!node) { return null; }
+      var target = node;
+      if (node.className.indexOf('c-fixed-overlay-block-wrapper') === -1 && node.parentNode && node.parentNode.className.indexOf('c-fixed-overlay-block-wrapper') !== -1) {
+        target = node.parentNode;
+      }
+
+      if (target.className.indexOf('c-fixed-overlay-block-wrapper') === -1) { return null; }
+      var parent = target.parentNode;
       if (parent) {
         var nextBlock = this.createBlock(options);
-        parent.replaceChild(nextBlock, node);
+        parent.replaceChild(nextBlock, target);
         return nextBlock;
       }
       return null;
@@ -87,8 +105,13 @@
 
     removeBlock(node)
     {
-      if (!node || !node.parentNode) return false;
-      node.parentNode.removeChild(node);
+      if (!node) { return false; }
+      var target = node;
+      if (node.className.indexOf('c-fixed-overlay-block-wrapper') === -1 && node.parentNode && node.parentNode.className.indexOf('c-fixed-overlay-block-wrapper') !== -1) {
+        target = node.parentNode;
+      }
+      if (!target.parentNode) { return false; }
+      target.parentNode.removeChild(target);
       return true;
     }
 

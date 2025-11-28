@@ -13,7 +13,7 @@
         offsetTop: 24,
         offsetLeft: 24,
         offsetRight: 24,
-        borderWidth: 2,
+        borderWidth: 4,
         borderColor: '#b98b24',
         backgroundColor: '#262626',
         backgroundOpacity: 0.8,
