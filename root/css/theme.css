@@ -6545,6 +6545,11 @@ body.is-modal-open {
   background: var(--hero-gradient);
 }
 
+.page--index .hero {
+  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/open-book-1428428_1920.jpg') center/cover no-repeat;
+}
+
 .page--event .hero {
   background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/particles-4822857_1920.jpg') center/cover no-repeat;
@@ -6563,6 +6568,11 @@ body.is-modal-open {
 .page--contents1 .hero {
   background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/autumnal-leaves-2704406_1920.jpg') center/cover no-repeat;
+}
+
+.page--contents2 .hero {
+  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/sky-2546570_1920.jpg') center/cover no-repeat;
 }
 
 .hero__eyebrow {
