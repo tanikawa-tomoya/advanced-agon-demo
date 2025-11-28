@@ -16,9 +16,11 @@
                                                       { src: '/js/service-app/toast/main.js' },
                                                       { src: '/js/service-app/loading/main.js' },
                                                       { src: '/js/service-app/button/main.js' },
+                                                      { src: '/js/service-app/video-modal/main.js' },
                                           { src: '/js/page/agon-index/job-view.js' },
                                           { src: '/js/page/agon-index/job-background.js' },
-                                          { src: '/js/page/agon-index/job-ambient-symbols.js' }]);
+                                          { src: '/js/page/agon-index/job-ambient-symbols.js' },
+                                          { src: '/js/page/agon-index/job-media-modal.js' }]);
 
       this.initConfig();
       
@@ -37,6 +39,7 @@
       new window.AgonIndex.JobView (this).loadPage();
       new window.AgonIndex.JobBackground(this).setup();
       new window.AgonIndex.JobAmbientSymbols(this).setup();
+      new window.AgonIndex.JobMediaModal(this).setup();
     }
 
     updateAgonIndex()
