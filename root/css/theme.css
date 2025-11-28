@@ -14935,26 +14935,28 @@ body.is-modal-open {
 }
 
 :root[data-theme="light"] :is(.btn--primary, .site-header__cta) {
-  color: #2c2a27;
+  color: #fbf9f2;
   background-image: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--accent) 36%, #ffffff) 0%,
-    color-mix(in srgb, var(--accent-strong) 72%, #ffffff) 55%,
-    color-mix(in srgb, var(--accent-strong) 88%, #ffffff) 100%
+    color-mix(in srgb, var(--accent) 94%, rgba(20, 16, 12, 0.16)) 0%,
+    color-mix(in srgb, var(--accent-strong) 82%, var(--accent)) 52%,
+    color-mix(in srgb, var(--accent-strong) 70%, rgba(20, 16, 12, 0.2)) 100%
   );
-  box-shadow: 0 14px 32px color-mix(in srgb, var(--accent-strong) 32%, rgba(12, 18, 28, 0.24)),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background-size: 190% 190%;
+  background-position: 12% 52%;
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--accent-strong) 34%, rgba(12, 18, 28, 0.28)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26);
 }
 
 :root[data-theme="light"] :is(.btn--primary, .site-header__cta):hover,
 :root[data-theme="light"] :is(.btn--primary, .site-header__cta):focus {
-  background-position: 70% 30%;
-  box-shadow: 0 16px 36px color-mix(in srgb, var(--accent-strong) 38%, rgba(12, 18, 28, 0.24)),
-    inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  background-position: 76% 36%;
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--accent-strong) 40%, rgba(12, 18, 28, 0.3)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 
 :root[data-theme="light"] :is(.btn--primary, .site-header__cta):focus-visible {
-  outline-color: color-mix(in srgb, var(--accent-strong) 52%, transparent);
+  outline-color: color-mix(in srgb, var(--accent-strong) 58%, transparent);
 }
 
 :root[data-theme="light"] .btn-primary {
