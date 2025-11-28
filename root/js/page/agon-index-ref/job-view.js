@@ -42,10 +42,10 @@
 
        var items = [
          { main: '最新情報', color: '#B93C29', border: '#7a241a', href: '/event' },
-         { main: '阿含宗とは', color: '#438793', border: '#2e5c63', href: '/about' },
-         { main: '映像でみる阿含の歩み', color: '#AF9C13', border: '#7c6d0e', href: '/contents1' },
-         { main: '音声で聴く開祖著作', color: '#7D7B32', border: '#595825', href: '/contents2' },
-         { main: '心と身体の健康のために', color: '#AB716F', border: '#7a4f4d', href: '/wellness' }
+         { main: '阿含宗とは', color: '#438793', border: '#2e5c63', href: '/agon-about' },
+         { main: '映像でみる阿含の歩み', color: '#AF9C13', border: '#7c6d0e', href: '/agon-contents1' },
+         { main: '音声で聴く開祖著作', color: '#7D7B32', border: '#595825', href: '/agon-contents2' },
+         { main: '心と身体の健康のために', color: '#AB716F', border: '#7a4f4d', href: '/agon-wellness' }
        ];
 
        container.innerHTML = '';

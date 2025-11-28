@@ -689,11 +689,11 @@
     {
       return {
         navButtons: [
-          { buttonType: 'agon-index-nav-news', label: '最新情報', href: '/event' },
-          { buttonType: 'agon-index-nav-about', label: '阿含宗とは 理念と教学', href: '/about' },
-          { buttonType: 'agon-index-nav-videos', label: '映像で見る 阿含の歩み', href: '/contents1' },
-          { buttonType: 'agon-index-nav-audio', label: '音声で聴く 開祖著作', href: '/contents2' },
-          { buttonType: 'agon-index-nav-wellness', label: '心と体の健康のために', href: '/wellness' }
+          { buttonType: 'agon-index-nav-news', label: '最新情報', href: '/agon-event' },
+          { buttonType: 'agon-index-nav-about', label: '阿含宗とは 理念と教学', href: '/agon-about' },
+          { buttonType: 'agon-index-nav-videos', label: '映像で見る 阿含の歩み', href: '/agon-contents1' },
+          { buttonType: 'agon-index-nav-audio', label: '音声で聴く 開祖著作', href: '/agon-contents2' },
+          { buttonType: 'agon-index-nav-wellness', label: '心と体の健康のために', href: '/agon-wellness' }
         ],
         hero: {
           eyebrow: '現在の接続状況',
