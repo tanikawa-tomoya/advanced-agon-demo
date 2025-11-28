@@ -155,16 +155,86 @@
             </div>
         </section>
 
-        <section class="section">
-            <div class="callout">
-                <h3>参加までのフロー</h3>
-                <p>会員ログイン後、わずか3ステップで参列が確定。オンライン参加もリアル参詣も、グラデーションUIが導きます。</p>
-                <ul class="highlight-list">
-                    <li><strong>STEP 1｜行事を選択</strong> カレンダーから参加形式と枠を決定。AR会場で混雑状況を確認。</li>
-                    <li><strong>STEP 2｜祈願内容を登録</strong> 祈願札・供物・奉納金をオンラインで申し込み。デジタル護摩木も選択可能。</li>
-                    <li><strong>STEP 3｜当日は自動ナビ</strong> 参詣ルートや配信URLが自動送信。リアル参加者はビーコンで受付へ誘導。</li>
-                </ul>
+        <section class="section" id="membership">
+            <div class="membership-card">
+                <div class="membership-card__body">
+                    <p class="membership-card__eyebrow">会員サイトのご案内</p>
+                    <h3 class="membership-card__title">動画・音声で学び、掲示板とショップでつながる</h3>
+                    <p class="membership-card__lead">信徒専用サイトでは、配信コンテンツの視聴や掲示板での交流、オンラインショップでの授与品購入までをまとめてご利用いただけます。</p>
+                    <ul class="highlight-list membership-card__list">
+                        <li><strong>動画・音声の視聴</strong> 行事のアーカイブと開祖の講話をデバイスを選ばず楽しめます。</li>
+                        <li><strong>情報掲示板</strong> 教会からの最新連絡やイベント情報を一元的に閲覧できます。</li>
+                        <li><strong>ショップ</strong> 祈願札や御札、関連グッズをオンラインでお申し込み可能です。</li>
+                    </ul>
+                </div>
+                <div class="membership-card__actions">
+                    <button class="btn btn--primary" type="button" data-membership-open>申し込み</button>
+                    <a class="btn btn--ghost" href="login.html">ログイン</a>
+                </div>
             </div>
+        </section>
+
+        <div class="membership-modal" data-membership-modal aria-hidden="true" hidden>
+            <div class="membership-modal__overlay" data-membership-close></div>
+            <div class="membership-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="membership-modal-title" aria-describedby="membership-modal-summary">
+                <button class="membership-modal__close" type="button" aria-label="閉じる" data-membership-close>&times;</button>
+                <header class="membership-modal__header">
+                    <p class="membership-modal__eyebrow">会員サイト申し込み</p>
+                    <h3 class="membership-modal__title" id="membership-modal-title">必要事項を入力してください</h3>
+                    <p class="membership-modal__summary" id="membership-modal-summary">オンライン視聴・掲示板・ショップのご利用に必要な基本情報と規約への同意を確認します。</p>
+                </header>
+                <form class="membership-modal__form" novalidate>
+                    <div class="membership-modal__row">
+                        <label for="membership-name">お名前</label>
+                        <input id="membership-name" name="membership-name" type="text" placeholder="例）阿含 太郎" data-required>
+                    </div>
+                    <div class="membership-modal__row">
+                        <label for="membership-mail">メールアドレス</label>
+                        <input id="membership-mail" name="membership-mail" type="email" placeholder="example@example.com" data-required>
+                    </div>
+                    <div class="membership-modal__row">
+                        <label for="membership-preference">利用希望サービス</label>
+                        <select id="membership-preference" name="membership-preference" data-required>
+                            <option value="">選択してください</option>
+                            <option value="streaming">動画・音声配信の視聴</option>
+                            <option value="board">情報掲示板での交流</option>
+                            <option value="shop">ショップの利用</option>
+                            <option value="all">すべて利用する</option>
+                        </select>
+                    </div>
+                    <div class="membership-modal__terms" tabindex="0">
+                        <p>会員サイトは、信徒様向けの学びと交流を目的としています。配信コンテンツの複製・再配布は禁止です。掲示板では互いを尊重し、個人情報の取り扱いに十分ご注意ください。</p>
+                        <p>オンラインショップでのご注文は、在庫状況や発送先によってお届け日が変動する場合があります。利用規約とプライバシーポリシーをお読みのうえ、ご同意ください。</p>
+                    </div>
+                    <div class="membership-modal__actions">
+                        <button class="btn btn--ghost" type="button" data-membership-agree aria-pressed="false">規約に同意する</button>
+                        <button class="btn btn--primary" type="button" data-membership-confirm disabled>確定</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <section class="section" id="contact">
+            <div class="section__header">
+                <h2>お問い合わせ</h2>
+                <p>会員サイトや行事に関するご相談は、以下のフォームからお送りください。</p>
+            </div>
+            <form class="contact-form">
+                <div class="contact-form__row">
+                    <label for="contact-name">お名前</label>
+                    <input id="contact-name" type="text" placeholder="例）阿含 太郎" required />
+                </div>
+                <div class="contact-form__row">
+                    <label for="contact-mail">メールアドレス</label>
+                    <input id="contact-mail" type="email" placeholder="example@example.com" />
+                </div>
+                <div class="contact-form__row">
+                    <label for="contact-message">お問い合わせ内容</label>
+                    <textarea id="contact-message" rows="4" placeholder="ご希望や質問をご記入ください"></textarea>
+                </div>
+                <button class="btn btn--primary" type="submit">送信する（デモ）</button>
+                <p class="contact-form__note">※このフォームはデモです。送信内容は保存されません。</p>
+            </form>
         </section>
 
         <section class="section pattern pattern--aurora" id="pattern-aurora">

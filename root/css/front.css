@@ -641,6 +641,258 @@ body::after {
     font-size: 1.2rem;
 }
 
+.section__header {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 1.4rem;
+}
+
+.section__header h2 {
+    margin: 0;
+    font-size: clamp(1.3rem, 2.4vw, 1.6rem);
+}
+
+.section__header p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.membership-card {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.4rem;
+    align-items: flex-end;
+    padding: clamp(1.6rem, 5vw, 2.4rem);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: var(--elevation-card);
+}
+
+.membership-card__body {
+    flex: 1 1 380px;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.membership-card__eyebrow {
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.membership-card__title {
+    margin: 0;
+    font-size: clamp(1.2rem, 2.8vw, 1.6rem);
+    line-height: 1.4;
+}
+
+.membership-card__lead {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.membership-card__list {
+    margin: 0;
+}
+
+.membership-card__actions {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.membership-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(3, 4, 12, 0.64);
+    backdrop-filter: blur(4px);
+    z-index: 1400;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.membership-modal.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.membership-modal__overlay {
+    position: absolute;
+    inset: 0;
+}
+
+.membership-modal__dialog {
+    position: relative;
+    width: min(720px, 92vw);
+    max-height: 90vh;
+    overflow: auto;
+    padding: clamp(1.4rem, 3vw, 2rem);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(20, 16, 32, 0.98), rgba(5, 6, 18, 0.94));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: var(--elevation-overlay);
+}
+
+.membership-modal__close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 1.6rem;
+    cursor: pointer;
+}
+
+.membership-modal__header {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.membership-modal__eyebrow {
+    letter-spacing: 0.08em;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.82);
+    margin: 0;
+}
+
+.membership-modal__title {
+    margin: 0;
+    font-size: clamp(1.2rem, 2.8vw, 1.5rem);
+}
+
+.membership-modal__summary {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.membership-modal__form {
+    display: grid;
+    gap: 1rem;
+}
+
+.membership-modal__row {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.membership-modal__row label {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.membership-modal__row input,
+.membership-modal__row select,
+.membership-modal__row textarea {
+    width: 100%;
+    padding: 0.8rem 0.9rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(7, 8, 18, 0.7);
+    color: #ffffff;
+}
+
+.membership-modal__row input:focus,
+.membership-modal__row select:focus,
+.membership-modal__row textarea:focus {
+    outline: 2px solid var(--accent-primary);
+    border-color: transparent;
+}
+
+.membership-modal__terms {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: grid;
+    gap: 0.6rem;
+}
+
+.membership-modal__terms p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.membership-modal__actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.membership-modal__actions .btn[disabled] {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.contact-form {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1.6rem, 4vw, 2.2rem);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: var(--elevation-card);
+}
+
+.contact-form__row {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.contact-form label {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.contact-form input,
+.contact-form textarea,
+.membership-modal__row input,
+.membership-modal__row select {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.contact-form input,
+.contact-form textarea {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(7, 8, 18, 0.7);
+    color: #ffffff;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus,
+.membership-modal__row input:focus,
+.membership-modal__row select:focus {
+    box-shadow: 0 0 0 3px rgba(94, 255, 193, 0.2);
+}
+
+.contact-form__note {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.is-error {
+    border-color: #ff9a62 !important;
+    box-shadow: 0 0 0 2px rgba(255, 154, 98, 0.3);
+}
+
+body.is-modal-open {
+    overflow: hidden;
+}
+
 .stats-grid {
     display: grid;
     gap: 1.4rem;

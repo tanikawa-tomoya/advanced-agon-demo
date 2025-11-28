@@ -47,6 +47,11 @@
         tasks.push(this.renderHeroButtons(heroButtons));
       }
 
+      var membershipCard = document.querySelector('#membership .membership-card');
+      if (membershipCard) {
+        tasks.push(this.setupMembershipModal(membershipCard, page));
+      }
+
        var background = document.querySelector(SEL.backgroundPanels);
        if (background) {
          tasks.push(this.renderBackgroundPanels(background));
@@ -635,11 +640,11 @@
        return Promise.resolve();
      }
 
-     renderKpis(container)
-     {
-       var kpis = this.dataset.kpis;
-       container.innerHTML = '';
-       for (var i = 0; i < kpis.length; i++) {
+    renderKpis(container)
+    {
+      var kpis = this.dataset.kpis;
+      container.innerHTML = '';
+      for (var i = 0; i < kpis.length; i++) {
          var kpi = kpis[i];
          var card = document.createElement('article');
          card.className = 'kpi-card';
@@ -653,9 +658,125 @@
          card.appendChild(value);
          card.appendChild(note);
          container.appendChild(card);
-       }
-       return Promise.resolve();
-     }
+      }
+      return Promise.resolve();
+    }
+
+    setupMembershipModal(container, page)
+    {
+      var modal = document.querySelector('[data-membership-modal]');
+      var openButton = container.querySelector('[data-membership-open]');
+      var closeButtons = modal.querySelectorAll('[data-membership-close]');
+      var agreeButton = modal.querySelector('[data-membership-agree]');
+      var confirmButton = modal.querySelector('[data-membership-confirm]');
+      var form = modal.querySelector('.membership-modal__form');
+      var agreed = false;
+
+      function resetState()
+      {
+        agreed = false;
+        confirmButton.disabled = true;
+        agreeButton.setAttribute('aria-pressed', 'false');
+        agreeButton.classList.remove('is-agreed');
+        var errors = modal.querySelectorAll('.is-error');
+        for (var i = 0; i < errors.length; i++) {
+          errors[i].classList.remove('is-error');
+        }
+        form.reset();
+      }
+
+      function openModal()
+      {
+        modal.removeAttribute('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        modal.classList.add('is-open');
+        document.body.classList.add('is-modal-open');
+        var firstField = modal.querySelector('input, select, textarea, button');
+        if (firstField) {
+          firstField.focus();
+        }
+      }
+
+      function closeModal()
+      {
+        modal.setAttribute('aria-hidden', 'true');
+        modal.classList.remove('is-open');
+        modal.setAttribute('hidden', 'hidden');
+        document.body.classList.remove('is-modal-open');
+        resetState();
+      }
+
+      openButton.addAgonIndexListener('click', function (ev) {
+        ev.preventDefault();
+        openModal();
+      });
+
+      for (var i = 0; i < closeButtons.length; i++) {
+        closeButtons[i].addAgonIndexListener('click', function (ev) {
+          ev.preventDefault();
+          closeModal();
+        });
+      }
+
+      modal.addAgonIndexListener('keydown', function (ev) {
+        if (ev.key === 'Escape') {
+          closeModal();
+        }
+      });
+
+      form.addAgonIndexListener('input', function (ev) {
+        var target = ev.target;
+        if (target && target.classList) {
+          target.classList.remove('is-error');
+        }
+      });
+
+      agreeButton.addAgonIndexListener('click', function (ev) {
+        ev.preventDefault();
+        agreed = true;
+        agreeButton.setAttribute('aria-pressed', 'true');
+        agreeButton.classList.add('is-agreed');
+        confirmButton.disabled = false;
+      });
+
+      confirmButton.addAgonIndexListener('click', function (ev) {
+        ev.preventDefault();
+        var required = form.querySelectorAll('[data-required]');
+        var ok = true;
+        for (var i = 0; i < required.length; i++) {
+          var input = required[i];
+          var val = (input.value || '').trim();
+          if (!val) {
+            ok = false;
+            input.classList.add('is-error');
+          } else {
+            input.classList.remove('is-error');
+          }
+        }
+
+        if (!agreed) {
+          ok = false;
+          agreeButton.classList.add('is-error');
+          if (page && page.showError) {
+            page.showError('規約への同意が必要です。');
+          }
+        } else {
+          agreeButton.classList.remove('is-error');
+        }
+
+        if (!ok) {
+          if (page && page.showError) {
+            page.showError(window.AgonIndexConfig.TEXT.inputLack);
+          }
+          return;
+        }
+
+        alert('会員サイト申込は現在準備中です。');
+        closeModal();
+      });
+
+      return Promise.resolve();
+    }
 
      enhanceContactForm(form, page)
      {
