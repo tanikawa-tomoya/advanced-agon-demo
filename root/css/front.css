@@ -59,16 +59,18 @@ body::after {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    filter: blur(22px);
-    transform: scale(1.06);
+    background-color: rgba(6, 8, 18, 0.45);
+    background-blend-mode: multiply;
+    filter: blur(12px) brightness(0.78);
+    transform: scale(1.04);
     opacity: 0;
-    transition: opacity 1s ease, filter 1s ease, transform 1s ease;
+    transition: opacity 1.2s ease, filter 1.2s ease, transform 1.2s ease;
 }
 
 .section-backdrop__layer.is-active {
-    opacity: 0.92;
-    filter: blur(16px);
-    transform: scale(1.04);
+    opacity: 0.88;
+    filter: blur(8px) brightness(0.72);
+    transform: scale(1.02);
 }
 
 @keyframes rotateGlow {
