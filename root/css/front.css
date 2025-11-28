@@ -956,6 +956,25 @@ body::after {
     color: rgba(235, 238, 255, 0.78);
 }
 
+.pattern-intro {
+    margin: 2rem 0 1.6rem;
+    padding-top: 1.2rem;
+}
+
+.pattern-intro__line {
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    height: 1px;
+    margin: 0 0 0.9rem;
+}
+
+.pattern-intro__text {
+    margin: 0;
+    color: rgba(235, 238, 255, 0.86);
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
 .pattern-carousel {
     position: relative;
 }
