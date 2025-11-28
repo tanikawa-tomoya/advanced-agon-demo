@@ -28,6 +28,7 @@
   --login-hero-bg: #0b162b;
   --login-hero-spot-1: rgba(120, 206, 255, 0.18);
   --login-hero-spot-2: rgba(158, 140, 255, 0.16);
+  --max-width: 1200px;
   --radius-lg: 28px;
   --radius-md: 18px;
   --radius-sm: 12px;
@@ -98,6 +99,14 @@ body {
   position: relative;
 }
 
+.page {
+  min-height: 100vh;
+  background: var(--page-bg, var(--bg));
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
 body::before,
 body::after {
   content: "";
@@ -143,6 +152,13 @@ a:focus {
 
 main {
   padding-top: 92px;
+}
+
+.page-main {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: clamp(2.5rem, 6vw, 4rem) clamp(1.8rem, 5vw, 3.5rem) clamp(5rem, 8vw, 7rem);
 }
 
 html.has-mobile-menu-open,
@@ -6591,47 +6607,66 @@ body.is-modal-open {
 }
 
 .hero {
+  padding: 0;
+  background: var(--hero-bg, var(--page-bg, var(--hero-gradient)));
+}
+
+.hero__layout {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 48px;
   align-items: center;
-  padding: 120px 7vw 96px;
-  background: var(--hero-gradient);
 }
 
-.page--index .hero {
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+.page--index {
+  --page-bg: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/open-book-1428428_1920.jpg') center/cover no-repeat;
 }
 
-.page--event .hero {
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+.page--event {
+  --page-bg: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/particles-4822857_1920.jpg') center/cover no-repeat;
 }
 
-.page--about .hero {
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+.page--about {
+  --page-bg: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/fujisan-6195139_1920.jpg') center/cover no-repeat;
 }
 
-.page--history .hero {
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+.page--history {
+  --page-bg: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/fire-184885_1920.jpg') center/cover no-repeat;
 }
 
-.page--contents1 .hero {
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+.page--contents1 {
+  --page-bg: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/autumnal-leaves-2704406_1920.jpg') center/cover no-repeat;
 }
 
-.page--contents2 .hero {
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+.page--contents2 {
+  --page-bg: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/sky-2546570_1920.jpg') center/cover no-repeat;
 }
 
-.page--wellness .hero {
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+.page--contents3 {
+  --page-bg: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/open-book-1428428_1920.jpg') center/cover no-repeat;
+}
+
+.page--wellness {
+  --page-bg: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
     url('/image/sample/balance-110850_1920.jpg') center/cover no-repeat;
+}
+
+.page--index .hero,
+.page--event .hero,
+.page--about .hero,
+.page--history .hero,
+.page--contents1 .hero,
+.page--contents2 .hero,
+.page--contents3 .hero,
+.page--wellness .hero {
+  --hero-bg: var(--page-bg);
 }
 
 .hero__eyebrow {
