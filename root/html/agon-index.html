@@ -1,55 +1,138 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <base href="/" />
-    <meta charset="UTF-8" />
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>阿含宗デモサイト | 阿含宗デモサイト デモサイト</title>
-    <link rel="shortcut icon" href="image/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link id="theme-stylesheet" rel="stylesheet" href="css/theme.css" />
-	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-	<script src="js/entrypoint.js?v=1"></script>							
-  </head>
-  <body class="page page--index">
-    <header class="site-header" data-disable-account-ui>
-      <a class="site-header__logo" href="/index" data-logo-label="阿含宗デモサイト">阿含宗デモサイト</a>
-      <a class="site-header__cta" href="login.html">ログイン</a>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>イベント情報（行事案内） | 阿含情報玉手箱</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Shippori+Mincho+B1:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/front.css">
+</head>
+<body class="page page--events">
+    <header class="site-header">
+        <div class="brand">Agon Digital Nexus</div>
+        <nav class="main-nav">
+            <a href="index.html">トップ</a>
+            <a href="login.html">ログイン</a>
+            <a href="about.html">そもそも阿含宗って？</a>
+            <a href="events.html">イベント情報</a>
+            <a href="archive.html">阿含の歩み活動記録映像</a>
+            <a href="sermons.html">開祖説法</a>
+            <a href="training.html">教学練磨</a>
+            <a href="audio.html">音声で聴く教え</a>
+            <a href="wellness.html">心と体の健康</a>
+            <a href="community.html">情報交換</a>
+        </nav>
+        <div class="header-actions">
+            <a class="btn btn--ghost" href="login.html">予約ログイン</a>
+            <a class="btn btn--primary" href="#schedule">行事カレンダー</a>
+        </div>
     </header>
 
-    <main>
-      <section class="hero" id="overview">
-        <div class="page-main hero__layout">
-          <div class="hero__content hero__content--buttons">
-            <div class="hero__intro">
-              <p class="hero__intro-eyebrow">阿含情報館</p>
-              <p class="hero__intro-title">AGON Information</p>
+    <main class="page-main">
+        <section class="hero">
+            <div class="hero-content">
+                <div class="hero-kicker">CEREMONIAL STREAM</div>
+                <h1 class="hero-title">行事の熱量をリアルタイムで<br><span>世界へシェアする</span></h1>
+                <p class="hero-lead">星まつり、護摩供、巡拝、講習会??すべての行事をライブ配信、メタバース、リアル参詣で同時開催。阿含情報玉手箱が、参加の導線と体験の記録を統合します。</p>
+                <div class="hero-meta">
+                    <span class="pill">ライブ配信 &amp; アーカイブ視聴</span>
+                    <span class="pill">参詣予約と動線ナビ</span>
+                    <span class="pill">AR会場マップ</span>
+                </div>
+                <div class="hero-actions">
+                    <a class="btn btn--primary" href="#schedule">直近の行事を見る</a>
+                    <a class="btn btn--ghost" href="community.html">参加者コミュニティへ</a>
+                </div>
             </div>
-            <div class="hero__button-list">
-              <a class="btn btn--primary hero__nav-button" href="/agon-event">最新情報</a>
-              <a class="btn btn--ghost hero__nav-button" href="/agon-about">阿含宗とは 理念と教学</a>
-              <a class="btn btn--ghost hero__nav-button" href="/agon-contents1">映像で見る 阿含の歩み</a>
-              <a class="btn btn--ghost hero__nav-button" href="/agon-contents2">音声で聴く 開祖著作</a>
-              <a class="btn btn--ghost hero__nav-button" href="/agon-wellness">心と体の健康のために</a>
-            </div>
-          </div>
-          <div class="hero__glance" role="presentation">
-            <div id="hero-glance"></div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-    <footer class="site-footer">
-      <p>© 2025 MEDIAPLUS. All rights reserved.</p>
+        <section class="section" id="schedule">
+            <div>
+                <h2 class="section-title">月間カレンダー</h2>
+                <p class="section-lead">メイン行事・定例護摩・学習プログラムを一括管理。参加登録や奉納申込、交通案内をワンクリックで。</p>
+            </div>
+            <div class="neon-card">
+                <table class="feature-table">
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>行事</th>
+                            <th>形式</th>
+                            <th>申込締切</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>毎月1日</td>
+                            <td>朔日護摩供</td>
+                            <td>京都総本山 / ライブ配信</td>
+                            <td>前日 18:00</td>
+                        </tr>
+                        <tr>
+                            <td>第2日曜</td>
+                            <td>冥徳祭法要</td>
+                            <td>全国道場 / メタバース</td>
+                            <td>3日前 23:59</td>
+                        </tr>
+                        <tr>
+                            <td>第4土曜</td>
+                            <td>護摩行集中講座</td>
+                            <td>ハイブリッド（京都・オンライン）</td>
+                            <td>定員に達し次第</td>
+                        </tr>
+                        <tr>
+                            <td>随時</td>
+                            <td>巡拝・慰霊の旅</td>
+                            <td>国内外ツアー / 360°配信</td>
+                            <td>1か月前</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <div>
+                <h2 class="section-title">ハイライト行事</h2>
+                <p class="section-lead">年中行事のクライマックスは、最先端の技術で世界と共有。仏教的荘厳と未来的演出が融合します。</p>
+            </div>
+            <div class="grid grid--three">
+                <article class="neon-card">
+                    <h3>阿含の星まつり</h3>
+                    <p>京都・一乗寺にて開催。メタバース会場では360°映像と多言語解説、祈願花火のAR演出を同時展開。</p>
+                    <p class="badge">2月 第二日曜日</p>
+                </article>
+                <article class="neon-card">
+                    <h3>京都大仏祭</h3>
+                    <p>世界平和を祈念する夏の大祭。水と光のグラデーション演出で境内を包み込み、夜間もライブ中継。</p>
+                    <p class="badge">8月 上旬</p>
+                </article>
+                <article class="neon-card">
+                    <h3>熊野大柴燈護摩供</h3>
+                    <p>紀州熊野で行われる炎の儀式。ドローン空撮とヘッドセット配信で、臨場感ある体験を提供します。</p>
+                    <p class="badge">10月 下旬</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="callout">
+                <h3>参加までのフロー</h3>
+                <p>会員ログイン後、わずか3ステップで参列が確定。オンライン参加もリアル参詣も、グラデーションUIが導きます。</p>
+                <ul class="highlight-list">
+                    <li><strong>STEP 1｜行事を選択</strong> カレンダーから参加形式と枠を決定。AR会場で混雑状況を確認。</li>
+                    <li><strong>STEP 2｜祈願内容を登録</strong> 祈願札・供物・奉納金をオンラインで申し込み。デジタル護摩木も選択可能。</li>
+                    <li><strong>STEP 3｜当日は自動ナビ</strong> 参詣ルートや配信URLが自動送信。リアル参加者はビーコンで受付へ誘導。</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div>c Agon Digital Nexus ? 阿含情報玉手箱</div>
+        <div>行事に関するお問い合わせ: <a href="mailto:event@agon.jp">event@agon.jp</a> ｜ 受付専用ダイヤル: 0570-515-515</div>
     </footer>
-  </body>
+</body>
 </html>
