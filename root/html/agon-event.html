@@ -20,6 +20,118 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
         <script src="js/entrypoint.js?v=1"></script>
     <style>
+      .hero__content--video {
+        align-items: flex-start;
+      }
+
+      .hero__video {
+        width: min(720px, 100%);
+        display: grid;
+        gap: 12px;
+      }
+
+      .hero__video-frame {
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        box-shadow: 0 18px 48px rgba(10, 18, 28, 0.42);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+      }
+
+      .hero__video-frame video {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #0b162b;
+      }
+
+      .hero__video-overlay {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 20px 24px;
+        background: linear-gradient(180deg, transparent 10%, rgba(6, 10, 20, 0.85) 90%);
+        color: #f5f3ec;
+        backdrop-filter: blur(2px);
+      }
+
+      .hero__video-label {
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 0 4px;
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      .hero__video-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+
+      .hero__video-meta {
+        margin: 6px 0 0;
+        color: rgba(245, 243, 236, 0.82);
+        font-size: 0.95rem;
+      }
+
+      .hero__video-caption {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.86);
+        line-height: 1.6;
+      }
+
+      .hero-card__summary {
+        margin: 0 0 12px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      .hero-card__schedule {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 12px;
+      }
+
+      .hero-card__schedule-item {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 12px;
+        background: var(--surface-muted);
+        border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+      }
+
+      .hero-card__schedule-date {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--accent);
+      }
+
+      .hero-card__schedule-detail {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .hero-card__schedule-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .hero-card__schedule-note {
+        margin: 12px 0 0;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+
       .event-layout {
         background: #f7f7f2;
         padding: 56px 24px;
@@ -117,13 +229,23 @@
 
     <main>
       <section class="hero" id="overview">
-        <div class="hero__content hero__content--buttons">
-          <div class="hero__button-list">
-            <a class="btn btn--primary hero__nav-button" href="/agon-event">最新情報</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-about">阿含宗とは 理念と教学</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-contents1">映像で見る 阿含の歩み</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-contents2">音声で聴く 開祖著作</a>
-            <a class="btn btn--ghost hero__nav-button" href="/agon-wellness">心と体の健康のために</a>
+        <div class="hero__content hero__content--video">
+          <div class="hero__video">
+            <div class="hero__video-frame">
+              <video controls preload="metadata" poster="image/sample/fire-184885_1920.jpg">
+                <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
+                最新の行事映像をご覧いただける動画プレイヤーです。
+              </video>
+              <div class="hero__video-overlay">
+                <p class="hero__video-label">最新の行事映像</p>
+                <p class="hero__video-title">春季祈願祭 ダイジェスト</p>
+                <p class="hero__video-meta">本山護摩供の模様をライブ配信から抜粋しました。</p>
+              </div>
+            </div>
+            <p class="hero__video-caption">
+              現地の熱気や祈りの言葉を、そのまま感じられる最新の行事映像です。ご自宅からでもお参りいただけるよう、
+              高音質・高画質の収録と字幕付きのダイジェストを用意しました。
+            </p>
           </div>
         </div>
         <div class="hero__glance" role="presentation">

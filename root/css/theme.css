@@ -6605,8 +6605,14 @@ body.is-modal-open {
 }
 
 .page--event .hero {
-  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
-    url('/image/sample/particles-4822857_1920.jpg') center/cover no-repeat;
+  background-image:
+    linear-gradient(180deg, rgba(11, 23, 38, 0.9) 0%, rgba(11, 23, 38, 0.72) 18%, rgba(11, 23, 38, 0.72) 82%, rgba(11, 23, 38, 0.9) 100%),
+    linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/particles-4822857_1920.jpg');
+  background-size: 100% 100%, 100% 100%, 1600px 540px;
+  background-repeat: no-repeat, no-repeat, repeat-y;
+  background-position: center, center, center top;
+  background-blend-mode: soft-light, overlay, normal;
 }
 
 .page--about .hero {

@@ -127,36 +127,51 @@
        }
      }
 
-     renderHeroGlance(container)
-     {
-       var data = this.dataset.hero;
-       container.innerHTML = '';
-       var eyebrow = document.createElement('p');
-       eyebrow.className = 'hero__eyebrow';
-       eyebrow.textContent = data.eyebrow;
-       var title = document.createElement('p');
-       title.className = 'hero-card__title';
-       title.textContent = data.title;
-       var highlight = document.createElement('p');
-       highlight.className = 'hero-card__highlight';
-       highlight.textContent = data.highlight;
-       var summary = document.createElement('p');
-       summary.className = 'hero-card__summary';
-       summary.textContent = data.summary;
-       var list = document.createElement('ul');
-       list.className = 'hero-card__list';
-       for (var i = 0; i < data.metrics.length; i++) {
-         var item = document.createElement('li');
-         item.textContent = data.metrics[i];
-         list.appendChild(item);
-       }
-       container.appendChild(eyebrow);
-       container.appendChild(title);
-       container.appendChild(highlight);
-       container.appendChild(summary);
-       container.appendChild(list);
-       return Promise.resolve();
-     }
+    renderHeroGlance(container)
+    {
+      var data = this.dataset.hero;
+      container.innerHTML = '';
+      var eyebrow = document.createElement('p');
+      eyebrow.className = 'hero__eyebrow';
+      eyebrow.textContent = data.eyebrow;
+      var title = document.createElement('p');
+      title.className = 'hero-card__title';
+      title.textContent = data.title;
+      var summary = document.createElement('p');
+      summary.className = 'hero-card__summary';
+      summary.textContent = data.summary;
+      var list = document.createElement('ul');
+      list.className = 'hero-card__schedule';
+      for (var i = 0; i < data.schedule.length; i++) {
+        var item = document.createElement('li');
+        item.className = 'hero-card__schedule-item';
+        var date = document.createElement('p');
+        date.className = 'hero-card__schedule-date';
+        date.textContent = data.schedule[i].date;
+        var detail = document.createElement('div');
+        detail.className = 'hero-card__schedule-detail';
+        var scheduleTitle = document.createElement('p');
+        scheduleTitle.className = 'hero-card__schedule-title';
+        scheduleTitle.textContent = data.schedule[i].title;
+        var description = document.createElement('p');
+        description.className = 'hero-card__schedule-detail';
+        description.textContent = data.schedule[i].description;
+        detail.appendChild(scheduleTitle);
+        detail.appendChild(description);
+        item.appendChild(date);
+        item.appendChild(detail);
+        list.appendChild(item);
+      }
+      var note = document.createElement('p');
+      note.className = 'hero-card__schedule-note';
+      note.textContent = data.note;
+      container.appendChild(eyebrow);
+      container.appendChild(title);
+      container.appendChild(summary);
+      container.appendChild(list);
+      container.appendChild(note);
+      return Promise.resolve();
+    }
 
      renderBackgroundPanels(container)
      {
@@ -665,17 +680,17 @@
      _buildDataset()
      {
        return {
-         hero: {
-           eyebrow: '現在の接続状況',
-           title: 'マスターズ連携のサマリー',
-           highlight: '8リーグ / 620名が遠隔指導を利用中',
-           summary: '合宿遠征なしでも週次レビューと進捗把握が回る体制を、北斎カップの知見をベースに再現しています。',
-           metrics: [
-             '週次レビュー平均 48 件（72 時間以内に応答）',
-             '動画アップロード 310 本 / 月、オートタグで分類',
-             '滞留検知は 12 時間以内に運営へ自動通知'
-           ]
-         },
+        hero: {
+          eyebrow: '今後の行事予定',
+          title: '直近の行事ハイライト',
+          summary: 'お申し込み受付中の行事とオンライン配信の予定をまとめました。参加方法や配信リンクは、開始 24 時間前にメールでもご案内いたします。',
+          schedule: [
+            { date: '3/03(月)', title: '春季祈願祭', description: '本山より護摩供をライブ配信・会場参列も受付中' },
+            { date: '3/10(月)', title: '護摩修法オンライン祈祷', description: 'ご自宅からの遠隔祈祷／事前祈願受付は前日まで' },
+            { date: '3/17(月)', title: '青年部 合同勉強会', description: '講話とシェアリングをオンラインで配信（アーカイブ付）' }
+          ],
+          note: 'この他の行事は下部の「今後の行事予定」からもご確認いただけます。'
+        },
          background: [
            { icon: '🛰️', title: '遠隔レビューの定着', body: '現地合宿に依存しないフィードバック体制を確立し、クラブ間の知見循環を高速化します。' },
            { icon: '🧭', title: 'ロール別の可視化', body: '運営・コーチ・生徒が同じ進捗指標を共有できるよう、ロール別に画面と KPI を整理。' },
