@@ -2,7 +2,7 @@
  {
    'use strict';
 
-   class IndexrefJobView
+   class AgonIndexrefJobView
    {
      constructor(pageInstance)
      {
@@ -86,7 +86,7 @@
         backgroundOpacity: 0.82,
         titleFont: '"Noto Sans JP", sans-serif',
         detailFont: '"Noto Sans JP", sans-serif',
-         zIndex: 9200
+         zAgonIndex: 9200
        });
      }
 
@@ -108,7 +108,7 @@
         backgroundImage: 'https://picsum.photos/600/400?blur=3',
         imageOpacity: 0.82,
         imageSize: 'cover',
-        zIndex: 9100
+        zAgonIndex: 9100
       });
     }
 
@@ -122,7 +122,7 @@
     }
   }
 
-   var NS = w.Indexref || (w.Indexref = {});
-   NS.JobView = NS.JobView || IndexrefJobView;
+   var NS = w.AgonIndexref || (w.AgonIndexref = {});
+   NS.JobView = NS.JobView || AgonIndexrefJobView;
 
  })(window);

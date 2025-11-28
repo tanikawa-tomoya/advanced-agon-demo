@@ -10,21 +10,22 @@
      backlog: 'rgba(143, 213, 255, 0.55)'
    };
 
-   class HistoryJobView
+   class IndexJobView
    {
-     constructor(pageInstance)
-     {
-      this.pageInstance = pageInstance;
-      this.state = {
+    constructor(pageInstance)
+    {
+     this.pageInstance = pageInstance;
+     this.state = {
         dashboardGroup: null,
-        dashboardEvent: null
+        dashboardIndex: null
       };
+      this.buttonService = pageInstance && pageInstance.buttonService;
        this.dataset = this._buildDataset();
-     }
+    }
 
      loadPage(page)
      {
-       var SEL   = window.HistoryConfig.SELECTOR;
+       var SEL   = window.IndexConfig.SELECTOR;
        var tasks = [];
 
        var navEl = document.querySelector(SEL.nav);
@@ -32,14 +33,19 @@
          try {
            this.setupNav(navEl);
          } catch (e) {
-           console.error('[history] setupNav failed:', e);
+           console.error('[index] setupNav failed:', e);
          }
        }
 
-       var hero = document.querySelector(SEL.heroGlance);
-       if (hero) {
-         tasks.push(this.renderHeroGlance(hero));
-       }
+      var hero = document.querySelector(SEL.heroGlance);
+      if (hero) {
+        tasks.push(this.renderHeroGlance(hero));
+      }
+
+      var heroButtons = document.querySelector('.hero__button-list');
+      if (heroButtons) {
+        tasks.push(this.renderHeroButtons(heroButtons));
+      }
 
        var background = document.querySelector(SEL.backgroundPanels);
        if (background) {
@@ -100,10 +106,10 @@
          Promise.allSettled(tasks).catch(function (error) {
            try {
              if (page && page.showError) {
-               page.showError(window.HistoryConfig.TEXT.featureInitError);
+               page.showError(window.IndexConfig.TEXT.featureInitError);
              }
            } finally {
-             console.error('[history] init error:', error);
+             console.error('[index] init error:', error);
            }
          });
        }
@@ -118,7 +124,7 @@
          var href = a.getAttribute('href') || '';
          try {
            var clean = href.replace(/\/+$/, '');
-           if (clean && path.historyOf(clean) === 0) {
+           if (clean && path.indexOf(clean) === 0) {
              a.classList.add('is-active');
            }
          } catch (e) {
@@ -134,12 +140,12 @@
        var eyebrow = document.createElement('p');
        eyebrow.className = 'hero__eyebrow';
        eyebrow.textContent = data.eyebrow;
-       var title = document.createElement('p');
-       title.className = 'hero-card__title';
-       title.textContent = data.title;
-       var highlight = document.createElement('p');
-       highlight.className = 'hero-card__highlight';
-       highlight.textContent = data.highlight;
+      var title = document.createElement('p');
+      title.className = 'hero-card__title';
+      title.textContent = data.title;
+      var highlight = document.createElement('p');
+      highlight.className = 'hero-card__highlight';
+      highlight.textContent = data.highlight;
        var summary = document.createElement('p');
        summary.className = 'hero-card__summary';
        summary.textContent = data.summary;
@@ -152,11 +158,28 @@
        }
        container.appendChild(eyebrow);
        container.appendChild(title);
-       container.appendChild(highlight);
-       container.appendChild(summary);
-       container.appendChild(list);
-       return Promise.resolve();
-     }
+      container.appendChild(highlight);
+      container.appendChild(summary);
+      container.appendChild(list);
+      return Promise.resolve();
+    }
+
+    renderHeroButtons(container)
+    {
+      var buttons = this.dataset.navButtons;
+      var service = this.buttonService;
+      container.innerHTML = '';
+      for (var i = 0; i < buttons.length; i++) {
+        var config = buttons[i];
+        var button = service.createActionButton(config.buttonType, {
+          elementTag: 'a',
+          label: config.label,
+          attributes: Object.freeze({ href: config.href })
+        });
+        container.appendChild(button);
+      }
+      return Promise.resolve();
+    }
 
      renderBackgroundPanels(container)
      {
@@ -220,7 +243,7 @@
     {
       this.renderScreenGrid(grid);
 
-      grid.addEventListener('click', function (ev) {
+      grid.addIndexListener('click', function (ev) {
         var el = ev.target && ev.target.closest ? ev.target.closest('[data-screen]') : null;
          if (!el) {
            return;
@@ -247,7 +270,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tabhistory', '0');
+         card.setAttribute('tabindex', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');
@@ -278,19 +301,19 @@
        return Promise.resolve();
      }
 
-     _populateEventOptions(selectEl, group)
+     _populateIndexOptions(selectEl, group)
      {
        selectEl.innerHTML = '';
-       for (var i = 0; i < group.events.length; i++) {
-         var event = group.events[i];
+       for (var i = 0; i < group.indexs.length; i++) {
+         var index = group.indexs[i];
          var option = document.createElement('option');
-         option.value = event.id;
-         option.textContent = event.label;
+         option.value = index.id;
+         option.textContent = index.label;
          selectEl.appendChild(option);
        }
      }
 
-     _renderEventCharts(refs, eventId)
+     _renderIndexCharts(refs, indexId)
      {
        return;
      }
@@ -367,12 +390,12 @@
        }
      }
 
-     renderDonut(donutEl, legendEl, eventData)
+     renderDonut(donutEl, legendEl, indexData)
      {
-       if (!donutEl || !legendEl || !eventData) {
+       if (!donutEl || !legendEl || !indexData) {
          return;
        }
-       var slices = eventData.slices;
+       var slices = indexData.slices;
        var total = 0;
        for (var i = 0; i < slices.length; i++) {
          total += slices[i].value;
@@ -390,7 +413,7 @@
          currentDeg += portion;
        }
        donutEl.style.background = 'conic-gradient(' + gradientParts.join(', ') + ')';
-       donutEl.setAttribute('data-total', eventData.completion + '%');
+       donutEl.setAttribute('data-total', indexData.completion + '%');
        legendEl.innerHTML = '';
        for (var k = 0; k < slices.length; k++) {
          var slice = slices[k];
@@ -611,7 +634,7 @@
 
      enhanceContactForm(form, page)
      {
-       form.addEventListener('submit', function (ev) {
+       form.addIndexListener('submit', function (ev) {
          var required = form.querySelectorAll('[data-required], [required]');
          var ok = true;
          for (var i = 0; i < required.length; i++) {
@@ -625,9 +648,9 @@
            }
          }
          if (!ok) {
-           ev.preventDefault();
+           ev.prindexDefault();
            if (page && page.showError) {
-             page.showError(window.HistoryConfig.TEXT.inputLack);
+             page.showError(window.IndexConfig.TEXT.inputLack);
            }
          }
        });
@@ -636,18 +659,18 @@
 
      _resolveDashboardRefs()
      {
-       var SEL = window.HistoryConfig.SELECTOR;
+       var SEL = window.IndexConfig.SELECTOR;
        var refs = {
          group: document.querySelector(SEL.groupFilter),
-         event: document.querySelector(SEL.eventFilter),
+         index: document.querySelector(SEL.indexFilter),
          trendChart: document.querySelector(SEL.trendChart),
          trendLegend: document.querySelector(SEL.trendLegend),
          statusBars: document.querySelector(SEL.statusBars),
-         eventDonut: document.querySelector(SEL.eventDonut),
-         eventLegend: document.querySelector(SEL.eventLegend),
+         indexDonut: document.querySelector(SEL.indexDonut),
+         indexLegend: document.querySelector(SEL.indexLegend),
          heatmap: document.querySelector(SEL.heatmap)
        };
-       refs.ready = !!(refs.group && refs.event && refs.trendChart && refs.statusBars && refs.eventDonut && refs.eventLegend && refs.heatmap);
+       refs.ready = !!(refs.group && refs.index && refs.trendChart && refs.statusBars && refs.indexDonut && refs.indexLegend && refs.heatmap);
        return refs;
      }
 
@@ -662,13 +685,20 @@
        return null;
      }
 
-     _buildDataset()
-     {
-       return {
-         hero: {
-           eyebrow: '現在の接続状況',
-           title: 'マスターズ連携のサマリー',
-           highlight: '8リーグ / 620名が遠隔指導を利用中',
+    _buildDataset()
+    {
+      return {
+        navButtons: [
+          { buttonType: 'index-nav-news', label: '最新情報', href: '/event' },
+          { buttonType: 'index-nav-about', label: '阿含宗とは 理念と教学', href: '/about' },
+          { buttonType: 'index-nav-videos', label: '映像で見る 阿含の歩み', href: '/contents1' },
+          { buttonType: 'index-nav-audio', label: '音声で聴く 開祖著作', href: '/contents2' },
+          { buttonType: 'index-nav-wellness', label: '心と体の健康のために', href: '/wellness' }
+        ],
+        hero: {
+          eyebrow: '現在の接続状況',
+          title: 'マスターズ連携のサマリー',
+          highlight: '8リーグ / 620名が遠隔指導を利用中',
            summary: '合宿遠征なしでも週次レビューと進捗把握が回る体制を、北斎カップの知見をベースに再現しています。',
            metrics: [
              '週次レビュー平均 48 件（72 時間以内に応答）',
@@ -749,7 +779,7 @@
                  { label: 'W11', level: 'medium' },
                  { label: 'W12', level: 'high' }
                ],
-               events: [
+               indexs: [
                  {
                    id: 'hokusai-qualifier',
                    label: '地区予選',
@@ -797,7 +827,7 @@
                  { label: 'W11', level: 'medium' },
                  { label: 'W12', level: 'medium' }
                ],
-               events: [
+               indexs: [
                  {
                    id: 'masters-trial',
                    label: 'Masters トライアル',
@@ -909,7 +939,7 @@
      }
    }
 
-   var NS = window.History || (window.History = {});
-   NS.JobView = NS.JobView || HistoryJobView;
+   var NS = window.Index || (window.Index = {});
+   NS.JobView = NS.JobView || IndexJobView;
 
  })(window);

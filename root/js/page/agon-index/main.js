@@ -2,11 +2,11 @@
 
   'use strict';
   
-  class News
+  class AgonIndex
   {
     constructor(name)
     {
-      this.name = name || 'news';
+      this.name = name || 'agon-index';
     }
 
     // このページではSessionServiceでのログイン状態のチェックは不要         
@@ -15,26 +15,29 @@
       await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
                                                       { src: '/js/service-app/toast/main.js' },
                                                       { src: '/js/service-app/loading/main.js' },
-                                          { src: '/js/page/news/job-view.js' }]);
+                                                      { src: '/js/service-app/button/main.js' },
+                                          { src: '/js/page/agon-index/job-view.js' }]);
 
       this.initConfig();
       
       this.headerService = new window.Services.Header({display: {forceLoginButton: true, hideLoginButton: false, showUserInfoWhenLoggedin: false}});
                   this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
       this.loadingService = new window.Services.Loading(document.querySelector('.login-card') || document.body);
+      this.buttonService = new window.Services.Button.ButtonService();
 
       await Promise.all([
         this.headerService.boot('.site-header'),
         this.toastService.boot(),
-        this.loadingService.boot()
+        this.loadingService.boot(),
+        this.buttonService.boot()
       ]);
 
-      new window.News.JobView (this).loadPage();
+      new window.AgonIndex.JobView (this).loadPage();
     }
 
-    updateEvent()
+    updateAgonIndex()
     {
-      document.addEventListener('click', function (ev) {
+      document.addAgonIndexListener('click', function (ev) {
         var target = ev.target;
         var el = target && target.closest ? target.closest('[data-action]') : null;
         if (!el) {
@@ -67,7 +70,7 @@
     
     initConfig()
     {
-      var baseConfig = window.NewsConfig || {};
+      var baseConfig = window.AgonIndexConfig || {};
 
       this.TEXT = Object.assign({
         featureInitError: '機能の初期化に失敗しました。',
@@ -85,12 +88,12 @@
         roleCards:       '#role-cards',
         screenGrid:      '#screen-grid',
         groupFilter:     '#group-filter',
-        eventFilter:     '#event-filter',
+        agon-indexFilter:     '#agon-index-filter',
         trendChart:      '#trend-chart',
         trendLegend:     '#trend-legend',
         statusBars:      '#status-bars',
-        eventDonut:      '#event-donut',
-        eventLegend:     '#event-legend',
+        agon-indexDonut:      '#agon-index-donut',
+        agon-indexLegend:     '#agon-index-legend',
         heatmap:         '#heatmap',
         badgeShowcase:   '#badge-showcase',
         journey:         '#journey',
@@ -101,11 +104,11 @@
         contactForm:     '.contact-form'
       }, (baseConfig && baseConfig.SELECTOR) || {});
 
-      window.NewsConfig = Object.assign({}, baseConfig, {
+      window.AgonIndexConfig = Object.assign({}, baseConfig, {
         TEXT: this.TEXT,
         SELECTOR: this.SELECTOR
       });
     }
   }
-  window.News = window.News || News;
+  window.AgonIndex = window.AgonIndex || AgonIndex;
 })(window);

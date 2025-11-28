@@ -15,6 +15,7 @@
       await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
                                                       { src: '/js/service-app/toast/main.js' },
                                                       { src: '/js/service-app/loading/main.js' },
+                                                      { src: '/js/service-app/button/main.js' },
                                           { src: '/js/page/index/job-view.js' }]);
 
       this.initConfig();
@@ -22,19 +23,21 @@
       this.headerService = new window.Services.Header({display: {forceLoginButton: true, hideLoginButton: false, showUserInfoWhenLoggedin: false}});
                   this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
       this.loadingService = new window.Services.Loading(document.querySelector('.login-card') || document.body);
+      this.buttonService = new window.Services.Button.ButtonService();
 
       await Promise.all([
         this.headerService.boot('.site-header'),
         this.toastService.boot(),
-        this.loadingService.boot()
+        this.loadingService.boot(),
+        this.buttonService.boot()
       ]);
 
       new window.Index.JobView (this).loadPage();
     }
 
-    updateEvent()
+    updateIndex()
     {
-      document.addEventListener('click', function (ev) {
+      document.addIndexListener('click', function (ev) {
         var target = ev.target;
         var el = target && target.closest ? target.closest('[data-action]') : null;
         if (!el) {
@@ -85,12 +88,12 @@
         roleCards:       '#role-cards',
         screenGrid:      '#screen-grid',
         groupFilter:     '#group-filter',
-        eventFilter:     '#event-filter',
+        indexFilter:     '#index-filter',
         trendChart:      '#trend-chart',
         trendLegend:     '#trend-legend',
         statusBars:      '#status-bars',
-        eventDonut:      '#event-donut',
-        eventLegend:     '#event-legend',
+        indexDonut:      '#index-donut',
+        indexLegend:     '#index-legend',
         heatmap:         '#heatmap',
         badgeShowcase:   '#badge-showcase',
         journey:         '#journey',

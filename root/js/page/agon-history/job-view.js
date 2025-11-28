@@ -10,7 +10,7 @@
      backlog: 'rgba(143, 213, 255, 0.55)'
    };
 
-   class WellnessJobView
+   class AgonHistoryJobView
    {
      constructor(pageInstance)
      {
@@ -24,7 +24,7 @@
 
      loadPage(page)
      {
-       var SEL   = window.WellnessConfig.SELECTOR;
+       var SEL   = window.AgonHistoryConfig.SELECTOR;
        var tasks = [];
 
        var navEl = document.querySelector(SEL.nav);
@@ -32,7 +32,7 @@
          try {
            this.setupNav(navEl);
          } catch (e) {
-           console.error('[wellness] setupNav failed:', e);
+           console.error('[agon-history] setupNav failed:', e);
          }
        }
 
@@ -100,10 +100,10 @@
          Promise.allSettled(tasks).catch(function (error) {
            try {
              if (page && page.showError) {
-               page.showError(window.WellnessConfig.TEXT.featureInitError);
+               page.showError(window.AgonHistoryConfig.TEXT.featureInitError);
              }
            } finally {
-             console.error('[wellness] init error:', error);
+             console.error('[agon-history] init error:', error);
            }
          });
        }
@@ -118,7 +118,7 @@
          var href = a.getAttribute('href') || '';
          try {
            var clean = href.replace(/\/+$/, '');
-           if (clean && path.wellnessOf(clean) === 0) {
+           if (clean && path.agon-historyOf(clean) === 0) {
              a.classList.add('is-active');
            }
          } catch (e) {
@@ -247,7 +247,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tabwellness', '0');
+         card.setAttribute('tabagon-history', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');
@@ -627,7 +627,7 @@
          if (!ok) {
            ev.preventDefault();
            if (page && page.showError) {
-             page.showError(window.WellnessConfig.TEXT.inputLack);
+             page.showError(window.AgonHistoryConfig.TEXT.inputLack);
            }
          }
        });
@@ -636,7 +636,7 @@
 
      _resolveDashboardRefs()
      {
-       var SEL = window.WellnessConfig.SELECTOR;
+       var SEL = window.AgonHistoryConfig.SELECTOR;
        var refs = {
          group: document.querySelector(SEL.groupFilter),
          event: document.querySelector(SEL.eventFilter),
@@ -909,7 +909,7 @@
      }
    }
 
-   var NS = window.Wellness || (window.Wellness = {});
-   NS.JobView = NS.JobView || WellnessJobView;
+   var NS = window.AgonHistory || (window.AgonHistory = {});
+   NS.JobView = NS.JobView || AgonHistoryJobView;
 
  })(window);

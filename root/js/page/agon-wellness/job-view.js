@@ -10,7 +10,7 @@
      backlog: 'rgba(143, 213, 255, 0.55)'
    };
 
-   class NewsJobView
+   class AgonWellnessJobView
    {
      constructor(pageInstance)
      {
@@ -24,7 +24,7 @@
 
      loadPage(page)
      {
-       var SEL   = window.NewsConfig.SELECTOR;
+       var SEL   = window.AgonWellnessConfig.SELECTOR;
        var tasks = [];
 
        var navEl = document.querySelector(SEL.nav);
@@ -32,7 +32,7 @@
          try {
            this.setupNav(navEl);
          } catch (e) {
-           console.error('[news] setupNav failed:', e);
+           console.error('[agon-wellness] setupNav failed:', e);
          }
        }
 
@@ -100,10 +100,10 @@
          Promise.allSettled(tasks).catch(function (error) {
            try {
              if (page && page.showError) {
-               page.showError(window.NewsConfig.TEXT.featureInitError);
+               page.showError(window.AgonWellnessConfig.TEXT.featureInitError);
              }
            } finally {
-             console.error('[news] init error:', error);
+             console.error('[agon-wellness] init error:', error);
            }
          });
        }
@@ -118,7 +118,7 @@
          var href = a.getAttribute('href') || '';
          try {
            var clean = href.replace(/\/+$/, '');
-           if (clean && path.newsOf(clean) === 0) {
+           if (clean && path.agon-wellnessOf(clean) === 0) {
              a.classList.add('is-active');
            }
          } catch (e) {
@@ -247,7 +247,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tabnews', '0');
+         card.setAttribute('tabagon-wellness', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');
@@ -627,7 +627,7 @@
          if (!ok) {
            ev.preventDefault();
            if (page && page.showError) {
-             page.showError(window.NewsConfig.TEXT.inputLack);
+             page.showError(window.AgonWellnessConfig.TEXT.inputLack);
            }
          }
        });
@@ -636,7 +636,7 @@
 
      _resolveDashboardRefs()
      {
-       var SEL = window.NewsConfig.SELECTOR;
+       var SEL = window.AgonWellnessConfig.SELECTOR;
        var refs = {
          group: document.querySelector(SEL.groupFilter),
          event: document.querySelector(SEL.eventFilter),
@@ -909,7 +909,7 @@
      }
    }
 
-   var NS = window.News || (window.News = {});
-   NS.JobView = NS.JobView || NewsJobView;
+   var NS = window.AgonWellness || (window.AgonWellness = {});
+   NS.JobView = NS.JobView || AgonWellnessJobView;
 
  })(window);

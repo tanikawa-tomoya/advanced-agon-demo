@@ -10,7 +10,7 @@
      backlog: 'rgba(143, 213, 255, 0.55)'
    };
 
-   class AboutJobView
+   class AgonContents2JobView
    {
      constructor(pageInstance)
      {
@@ -24,7 +24,7 @@
 
      loadPage(page)
      {
-       var SEL   = window.AboutConfig.SELECTOR;
+       var SEL   = window.AgonContents2Config.SELECTOR;
        var tasks = [];
 
        var navEl = document.querySelector(SEL.nav);
@@ -32,7 +32,7 @@
          try {
            this.setupNav(navEl);
          } catch (e) {
-           console.error('[about] setupNav failed:', e);
+           console.error('[agon-contents2] setupNav failed:', e);
          }
        }
 
@@ -100,10 +100,10 @@
          Promise.allSettled(tasks).catch(function (error) {
            try {
              if (page && page.showError) {
-               page.showError(window.AboutConfig.TEXT.featureInitError);
+               page.showError(window.AgonContents2Config.TEXT.featureInitError);
              }
            } finally {
-             console.error('[about] init error:', error);
+             console.error('[agon-contents2] init error:', error);
            }
          });
        }
@@ -118,7 +118,7 @@
          var href = a.getAttribute('href') || '';
          try {
            var clean = href.replace(/\/+$/, '');
-           if (clean && path.aboutOf(clean) === 0) {
+           if (clean && path.agon-contents2Of(clean) === 0) {
              a.classList.add('is-active');
            }
          } catch (e) {
@@ -247,7 +247,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tababout', '0');
+         card.setAttribute('tabagon-contents2', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');
@@ -627,7 +627,7 @@
          if (!ok) {
            ev.preventDefault();
            if (page && page.showError) {
-             page.showError(window.AboutConfig.TEXT.inputLack);
+             page.showError(window.AgonContents2Config.TEXT.inputLack);
            }
          }
        });
@@ -636,7 +636,7 @@
 
      _resolveDashboardRefs()
      {
-       var SEL = window.AboutConfig.SELECTOR;
+       var SEL = window.AgonContents2Config.SELECTOR;
        var refs = {
          group: document.querySelector(SEL.groupFilter),
          event: document.querySelector(SEL.eventFilter),
@@ -718,7 +718,7 @@
           { title: 'ダッシュボード', category: 'KPI・監視', description: 'クラブ横断 KPI と SLA アラートをひと目で把握。', meta: '滞留検知 / SLA 通知', href: 'dashboard.html' },
           { title: '目標ポートフォリオ', category: 'テンプレ管理', description: 'クエストテンプレのバージョン管理と配布履歴。', meta: 'テンプレ比較 / 権限', href: 'targets.html' },
           { title: '個別目標レビュー', category: '添削', description: '動画・コメント・タグをまとめたレビューコンソール。', meta: '動画 / コメント / タグ', href: 'target-detail.html' },
-          { title: 'コンテンツ', category: 'リソース', description: '練習メニューや教材をクラブ間で共有。', meta: '教材プレビュー / フィルタ', href: 'contents.html' },
+          { title: 'コンテンツ', category: 'リソース', description: '練習メニューや教材をクラブ間で共有。', meta: '教材プレビュー / フィルタ', href: 'agon-contents.html' },
           { title: 'レビューキュー', category: 'SLA 管理', description: '提出物の滞留時間を色分けし、担当を自動アサイン。', meta: '優先度ソート / 自動割当', href: 'admin-queue.html' },
           { title: '個人設定', category: '通知', description: 'チャネル別通知やデバイス設定を編集。', meta: '通知 / デバイス', href: 'account-settings.html' }
         ],
@@ -909,7 +909,7 @@
      }
    }
 
-   var NS = window.About || (window.About = {});
-   NS.JobView = NS.JobView || AboutJobView;
+   var NS = window.AgonContents2 || (window.AgonContents2 = {});
+   NS.JobView = NS.JobView || AgonContents2JobView;
 
  })(window);

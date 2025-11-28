@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>阿含宗デモサイト | 阿含宗デモサイト デモサイト</title>
+    <title>ADVANCED | ADVANCED デモサイト</title>
     <link rel="shortcut icon" href="image/favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,21 +20,23 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 	<script src="js/entrypoint.js?v=1"></script>							
   </head>
-  <body class="page--index">
+  <body>
     <header class="site-header" data-disable-account-ui>
-      <a class="site-header__logo" href="/index" data-logo-label="阿含宗デモサイト">阿含宗デモサイト</a>
+      <a class="site-header__logo" href="index.html" data-logo-label="ADVANCED">ADVANCED</a>
       <a class="site-header__cta" href="login.html">ログイン</a>
     </header>
 
     <main>
       <section class="hero" id="overview">
-        <div class="hero__content hero__content--buttons">
-          <div class="hero__button-list">
-            <a class="btn btn--primary hero__nav-button" href="/event">最新情報</a>
-            <a class="btn btn--ghost hero__nav-button" href="/about">阿含宗とは 理念と教学</a>
-            <a class="btn btn--ghost hero__nav-button" href="/contents1">映像で見る 阿含の歩み</a>
-            <a class="btn btn--ghost hero__nav-button" href="/contents2">音声で聴く 開祖著作</a>
-            <a class="btn btn--ghost hero__nav-button" href="/wellness">心と体の健康のために</a>
+        <div class="hero__content">
+          <p class="hero__eyebrow">部活動・クラブの遠隔指導をアップデート</p>
+          <h1>指導・進捗可視化システム<br /><span class="hero__accent">デモサイト</span></h1>
+          <p class="hero__lead">
+            北斎カップで培った遠隔サポートの知見を、マスターズシステムと連携する新しい指導体験へ。課題設定からレビュー、ダッシュボード可視化までを一気通貫で体感できます。
+          </p>
+          <div class="hero__cta-group">
+            <a class="btn btn--primary" href="#dashboard-demo">デモを見る</a>
+            <a class="btn btn--ghost" href="#release-plan">リリース構想</a>
           </div>
         </div>
         <div class="hero__glance" role="presentation">
@@ -42,8 +44,135 @@
         </div>
       </section>
 
+      <section class="section section--grid" id="background">
+        <div class="section__header">
+          <h2>背景と目的</h2>
+          <p>現場の指導とリモートサポートを両立させ、グループ横断で進捗を見える化する基盤づくりを支援します。</p>
+        </div>
+        <div class="panel-list" id="background-panels"></div>
+      </section>
+
+      <section class="section" id="roles">
+        <div class="section__header">
+          <h2>関係者ロールと主要コンセプト</h2>
+          <p>運営・コーチ・生徒がシームレスに連携するための設計思想をまとめました。</p>
+        </div>
+        <div class="role-cards" id="role-cards"></div>
+      </section>
+
+      <section class="section section--alt" id="screens">
+        <div class="section__header">
+          <h2>初期リリースで提供する画面</h2>
+          <p>マスターズシステムを拡張し、フェーズ1で実装する8つの運営画面と6つの生徒画面を整理しています。</p>
+        </div>
+        <div class="screen-grid" id="screen-grid" role="tabpanel" aria-live="polite"></div>
+      </section>
+
+      <section class="section" id="dashboard-demo">
+        <div class="section__header">
+          <h2>ダッシュボード可視化デモ</h2>
+          <p>スタブデータから生成する簡易チャートで、進捗指標のイメージをご覧いただけます。</p>
+        </div>
+        <div class="dashboard-demo">
+          <div class="dashboard-demo__filters">
+            <label for="group-filter">グループ</label>
+            <select id="group-filter"></select>
+            <label for="event-filter">目標イベント</label>
+            <select id="event-filter"></select>
+          </div>
+          <div class="dashboard-demo__content">
+            <div class="dashboard-card">
+              <h3>週次達成率推移</h3>
+              <div class="sparkline" id="trend-chart" aria-hidden="true"></div>
+              <ul class="sparkline__legend" id="trend-legend" aria-label="週次達成率"></ul>
+            </div>
+            <div class="dashboard-card">
+              <h3>タグ別ステータス</h3>
+              <div class="stacked-bars" id="status-bars"></div>
+            </div>
+            <div class="dashboard-card">
+              <h3>イベント別達成率</h3>
+              <div class="donut" id="event-donut" role="img" aria-label="イベント別達成率"></div>
+              <ul class="donut__legend" id="event-legend"></ul>
+            </div>
+            <div class="dashboard-card">
+              <h3>滞留ヒートマップ</h3>
+              <div class="heatmap" id="heatmap"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="badge-showcase-section">
+        <div class="badge-showcase" id="badge-showcase"></div>
+      </section>
+
+      <section class="section section--alt" id="flow">
+        <div class="section__header">
+          <h2>クエストライフサイクル</h2>
+          <p>テンプレート作成から提出レビューまでの一連の体験を、起票モーダルと動画レビュー画面のモックで表現します。</p>
+        </div>
+        <div class="journey" id="journey"></div>
+      </section>
+
+      <section class="section" id="data-model">
+        <div class="section__header">
+          <h2>データモデル（最小カラム）</h2>
+          <p>既存マスターズシステムに追加するテーブルを中心に、JSONスタブから主要カラムを動的に描画します。</p>
+        </div>
+        <div class="data-table" id="data-table"></div>
+      </section>
+
+      <section class="section section--alt" id="api">
+        <div class="section__header">
+          <h2>APIエンドポイント（ドラフト）</h2>
+          <p>ロールベース認可を前提としたRESTエンドポイントの叩き台です。</p>
+        </div>
+        <div class="api-grid" id="api-grid"></div>
+      </section>
+
+      <section class="section" id="release-plan">
+        <div class="section__header">
+          <h2>リリース計画と今後の拡張</h2>
+          <p>第1段階の提供範囲と、第2段階以降で検討している機能群を整理しています。</p>
+        </div>
+        <div class="roadmap" id="roadmap"></div>
+      </section>
+
+      <section class="section section--accent" id="kpi">
+        <div class="section__header">
+          <h2>デモ用KPIサマリー</h2>
+          <p>初期スタブデータに基づく主要指標のサンプル値です。</p>
+        </div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+      </section>
+
+      <section class="section" id="contact">
+        <div class="section__header">
+          <h2>お問い合わせ</h2>
+          <p>デモ導入や追加モック作成のご相談はお気軽にご連絡ください。</p>
+        </div>
+        <form class="contact-form">
+          <div class="contact-form__row">
+            <label for="name">お名前</label>
+            <input id="name" type="text" placeholder="例）小布施 高志" required />
+          </div>
+          <div class="contact-form__row">
+            <label for="mail">メールアドレス</label>
+            <input id="mail" type="mail" placeholder="example@example.com" />
+          </div>
+          <div class="contact-form__row">
+            <label for="message">ご相談内容</label>
+            <textarea id="message" rows="4" placeholder="導入スケジュールや必要なカスタマイズをご記入ください"></textarea>
+          </div>
+          <button class="btn btn--primary" type="submit">送信する（デモ）</button>
+          <p class="contact-form__note">※このフォームはデモです。送信内容は保存されません。</p>
+        </form>
+      </section>
+    </main>
+
     <footer class="site-footer">
-      <p>© 2025 MEDIAPLUS. All rights reserved.</p>
+      <p>© 2025 ADVANCED demo. All rights reserved.</p>
     </footer>
   </body>
 </html>

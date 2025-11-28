@@ -2,33 +2,34 @@
 
   'use strict';
   
-  class Indexref
+  class AgonWellness
   {
     constructor(name)
     {
-      this.name = name || 'indexref';
+      this.name = name || 'agon-wellness';
     }
 
-    // このページではSessionServiceでのログイン状態のチェックは不要
+    // このページではSessionServiceでのログイン状態のチェックは不要         
     async boot()
     {
-      await window.Utils.loadScriptsSync([
-        { src: '/js/service-app/toast/main.js' },
-        { src: '/js/service-app/loading/main.js' },
-        { src: '/js/page/indexref/job-view.js' }
-      ]);
+      await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
+                                                      { src: '/js/service-app/toast/main.js' },
+                                                      { src: '/js/service-app/loading/main.js' },
+                                          { src: '/js/page/agon-wellness/job-view.js' }]);
 
       this.initConfig();
-
-      this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
+      
+      this.headerService = new window.Services.Header({display: {forceLoginButton: true, hideLoginButton: false, showUserInfoWhenLoggedin: false}});
+                  this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
       this.loadingService = new window.Services.Loading(document.querySelector('.login-card') || document.body);
 
       await Promise.all([
+        this.headerService.boot('.site-header'),
         this.toastService.boot(),
         this.loadingService.boot()
       ]);
 
-      new window.Indexref.JobView (this).loadPage();
+      new window.AgonWellness.JobView (this).loadPage();
     }
 
     updateEvent()
@@ -66,7 +67,7 @@
     
     initConfig()
     {
-      var baseConfig = window.IndexrefConfig || {};
+      var baseConfig = window.AgonWellnessConfig || {};
 
       this.TEXT = Object.assign({
         featureInitError: '機能の初期化に失敗しました。',
@@ -78,6 +79,7 @@
 
       // セレクタの集中定義（HTML に未登場でも安全に無視される）
       this.SELECTOR = Object.assign({
+        nav:             '.site-header',
         heroGlance:      '#hero-glance',
         backgroundPanels:'#background-panels',
         roleCards:       '#role-cards',
@@ -99,11 +101,11 @@
         contactForm:     '.contact-form'
       }, (baseConfig && baseConfig.SELECTOR) || {});
 
-      window.IndexrefConfig = Object.assign({}, baseConfig, {
+      window.AgonWellnessConfig = Object.assign({}, baseConfig, {
         TEXT: this.TEXT,
         SELECTOR: this.SELECTOR
       });
     }
   }
-  window.Indexref = window.Indexref || Indexref;
+  window.AgonWellness = window.AgonWellness || AgonWellness;
 })(window);

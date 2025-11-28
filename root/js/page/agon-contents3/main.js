@@ -2,11 +2,11 @@
 
   'use strict';
   
-  class Contents3
+  class AgonContents3
   {
     constructor(name)
     {
-      this.name = name || 'contents3';
+      this.name = name || 'agon-contents3';
     }
 
     // このページではSessionServiceでのログイン状態のチェックは不要         
@@ -15,7 +15,7 @@
       await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
                                                       { src: '/js/service-app/toast/main.js' },
                                                       { src: '/js/service-app/loading/main.js' },
-                                          { src: '/js/page/contents3/job-view.js' }]);
+                                          { src: '/js/page/agon-contents3/job-view.js' }]);
 
       this.initConfig();
       
@@ -29,7 +29,7 @@
         this.loadingService.boot()
       ]);
 
-      new window.Contents3.JobView (this).loadPage();
+      new window.AgonContents3.JobView (this).loadPage();
     }
 
     updateEvent()
@@ -67,7 +67,7 @@
     
     initConfig()
     {
-      var baseConfig = window.Contents3Config || {};
+      var baseConfig = window.AgonContents3Config || {};
 
       this.TEXT = Object.assign({
         featureInitError: '機能の初期化に失敗しました。',
@@ -101,11 +101,11 @@
         contactForm:     '.contact-form'
       }, (baseConfig && baseConfig.SELECTOR) || {});
 
-      window.Contents3Config = Object.assign({}, baseConfig, {
+      window.AgonContents3Config = Object.assign({}, baseConfig, {
         TEXT: this.TEXT,
         SELECTOR: this.SELECTOR
       });
     }
   }
-  window.Contents3 = window.Contents3 || Contents3;
+  window.AgonContents3 = window.AgonContents3 || AgonContents3;
 })(window);

@@ -2,34 +2,33 @@
 
   'use strict';
   
-  class Contents2
+  class AgonIndexref
   {
     constructor(name)
     {
-      this.name = name || 'contents2';
+      this.name = name || 'agon-index-ref';
     }
 
-    // このページではSessionServiceでのログイン状態のチェックは不要         
+    // このページではSessionServiceでのログイン状態のチェックは不要
     async boot()
     {
-      await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
-                                                      { src: '/js/service-app/toast/main.js' },
-                                                      { src: '/js/service-app/loading/main.js' },
-                                          { src: '/js/page/contents2/job-view.js' }]);
+      await window.Utils.loadScriptsSync([
+        { src: '/js/service-app/toast/main.js' },
+        { src: '/js/service-app/loading/main.js' },
+        { src: '/js/page/agon-index-ref/job-view.js' }
+      ]);
 
       this.initConfig();
-      
-      this.headerService = new window.Services.Header({display: {forceLoginButton: true, hideLoginButton: false, showUserInfoWhenLoggedin: false}});
-                  this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
+
+      this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
       this.loadingService = new window.Services.Loading(document.querySelector('.login-card') || document.body);
 
       await Promise.all([
-        this.headerService.boot('.site-header'),
         this.toastService.boot(),
         this.loadingService.boot()
       ]);
 
-      new window.Contents2.JobView (this).loadPage();
+      new window.AgonIndexref.JobView (this).loadPage();
     }
 
     updateEvent()
@@ -67,7 +66,7 @@
     
     initConfig()
     {
-      var baseConfig = window.Contents2Config || {};
+      var baseConfig = window.AgonIndexrefConfig || {};
 
       this.TEXT = Object.assign({
         featureInitError: '機能の初期化に失敗しました。',
@@ -79,7 +78,6 @@
 
       // セレクタの集中定義（HTML に未登場でも安全に無視される）
       this.SELECTOR = Object.assign({
-        nav:             '.site-header',
         heroGlance:      '#hero-glance',
         backgroundPanels:'#background-panels',
         roleCards:       '#role-cards',
@@ -101,11 +99,11 @@
         contactForm:     '.contact-form'
       }, (baseConfig && baseConfig.SELECTOR) || {});
 
-      window.Contents2Config = Object.assign({}, baseConfig, {
+      window.AgonIndexrefConfig = Object.assign({}, baseConfig, {
         TEXT: this.TEXT,
         SELECTOR: this.SELECTOR
       });
     }
   }
-  window.Contents2 = window.Contents2 || Contents2;
+  window.AgonIndexref = window.AgonIndexref || AgonIndexref;
 })(window);

@@ -2,11 +2,11 @@
 
   'use strict';
   
-  class History
+  class AgonHistory
   {
     constructor(name)
     {
-      this.name = name || 'history';
+      this.name = name || 'agon-history';
     }
 
     // このページではSessionServiceでのログイン状態のチェックは不要         
@@ -15,7 +15,7 @@
       await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
                                                       { src: '/js/service-app/toast/main.js' },
                                                       { src: '/js/service-app/loading/main.js' },
-                                          { src: '/js/page/history/job-view.js' }]);
+                                          { src: '/js/page/agon-history/job-view.js' }]);
 
       this.initConfig();
       
@@ -29,7 +29,7 @@
         this.loadingService.boot()
       ]);
 
-      new window.History.JobView (this).loadPage();
+      new window.AgonHistory.JobView (this).loadPage();
     }
 
     updateEvent()
@@ -67,7 +67,7 @@
     
     initConfig()
     {
-      var baseConfig = window.HistoryConfig || {};
+      var baseConfig = window.AgonHistoryConfig || {};
 
       this.TEXT = Object.assign({
         featureInitError: '機能の初期化に失敗しました。',
@@ -101,11 +101,11 @@
         contactForm:     '.contact-form'
       }, (baseConfig && baseConfig.SELECTOR) || {});
 
-      window.HistoryConfig = Object.assign({}, baseConfig, {
+      window.AgonHistoryConfig = Object.assign({}, baseConfig, {
         TEXT: this.TEXT,
         SELECTOR: this.SELECTOR
       });
     }
   }
-  window.History = window.History || History;
+  window.AgonHistory = window.AgonHistory || AgonHistory;
 })(window);

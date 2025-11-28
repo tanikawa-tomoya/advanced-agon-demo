@@ -2,11 +2,11 @@
 
   'use strict';
   
-  class Event
+  class AgonEvent
   {
     constructor(name)
     {
-      this.name = name || 'event';
+      this.name = name || 'agon-event';
     }
 
     // このページではSessionServiceでのログイン状態のチェックは不要         
@@ -15,7 +15,7 @@
       await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
                                                       { src: '/js/service-app/toast/main.js' },
                                                       { src: '/js/service-app/loading/main.js' },
-                                          { src: '/js/page/event/job-view.js' }]);
+                                          { src: '/js/page/agon-event/job-view.js' }]);
 
       this.initConfig();
       
@@ -29,12 +29,12 @@
         this.loadingService.boot()
       ]);
 
-      new window.Event.JobView (this).loadPage();
+      new window.AgonEvent.JobView (this).loadPage();
     }
 
-    updateEvent()
+    updateAgonEvent()
     {
-      document.addEventListener('click', function (ev) {
+      document.addAgonEventListener('click', function (ev) {
         var target = ev.target;
         var el = target && target.closest ? target.closest('[data-action]') : null;
         if (!el) {
@@ -67,7 +67,7 @@
     
     initConfig()
     {
-      var baseConfig = window.EventConfig || {};
+      var baseConfig = window.AgonEventConfig || {};
 
       this.TEXT = Object.assign({
         featureInitError: '機能の初期化に失敗しました。',
@@ -85,12 +85,12 @@
         roleCards:       '#role-cards',
         screenGrid:      '#screen-grid',
         groupFilter:     '#group-filter',
-        eventFilter:     '#event-filter',
+        agon-eventFilter:     '#agon-event-filter',
         trendChart:      '#trend-chart',
         trendLegend:     '#trend-legend',
         statusBars:      '#status-bars',
-        eventDonut:      '#event-donut',
-        eventLegend:     '#event-legend',
+        agon-eventDonut:      '#agon-event-donut',
+        agon-eventLegend:     '#agon-event-legend',
         heatmap:         '#heatmap',
         badgeShowcase:   '#badge-showcase',
         journey:         '#journey',
@@ -101,11 +101,11 @@
         contactForm:     '.contact-form'
       }, (baseConfig && baseConfig.SELECTOR) || {});
 
-      window.EventConfig = Object.assign({}, baseConfig, {
+      window.AgonEventConfig = Object.assign({}, baseConfig, {
         TEXT: this.TEXT,
         SELECTOR: this.SELECTOR
       });
     }
   }
-  window.Event = window.Event || Event;
+  window.AgonEvent = window.AgonEvent || AgonEvent;
 })(window);

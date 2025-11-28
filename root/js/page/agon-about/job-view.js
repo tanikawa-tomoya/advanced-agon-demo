@@ -10,7 +10,7 @@
      backlog: 'rgba(143, 213, 255, 0.55)'
    };
 
-   class IndexJobView
+   class AgonAboutJobView
    {
      constructor(pageInstance)
      {
@@ -24,7 +24,7 @@
 
      loadPage(page)
      {
-       var SEL   = window.IndexConfig.SELECTOR;
+       var SEL   = window.AgonAboutConfig.SELECTOR;
        var tasks = [];
 
        var navEl = document.querySelector(SEL.nav);
@@ -32,7 +32,7 @@
          try {
            this.setupNav(navEl);
          } catch (e) {
-           console.error('[index] setupNav failed:', e);
+           console.error('[agon-about] setupNav failed:', e);
          }
        }
 
@@ -100,10 +100,10 @@
          Promise.allSettled(tasks).catch(function (error) {
            try {
              if (page && page.showError) {
-               page.showError(window.IndexConfig.TEXT.featureInitError);
+               page.showError(window.AgonAboutConfig.TEXT.featureInitError);
              }
            } finally {
-             console.error('[index] init error:', error);
+             console.error('[agon-about] init error:', error);
            }
          });
        }
@@ -118,7 +118,7 @@
          var href = a.getAttribute('href') || '';
          try {
            var clean = href.replace(/\/+$/, '');
-           if (clean && path.indexOf(clean) === 0) {
+           if (clean && path.agon-aboutOf(clean) === 0) {
              a.classList.add('is-active');
            }
          } catch (e) {
@@ -247,7 +247,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tabindex', '0');
+         card.setAttribute('tabagon-about', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');
@@ -627,7 +627,7 @@
          if (!ok) {
            ev.preventDefault();
            if (page && page.showError) {
-             page.showError(window.IndexConfig.TEXT.inputLack);
+             page.showError(window.AgonAboutConfig.TEXT.inputLack);
            }
          }
        });
@@ -636,7 +636,7 @@
 
      _resolveDashboardRefs()
      {
-       var SEL = window.IndexConfig.SELECTOR;
+       var SEL = window.AgonAboutConfig.SELECTOR;
        var refs = {
          group: document.querySelector(SEL.groupFilter),
          event: document.querySelector(SEL.eventFilter),
@@ -909,7 +909,7 @@
      }
    }
 
-   var NS = window.Index || (window.Index = {});
-   NS.JobView = NS.JobView || IndexJobView;
+   var NS = window.AgonAbout || (window.AgonAbout = {});
+   NS.JobView = NS.JobView || AgonAboutJobView;
 
  })(window);
