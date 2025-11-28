@@ -133,34 +133,59 @@
        }
      }
 
-     renderHeroGlance(container)
-     {
-       var data = this.dataset.hero;
-       container.innerHTML = '';
-       var eyebrow = document.createElement('p');
-       eyebrow.className = 'hero__eyebrow';
-       eyebrow.textContent = data.eyebrow;
-      var title = document.createElement('p');
-      title.className = 'hero-card__title';
-      title.textContent = data.title;
-      var highlight = document.createElement('p');
-      highlight.className = 'hero-card__highlight';
-      highlight.textContent = data.highlight;
-       var summary = document.createElement('p');
-       summary.className = 'hero-card__summary';
-       summary.textContent = data.summary;
-       var list = document.createElement('ul');
-       list.className = 'hero-card__list';
-       for (var i = 0; i < data.metrics.length; i++) {
-         var item = document.createElement('li');
-         item.textContent = data.metrics[i];
-         list.appendChild(item);
-       }
-       container.appendChild(eyebrow);
-       container.appendChild(title);
-      container.appendChild(highlight);
-      container.appendChild(summary);
-      container.appendChild(list);
+    renderHeroGlance(container)
+    {
+      var data = this.dataset.hero;
+      container.innerHTML = '';
+
+      var placeholder = document.createElement('div');
+      placeholder.className = 'hero-card hero-card--placeholder';
+      var placeholderTitle = document.createElement('p');
+      placeholderTitle.className = 'hero-card__placeholder-title';
+      placeholderTitle.textContent = '近日追加予定のブロック';
+      var placeholderBody = document.createElement('p');
+      placeholderBody.className = 'hero-card__placeholder-body';
+      placeholderBody.textContent = 'ここに別途指定される内容が入ります。';
+      placeholder.appendChild(placeholderTitle);
+      placeholder.appendChild(placeholderBody);
+      container.appendChild(placeholder);
+
+      var card = document.createElement('div');
+      card.className = 'hero-card';
+      var eyebrow = document.createElement('p');
+      eyebrow.className = 'hero__eyebrow';
+      eyebrow.textContent = data.eyebrow;
+      card.appendChild(eyebrow);
+
+      if (data.countdownDays) {
+        var countdown = document.createElement('p');
+        countdown.className = 'hero-card__countdown';
+        countdown.innerHTML = (data.countdownLabel || '') + '<span class="hero-card__countdown-em">' + data.countdownDays + '</span>' + (data.countdownSuffix || '');
+        card.appendChild(countdown);
+      }
+
+      if (data.title) {
+        var title = document.createElement('p');
+        title.className = 'hero-card__title';
+        title.textContent = data.title;
+        card.appendChild(title);
+      }
+
+      if (data.highlight) {
+        var highlight = document.createElement('p');
+        highlight.className = 'hero-card__highlight';
+        highlight.textContent = data.highlight;
+        card.appendChild(highlight);
+      }
+
+      if (data.summary) {
+        var summary = document.createElement('p');
+        summary.className = 'hero-card__summary';
+        summary.textContent = data.summary;
+        card.appendChild(summary);
+      }
+
+      container.appendChild(card);
       return Promise.resolve();
     }
 
@@ -697,15 +722,12 @@
         ],
         hero: {
           eyebrow: '現在の接続状況',
-          title: 'マスターズ連携のサマリー',
-          highlight: '8リーグ / 620名が遠隔指導を利用中',
-           summary: '合宿遠征なしでも週次レビューと進捗把握が回る体制を、北斎カップの知見をベースに再現しています。',
-           metrics: [
-             '週次レビュー平均 48 件（72 時間以内に応答）',
-             '動画アップロード 310 本 / 月、オートタグで分類',
-             '滞留検知は 12 時間以内に運営へ自動通知'
-           ]
-         },
+          countdownLabel: '点火まであと',
+          countdownDays: '６６',
+          countdownSuffix: '日',
+          highlight: '阿含の星まつり',
+          summary: '2月8日(日)'
+        },
          background: [
            { icon: '🛰️', title: '遠隔レビューの定着', body: '現地合宿に依存しないフィードバック体制を確立し、クラブ間の知見循環を高速化します。' },
            { icon: '🧭', title: 'ロール別の可視化', body: '運営・コーチ・生徒が同じ進捗指標を共有できるよう、ロール別に画面と KPI を整理。' },
