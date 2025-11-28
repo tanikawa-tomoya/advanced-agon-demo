@@ -273,7 +273,7 @@
     {
       this.renderScreenGrid(grid);
 
-      grid.addAgonIndexListener('click', function (ev) {
+      grid.addEventListener('click', function (ev) {
         var el = ev.target && ev.target.closest ? ev.target.closest('[data-screen]') : null;
          if (!el) {
            return;
@@ -706,32 +706,32 @@
         resetState();
       }
 
-      openButton.addAgonIndexListener('click', function (ev) {
+      openButton.addEventListener('click', function (ev) {
         ev.preventDefault();
         openModal();
       });
 
       for (var i = 0; i < closeButtons.length; i++) {
-        closeButtons[i].addAgonIndexListener('click', function (ev) {
+        closeButtons[i].addEventListener('click', function (ev) {
           ev.preventDefault();
           closeModal();
         });
       }
 
-      modal.addAgonIndexListener('keydown', function (ev) {
+      modal.addEventListener('keydown', function (ev) {
         if (ev.key === 'Escape') {
           closeModal();
         }
       });
 
-      form.addAgonIndexListener('input', function (ev) {
+      form.addEventListener('input', function (ev) {
         var target = ev.target;
         if (target && target.classList) {
           target.classList.remove('is-error');
         }
       });
 
-      agreeButton.addAgonIndexListener('click', function (ev) {
+      agreeButton.addEventListener('click', function (ev) {
         ev.preventDefault();
         agreed = true;
         agreeButton.setAttribute('aria-pressed', 'true');
@@ -739,7 +739,7 @@
         confirmButton.disabled = false;
       });
 
-      confirmButton.addAgonIndexListener('click', function (ev) {
+      confirmButton.addEventListener('click', function (ev) {
         ev.preventDefault();
         var required = form.querySelectorAll('[data-required]');
         var ok = true;
@@ -780,7 +780,7 @@
 
      enhanceContactForm(form, page)
      {
-       form.addAgonIndexListener('submit', function (ev) {
+       form.addEventListener('submit', function (ev) {
          var required = form.querySelectorAll('[data-required], [required]');
          var ok = true;
          for (var i = 0; i < required.length; i++) {
