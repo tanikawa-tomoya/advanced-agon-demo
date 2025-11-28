@@ -7,12 +7,26 @@ body.index-landing {
   margin: 0;
   color: #f7f5f0;
   font-family: 'Noto Sans JP', 'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
-  background: #000 url('/image/sample/open-book-1428428_1920.jpg') center/cover no-repeat fixed;
+  background: #000;
   overflow: hidden;
 }
 
 .page-surface {
   min-height: 100vh;
+  position: relative;
+  z-index: 0;
+}
+
+.index-landing .page-surface::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: #000 url('/image/sample/open-book-1428428_1920.jpg') center/cover no-repeat;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.page-surface {
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.35));
   display: flex;
   flex-direction: column;
@@ -33,12 +47,12 @@ body.index-landing {
 
 .landing-main {
   flex: 1;
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 32px;
-  padding: 36px 40px 40px;
-  max-height: calc(100vh - 80px);
+  padding: 48px 40px 40px;
+  max-height: 100vh;
   box-sizing: border-box;
 }
 
@@ -47,6 +61,8 @@ body.index-landing {
   flex-direction: column;
   gap: 18px;
   align-self: start;
+  width: 100%;
+  max-width: 440px;
   position: relative;
   z-index: 2;
 }
@@ -137,53 +153,16 @@ body.index-landing {
   opacity: 0.85;
 }
 
-.landing-message {
-  padding: 28px 32px;
-  background: rgba(0, 0, 0, 0.5);
-  border-left: 4px solid #d9b55a;
-  border-radius: 10px;
-  max-width: 640px;
-  backdrop-filter: blur(3px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-}
-
-.landing-eyebrow {
-  margin: 0 0 8px;
-  font-size: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #f0e9d8;
-}
-
-.landing-title {
-  margin: 0 0 16px;
-  font-size: 28px;
-  line-height: 1.4;
-  color: #fffaf2;
-}
-
-.landing-body {
-  margin: 0 0 12px;
-  font-size: 16px;
-  line-height: 1.7;
-  color: #f5f1e4;
-}
-
-.landing-note {
-  margin: 0;
-  font-size: 14px;
-  color: #e8dfc5;
-}
-
 @media (max-width: 768px) {
   .landing-main {
-    grid-template-columns: 1fr;
-    align-items: start;
+    padding: 32px 24px 28px;
+    gap: 24px;
     max-height: unset;
   }
 
   .landing-left-pane {
     gap: 14px;
+    max-width: 100%;
   }
 
   .landing-brand__title {

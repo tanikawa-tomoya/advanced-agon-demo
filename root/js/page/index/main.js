@@ -9,22 +9,21 @@
       this.name = name || 'index';
     }
 
-    // このページではSessionServiceでのログイン状態のチェックは不要         
+    // このページではSessionServiceでのログイン状態のチェックは不要
     async boot()
     {
-      await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
-                                                      { src: '/js/service-app/toast/main.js' },
-                                                      { src: '/js/service-app/loading/main.js' },
-                                          { src: '/js/page/index/job-view.js' }]);
+      await window.Utils.loadScriptsSync([
+        { src: '/js/service-app/toast/main.js' },
+        { src: '/js/service-app/loading/main.js' },
+        { src: '/js/page/index/job-view.js' }
+      ]);
 
       this.initConfig();
-      
-      this.headerService = new window.Services.Header({display: {forceLoginButton: true, hideLoginButton: false, showUserInfoWhenLoggedin: false}});
-                  this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
+
+      this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
       this.loadingService = new window.Services.Loading(document.querySelector('.login-card') || document.body);
 
       await Promise.all([
-        this.headerService.boot('.site-header'),
         this.toastService.boot(),
         this.loadingService.boot()
       ]);
@@ -79,7 +78,6 @@
 
       // セレクタの集中定義（HTML に未登場でも安全に無視される）
       this.SELECTOR = Object.assign({
-        nav:             '.site-header',
         heroGlance:      '#hero-glance',
         backgroundPanels:'#background-panels',
         roleCards:       '#role-cards',
