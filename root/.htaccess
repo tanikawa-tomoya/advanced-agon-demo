@@ -74,6 +74,11 @@ RewriteCond %{HTTP_HOST} ^agon-demo\.spinner2\.tokyo$ [NC]
 RewriteCond %{THE_REQUEST} \s+/index\.html(\s|\?) [NC]
 RewriteRule ^index\.html$ /html/agon-index.html [R=301,L]
 
+# agon-demo.spinnner2.tokyo: /index を /agon-index へリダイレクト
+RewriteCond %{HTTP_HOST} ^agon-demo\.spinnner2\.tokyo$ [NC]
+RewriteCond %{THE_REQUEST} \s+/index(/|\s|\?) [NC]
+RewriteRule ^index/?$ /agon-index [R=301,L]
+
 # HTTPS へ正規化
 RewriteCond %{HTTPS} off
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
