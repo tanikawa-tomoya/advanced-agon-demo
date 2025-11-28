@@ -110,6 +110,56 @@
         variantPrefix: Object.freeze([]),
         type: 'button'
       })
+    }),
+    Object.freeze({
+      key: 'index-nav-news',
+      config: Object.freeze({
+        designKey: DESIGN_KEY,
+        baseClass: 'btn btn--ghost hero__nav-button hero__nav-button--tinted hero__nav-button--news',
+        variant: 'ghost',
+        variantPrefix: Object.freeze([]),
+        type: 'button'
+      })
+    }),
+    Object.freeze({
+      key: 'index-nav-about',
+      config: Object.freeze({
+        designKey: DESIGN_KEY,
+        baseClass: 'btn btn--ghost hero__nav-button hero__nav-button--tinted hero__nav-button--about',
+        variant: 'ghost',
+        variantPrefix: Object.freeze([]),
+        type: 'button'
+      })
+    }),
+    Object.freeze({
+      key: 'index-nav-videos',
+      config: Object.freeze({
+        designKey: DESIGN_KEY,
+        baseClass: 'btn btn--ghost hero__nav-button hero__nav-button--tinted hero__nav-button--videos',
+        variant: 'ghost',
+        variantPrefix: Object.freeze([]),
+        type: 'button'
+      })
+    }),
+    Object.freeze({
+      key: 'index-nav-audio',
+      config: Object.freeze({
+        designKey: DESIGN_KEY,
+        baseClass: 'btn btn--ghost hero__nav-button hero__nav-button--tinted hero__nav-button--audio',
+        variant: 'ghost',
+        variantPrefix: Object.freeze([]),
+        type: 'button'
+      })
+    }),
+    Object.freeze({
+      key: 'index-nav-wellness',
+      config: Object.freeze({
+        designKey: DESIGN_KEY,
+        baseClass: 'btn btn--ghost hero__nav-button hero__nav-button--tinted hero__nav-button--wellness',
+        variant: 'ghost',
+        variantPrefix: Object.freeze([]),
+        type: 'button'
+      })
     })
   ]);
 

@@ -6575,6 +6575,11 @@ body.is-modal-open {
     url('/image/sample/sky-2546570_1920.jpg') center/cover no-repeat;
 }
 
+.page--wellness .hero {
+  background: linear-gradient(135deg, rgba(11, 23, 38, 0.72), rgba(11, 23, 38, 0.55)),
+    url('/image/sample/balance-110850_1920.jpg') center/cover no-repeat;
+}
+
 .hero__eyebrow {
   color: var(--accent);
   font-weight: 600;
@@ -6618,6 +6623,66 @@ body.is-modal-open {
   width: 100%;
   justify-content: center;
   text-align: center;
+}
+
+.hero__nav-button--tinted {
+  --hero-nav-bg: rgba(255, 255, 255, 0.06);
+  --hero-nav-bg-hover: rgba(255, 255, 255, 0.12);
+  --hero-nav-border: rgba(255, 255, 255, 0.28);
+  --hero-nav-color: var(--text);
+  --hero-nav-shadow: rgba(255, 255, 255, 0.08);
+  border-color: var(--hero-nav-border);
+  color: var(--hero-nav-color);
+  background: var(--hero-nav-bg);
+  box-shadow: 0 12px 36px var(--hero-nav-shadow);
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.hero__nav-button--tinted:hover,
+.hero__nav-button--tinted:focus-visible {
+  background: var(--hero-nav-bg-hover);
+  border-color: color-mix(in srgb, var(--hero-nav-border) 60%, transparent);
+  box-shadow: 0 16px 40px var(--hero-nav-shadow);
+}
+
+.hero__nav-button--news {
+  --hero-nav-bg: rgba(255, 114, 114, 0.14);
+  --hero-nav-bg-hover: rgba(255, 114, 114, 0.22);
+  --hero-nav-border: rgba(255, 114, 114, 0.42);
+  --hero-nav-color: #ffe3e3;
+  --hero-nav-shadow: rgba(255, 114, 114, 0.26);
+}
+
+.hero__nav-button--about {
+  --hero-nav-bg: rgba(102, 170, 255, 0.14);
+  --hero-nav-bg-hover: rgba(102, 170, 255, 0.22);
+  --hero-nav-border: rgba(102, 170, 255, 0.48);
+  --hero-nav-color: #e6f1ff;
+  --hero-nav-shadow: rgba(102, 170, 255, 0.26);
+}
+
+.hero__nav-button--videos {
+  --hero-nav-bg: rgba(255, 215, 102, 0.18);
+  --hero-nav-bg-hover: rgba(255, 215, 102, 0.28);
+  --hero-nav-border: rgba(255, 215, 102, 0.5);
+  --hero-nav-color: #fff7d6;
+  --hero-nav-shadow: rgba(255, 215, 102, 0.28);
+}
+
+.hero__nav-button--audio {
+  --hero-nav-bg: rgba(116, 212, 150, 0.16);
+  --hero-nav-bg-hover: rgba(116, 212, 150, 0.26);
+  --hero-nav-border: rgba(116, 212, 150, 0.44);
+  --hero-nav-color: #e8fff2;
+  --hero-nav-shadow: rgba(116, 212, 150, 0.24);
+}
+
+.hero__nav-button--wellness {
+  --hero-nav-bg: rgba(255, 164, 206, 0.18);
+  --hero-nav-bg-hover: rgba(255, 164, 206, 0.28);
+  --hero-nav-border: rgba(255, 164, 206, 0.46);
+  --hero-nav-color: #ffe5f1;
+  --hero-nav-shadow: rgba(255, 164, 206, 0.28);
 }
 
 .btn,
