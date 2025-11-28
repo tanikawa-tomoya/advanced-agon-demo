@@ -47,6 +47,8 @@
       window.pageInstance = window.pageInstance || {};
       window.pageInstance[className] = instance;
       runPageBoot(instance).then(function () {
+        return bootFooterService();
+      }).then(function () {
         hidePageBootOverlay(bootOverlay);
         return instance;
       }).catch(function (err) {
@@ -153,6 +155,14 @@
     return {};
   }
 
+  function resolveFooterConfig()
+  {
+    if (window.FooterConfig && typeof window.FooterConfig === 'object') {
+      return window.FooterConfig;
+    }
+    return {};
+  }
+
   function showPageBootOverlay()
   {
     var body = document.body || document.querySelector('body');
@@ -204,6 +214,42 @@
     if (region && region.parentNode) {
       region.parentNode.removeChild(region);
     }
+  }
+
+  var footerServiceReady = null;
+
+  function bootFooterService()
+  {
+    if (footerServiceReady) {
+      return footerServiceReady;
+    }
+
+    footerServiceReady = window.Utils.loadScriptsSync([
+      '/js/service-app/footer/main.js'
+    ]).then(function () {
+      window.Services = window.Services || {};
+      var FooterConstructor = window.Services && window.Services.Footer;
+      if (typeof FooterConstructor !== 'function') {
+        throw new Error('Footer service constructor is not available');
+      }
+      var instance = window.Services.footerInstance;
+      if (!instance) {
+        var config = resolveFooterConfig();
+        instance = new FooterConstructor(config);
+        window.Services.footerInstance = instance;
+      }
+      var bootResult = (instance && typeof instance.boot === 'function')
+        ? instance.boot()
+        : null;
+      return Promise.resolve(bootResult).then(function () {
+        return instance;
+      });
+    }).catch(function (err) {
+      footerServiceReady = null;
+      throw err;
+    });
+
+    return footerServiceReady;
   }
 
   var sessionServiceReady = null;
