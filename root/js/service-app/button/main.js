@@ -709,6 +709,7 @@
         { src: '/js/service-app/button/job-action-design-banner.js' },
         { src: '/js/service-app/button/job-action-design-translucent-rounded.js' },
         { src: '/js/service-app/button/job-action-design-pill-button.js' },
+        { src: '/js/service-app/button/job-action-design-hero-nav.js' },
         { src: '/js/service-app/button/job-action-design-expandable-icon-button.js' },
         { src: '/js/service-app/button/job-action-design-curl-ribbon.js' }
       ]);
