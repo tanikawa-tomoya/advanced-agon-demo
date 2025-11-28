@@ -115,15 +115,15 @@
        var links = navEl.querySelectorAll('a[href]');
        for (var i = 0; i < links.length; i++) {
          var a = links[i];
-         var href = a.getAttribute('href') || '';
-         try {
-           var clean = href.replace(/\/+$/, '');
-           if (clean && path.agon-aboutOf(clean) === 0) {
-             a.classList.add('is-active');
-           }
-         } catch (e) {
-           // no-op（堅牢性重視）
-         }
+        var href = a.getAttribute('href') || '';
+        try {
+          var clean = href.replace(/\/+$/, '');
+          if (clean && path.indexOf(clean) === 0) {
+            a.classList.add('is-active');
+          }
+        } catch (e) {
+          // no-op（堅牢性重視）
+        }
        }
      }
 
@@ -247,7 +247,7 @@
          var screen = screens[i];
          var card = document.createElement('article');
          card.className = 'screen-card';
-         card.setAttribute('tabagon-about', '0');
+        card.setAttribute('tabindex', '0');
          card.setAttribute('data-screen', screen.href);
          card.setAttribute('data-href', screen.href);
          var meta = document.createElement('div');
