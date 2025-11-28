@@ -17,7 +17,8 @@
                                                       { src: '/js/service-app/loading/main.js' },
                                                       { src: '/js/service-app/button/main.js' },
                                           { src: '/js/page/agon-index/job-view.js' },
-                                          { src: '/js/page/agon-index/job-background.js' }]);
+                                          { src: '/js/page/agon-index/job-background.js' },
+                                          { src: '/js/page/agon-index/job-ambient-symbols.js' }]);
 
       this.initConfig();
       
@@ -35,6 +36,7 @@
 
       new window.AgonIndex.JobView (this).loadPage();
       new window.AgonIndex.JobBackground(this).setup();
+      new window.AgonIndex.JobAmbientSymbols(this).setup();
     }
 
     updateAgonIndex()
