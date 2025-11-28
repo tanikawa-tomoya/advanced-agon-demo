@@ -29,6 +29,8 @@ body {
     position: relative;
     min-height: 100vh;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 body::before,
@@ -365,6 +367,7 @@ body::after {
     padding: clamp(2.5rem, 6vw, 4rem) clamp(1.8rem, 5vw, 3.5rem) clamp(5rem, 8vw, 7rem);
     max-width: var(--max-width);
     margin: 0 auto;
+    flex: 1 0 auto;
 }
 
 .section,
@@ -1760,6 +1763,51 @@ body.is-modal-open {
 .footer a {
     color: inherit;
     text-decoration: underline;
+}
+
+.agon-scroll-top {
+    position: fixed;
+    right: clamp(1rem, 3vw, 1.75rem);
+    bottom: clamp(1.1rem, 3vw, 1.8rem);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.85rem 1rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+    color: #ffffff;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    z-index: 900;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.agon-scroll-top:hover,
+.agon-scroll-top:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    border-color: rgba(255, 255, 255, 0.32);
+    outline: none;
+}
+
+.agon-scroll-top__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 0.9rem;
+    line-height: 1;
+    color: #0b0a17;
+}
+
+.agon-scroll-top__label {
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-size: 0.95rem;
 }
 
 .c-video-modal-region {

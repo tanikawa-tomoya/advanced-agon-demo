@@ -52,7 +52,10 @@
       window.pageInstance = window.pageInstance || {};
       window.pageInstance[className] = instance;
       runPageBoot(instance).then(function () {
-        return bootFooterService();
+        if (shouldBootFooter(pageName)) {
+          return bootFooterService();
+        }
+        return null;
       }).then(function () {
         hidePageBootOverlay(bootOverlay);
         return instance;
@@ -219,6 +222,11 @@
     if (region && region.parentNode) {
       region.parentNode.removeChild(region);
     }
+  }
+
+  function shouldBootFooter(pageName)
+  {
+    return pageName !== 'agon-index';
   }
 
   var footerServiceReady = null;

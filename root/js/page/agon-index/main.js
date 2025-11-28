@@ -19,7 +19,8 @@
                                           { src: '/js/page/agon-index/job-view.js' },
                                           { src: '/js/page/agon-index/job-background.js' },
                                           { src: '/js/page/agon-index/job-ambient-symbols.js' },
-                                          { src: '/js/page/agon-index/job-media-modal.js' }]);
+                                          { src: '/js/page/agon-index/job-media-modal.js' },
+                                          { src: '/js/page/agon-index/job-scroll-top.js' }]);
 
       this.initConfig();
 
@@ -37,6 +38,7 @@
       new window.AgonIndex.JobBackground(this).setup();
       new window.AgonIndex.JobAmbientSymbols(this).setup();
       new window.AgonIndex.JobMediaModal(this).setup();
+      new window.AgonIndex.JobScrollTop(this).setup();
     }
 
     updateAgonIndex()
