@@ -44,7 +44,7 @@
 
     updateAgonIndex()
     {
-      document.addAgonIndexListener('click', function (ev) {
+      document.addEventListener('click', function (ev) {
         var target = ev.target;
         var el = target && target.closest ? target.closest('[data-action]') : null;
         if (!el) {
