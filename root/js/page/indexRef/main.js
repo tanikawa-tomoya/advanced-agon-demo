@@ -2,39 +2,38 @@
 
   'use strict';
   
-  class Index
+  class Indexref
   {
     constructor(name)
     {
-      this.name = name || 'index';
+      this.name = name || 'indexref';
     }
 
-    // このページではSessionServiceでのログイン状態のチェックは不要         
+    // このページではSessionServiceでのログイン状態のチェックは不要
     async boot()
     {
-      await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
-                                                      { src: '/js/service-app/toast/main.js' },
-                                                      { src: '/js/service-app/loading/main.js' },
-                                          { src: '/js/page/index/job-view.js' }]);
+      await window.Utils.loadScriptsSync([
+        { src: '/js/service-app/toast/main.js' },
+        { src: '/js/service-app/loading/main.js' },
+        { src: '/js/page/indexref/job-view.js' }
+      ]);
 
       this.initConfig();
-      
-      this.headerService = new window.Services.Header({display: {forceLoginButton: true, hideLoginButton: false, showUserInfoWhenLoggedin: false}});
-                  this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
+
+      this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3000 });
       this.loadingService = new window.Services.Loading(document.querySelector('.login-card') || document.body);
 
       await Promise.all([
-        this.headerService.boot('.site-header'),
         this.toastService.boot(),
         this.loadingService.boot()
       ]);
 
-      new window.Index.JobView (this).loadPage();
+      new window.Indexref.JobView (this).loadPage();
     }
 
-    updateIndex()
+    updateEvent()
     {
-      document.addIndexListener('click', function (ev) {
+      document.addEventListener('click', function (ev) {
         var target = ev.target;
         var el = target && target.closest ? target.closest('[data-action]') : null;
         if (!el) {
@@ -67,7 +66,7 @@
     
     initConfig()
     {
-      var baseConfig = window.IndexConfig || {};
+      var baseConfig = window.IndexrefConfig || {};
 
       this.TEXT = Object.assign({
         featureInitError: '機能の初期化に失敗しました。',
@@ -79,18 +78,17 @@
 
       // セレクタの集中定義（HTML に未登場でも安全に無視される）
       this.SELECTOR = Object.assign({
-        nav:             '.site-header',
         heroGlance:      '#hero-glance',
         backgroundPanels:'#background-panels',
         roleCards:       '#role-cards',
         screenGrid:      '#screen-grid',
         groupFilter:     '#group-filter',
-        indexFilter:     '#index-filter',
+        eventFilter:     '#event-filter',
         trendChart:      '#trend-chart',
         trendLegend:     '#trend-legend',
         statusBars:      '#status-bars',
-        indexDonut:      '#index-donut',
-        indexLegend:     '#index-legend',
+        eventDonut:      '#event-donut',
+        eventLegend:     '#event-legend',
         heatmap:         '#heatmap',
         badgeShowcase:   '#badge-showcase',
         journey:         '#journey',
@@ -101,11 +99,11 @@
         contactForm:     '.contact-form'
       }, (baseConfig && baseConfig.SELECTOR) || {});
 
-      window.IndexConfig = Object.assign({}, baseConfig, {
+      window.IndexrefConfig = Object.assign({}, baseConfig, {
         TEXT: this.TEXT,
         SELECTOR: this.SELECTOR
       });
     }
   }
-  window.Index = window.Index || Index;
+  window.Indexref = window.Indexref || Indexref;
 })(window);
