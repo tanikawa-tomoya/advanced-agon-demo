@@ -450,26 +450,27 @@ generate_favicon() {
     create_dir "${assets_dir}" 0775
 
     if command -v python3 >/dev/null 2>&1; then
-        if ! initial=$(SITE_TITLE="${SITE_TITLE}" python3 - <<'PY'
+        if ! initial=$(DOMAIN="${DOMAIN}" python3 - <<'PY'
 import os
 import sys
 
-title = os.environ.get("SITE_TITLE", "").strip()
-if not title:
+domain = os.environ.get("DOMAIN", "").strip()
+if not domain:
     sys.exit(1)
 
-print(title[0])
+print(domain[0].upper())
 PY
         ); then
-            echo "Warning: failed to extract site title initial for favicon generation." >&2
+            echo "Warning: failed to extract domain initial for favicon generation." >&2
             return
         fi
     else
-        initial="${SITE_TITLE:0:1}"
+        initial="${DOMAIN:0:1}"
+        initial="${initial^^}"
     fi
 
     if [[ -z "${initial}" ]]; then
-        echo "Warning: site title initial is empty. Skipping favicon generation." >&2
+        echo "Warning: domain initial is empty. Skipping favicon generation." >&2
         return
     fi
 
