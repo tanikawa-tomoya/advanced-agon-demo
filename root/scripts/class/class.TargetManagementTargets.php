@@ -11,8 +11,11 @@ class TargetManagementTargets extends Base
                 'displayAgreements',
                 'displayAnnouncements',
                 'displayReferences',
-				'displaySchedules',
+                'displayResources',
+                'displaySchedules',
+                'displayProducts',
                 'displayChat',
+                'displayBbs',
                 'displaySubmissions',
                 'displayReviews',
                 'displayBadges',
@@ -973,7 +976,7 @@ class TargetManagementTargets extends Base
                         $creatorCode = $this->getLoginUserCode();
                 }
 
-                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayReferences, displaySchedules, displayChat, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayReferences, displayResources, displaySchedules, displayProducts, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
                 $stmt->execute(array(
                         $targetCode,
                         $title,
@@ -990,8 +993,11 @@ class TargetManagementTargets extends Base
                         $displayFlags['displayAgreements'],
                         $displayFlags['displayAnnouncements'],
                         $displayFlags['displayReferences'],
-                        $displayFlags['displaySchedules'],						
+                        $displayFlags['displayResources'],
+                        $displayFlags['displaySchedules'],
+                        $displayFlags['displayProducts'],
                         $displayFlags['displayChat'],
+                        $displayFlags['displayBbs'],
                         $displayFlags['displaySubmissions'],
                         $displayFlags['displayReviews'],
                         $displayFlags['displayBadges'],
