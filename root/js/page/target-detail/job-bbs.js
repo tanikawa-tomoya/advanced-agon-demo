@@ -62,6 +62,152 @@
     }));
   }
 
+  function normalizeAttachmentType(attachment)
+  {
+    if (!attachment)
+    {
+      return 'file';
+    }
+
+    var raw = '';
+    if (attachment && attachment.type)
+    {
+      raw = String(attachment.type).toLowerCase();
+    }
+    else if (attachment && attachment.contentType)
+    {
+      raw = String(attachment.contentType).toLowerCase();
+    }
+    else if (attachment && attachment.mimeType)
+    {
+      raw = String(attachment.mimeType).toLowerCase();
+    }
+
+    var extension = '';
+    if (attachment && (attachment.extension || attachment.ext || attachment.fileExtension))
+    {
+      extension = String(attachment.extension || attachment.ext || attachment.fileExtension).toLowerCase();
+      extension = extension.charAt(0) === '.' ? extension : '.' + extension;
+    }
+
+    var candidates = [
+      raw,
+      attachment && attachment.name ? String(attachment.name).toLowerCase() : '',
+      attachment && attachment.fileName ? String(attachment.fileName).toLowerCase() : '',
+      attachment && attachment.mimeType ? String(attachment.mimeType).toLowerCase() : '',
+      attachment && attachment.label ? String(attachment.label).toLowerCase() : '',
+      attachment && attachment.title ? String(attachment.title).toLowerCase() : '',
+      attachment && attachment.url ? String(attachment.url).toLowerCase() : '',
+      attachment && attachment.downloadUrl ? String(attachment.downloadUrl).toLowerCase() : '',
+      attachment && attachment.previewUrl ? String(attachment.previewUrl).toLowerCase() : '',
+      attachment && attachment.playbackUrl ? String(attachment.playbackUrl).toLowerCase() : '',
+      attachment && attachment.streamUrl ? String(attachment.streamUrl).toLowerCase() : '',
+      attachment && attachment.posterUrl ? String(attachment.posterUrl).toLowerCase() : '',
+      attachment && attachment.thumbnailUrl ? String(attachment.thumbnailUrl).toLowerCase() : '',
+      attachment && attachment.previewImage ? String(attachment.previewImage).toLowerCase() : '',
+      attachment && attachment.previewImageUrl ? String(attachment.previewImageUrl).toLowerCase() : '',
+      attachment && attachment.imageUrl ? String(attachment.imageUrl).toLowerCase() : '',
+      attachment && attachment.youtubeUrl ? String(attachment.youtubeUrl).toLowerCase() : '',
+      extension
+    ];
+
+    for (var i = 0; i < candidates.length; i += 1)
+    {
+      var value = candidates[i];
+      if (!value)
+      {
+        continue;
+      }
+      if (value.indexOf('video') !== -1 || value.indexOf('movie') !== -1)
+      {
+        return 'video';
+      }
+      if (value.indexOf('audio') !== -1 || value.indexOf('sound') !== -1 || value.indexOf('voice') !== -1)
+      {
+        return 'audio';
+      }
+      if (value.indexOf('image') !== -1 || value.indexOf('photo') !== -1 || value.indexOf('picture') !== -1 || value.indexOf('img') === 0)
+      {
+        return 'image';
+      }
+      if (value.indexOf('pdf') !== -1)
+      {
+        return 'pdf';
+      }
+      if (/\.(mp4|mov|m4v|webm)$/i.test(value))
+      {
+        return 'video';
+      }
+      if (/\.(mp3|m4a|aac|wav|flac|ogg)$/i.test(value))
+      {
+        return 'audio';
+      }
+      if (/\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(value))
+      {
+        return 'image';
+      }
+      if (/\.pdf$/i.test(value))
+      {
+        return 'pdf';
+      }
+    }
+
+    return 'file';
+  }
+
+  function resolveAttachmentTitle(attachment)
+  {
+    if (!attachment)
+    {
+      return 'ファイル';
+    }
+    var title = attachment.fileName || attachment.label || attachment.contentCode || attachment.name || attachment.title;
+    if (title)
+    {
+      return normalizeText(title) || 'ファイル';
+    }
+    return 'ファイル';
+  }
+
+  function resolvePreviewType(attachment, resolvedUrl)
+  {
+    var type = normalizeAttachmentType(attachment);
+    if (type === 'file' && resolvedUrl)
+    {
+      type = normalizeAttachmentType({ url: resolvedUrl, previewUrl: resolvedUrl, downloadUrl: resolvedUrl });
+    }
+    return type;
+  }
+
+  function resolveAttachmentTypeLabel(attachment)
+  {
+    if (attachment && attachment.typeLabel)
+    {
+      var label = normalizeText(attachment.typeLabel);
+      if (label)
+      {
+        return label;
+      }
+    }
+
+    var type = normalizeAttachmentType(attachment);
+    var labels = {
+      video: '動画',
+      audio: '音声',
+      image: '画像',
+      pdf: 'PDF',
+      link: 'リンク',
+      file: 'ファイル'
+    };
+
+    if (labels[type])
+    {
+      return labels[type];
+    }
+
+    return labels.file;
+  }
+
   function createAvatarFromParticipant(participant, baseClass, avatarService, bootPromise)
   {
     var className = baseClass || 'target-bbs__thread-avatar';
@@ -296,6 +442,8 @@
         messageViewport: null,
         composerInput: null,
         composerButton: null,
+        composerAttachmentList: null,
+        attachmentModal: null,
         threadHeaderTitle: null,
         threadHeaderMeta: null,
         recipientContainer: null,
@@ -308,12 +456,17 @@
         participants: [],
         viewer: null,
         selectedThread: null,
-        isReloading: false
+        isReloading: false,
+        composerAttachments: []
       };
       this.buttonService = null;
       this.avatarService = page && page.avatarService ? page.avatarService : null;
       this.avatarServiceBootPromise = null;
       this.highlightTimer = null;
+      this.contentUploaderService = null;
+      this.pendingUploadResults = [];
+      this.contentLibrary = [];
+      this.isLoadingContentLibrary = false;
     }
 
     async render()
@@ -490,10 +643,21 @@
       composer.appendChild(composerLabel);
       var composerActions = createElement('div', 'target-bbs__composer-actions');
       var composerButtons = createElement('div', 'target-bbs__composer-buttons');
+      var attachmentButton = this.createBannerButton({
+        buttonType: 'content-uploader-primary',
+        label: '添付',
+        ariaLabel: 'ファイルを添付'
+      });
+      attachmentButton.classList.add('target-bbs__composer-attach');
+      attachmentButton.addEventListener('click', () =>
+      {
+        this.openAttachmentModal();
+      });
+      composerButtons.appendChild(attachmentButton);
       var sendButton = this.createBannerButton({
         buttonType: 'announcement-create',
-        label: '送信',
-        ariaLabel: 'メッセージを送信'
+        label: '投稿する',
+        ariaLabel: 'メッセージを投稿する'
       });
       sendButton.classList.add('target-bbs__composer-send');
       this.refs.composerButton = sendButton;
@@ -503,6 +667,10 @@
       });
       composerButtons.appendChild(sendButton);
       composerActions.appendChild(composerButtons);
+      var attachmentList = createElement('div', 'target-bbs__composer-attachments');
+      this.refs.composerAttachmentList = attachmentList;
+      composerActions.appendChild(attachmentList);
+      this.renderComposerAttachments();
       var composerNote = createElement('p', 'target-bbs__composer-note');
       composerNote.textContent = '投稿はスレッド全員に公開されます。箇条書きや小見出しを活用し、経緯がわかるように記載してください。';
       composerActions.appendChild(composerNote);
@@ -1095,6 +1263,7 @@
       }
       this.renderMessages(thread);
       this.setComposerEnabled(true);
+      this.renderComposerAttachments();
     }
 
     renderMessagePlaceholder(text)
@@ -1153,6 +1322,10 @@
       var content = createElement('p', 'target-bbs__post-text');
       content.textContent = message.content || '';
       body.appendChild(content);
+      if (message && Array.isArray(message.attachments) && message.attachments.length)
+      {
+        body.appendChild(this.renderMessageAttachments(message, thread));
+      }
 
       wrapper.appendChild(body);
       var header = createElement('header', 'target-bbs__post-header');
@@ -1198,6 +1371,80 @@
       return wrapper;
     }
 
+    renderMessageAttachments(message, thread)
+    {
+      var container = createElement('div', 'target-bbs__attachments');
+      var attachments = Array.isArray(message && message.attachments) ? message.attachments.filter(Boolean) : [];
+      if (!attachments.length)
+      {
+        container.textContent = '添付なし';
+        container.classList.add('is-empty');
+        return container;
+      }
+      attachments.forEach((attachment) =>
+      {
+        var item = createElement('div', 'target-bbs__attachment');
+        var title = resolveAttachmentTitle(attachment);
+        var info = createElement('div', 'target-bbs__attachment-info');
+        var label = createElement('span', 'target-bbs__attachment-label');
+        label.textContent = resolveAttachmentTypeLabel(attachment);
+        info.appendChild(label);
+        var name = createElement('button', 'target-bbs__attachment-name target-bbs__attachment-title');
+        name.type = 'button';
+        name.textContent = title;
+        name.setAttribute('aria-label', title + ' をプレビュー');
+        name.addEventListener('click', () =>
+        {
+          this.handleAttachmentPreview(attachment);
+        });
+        info.appendChild(name);
+        item.appendChild(info);
+
+        var actions = createElement('div', 'target-bbs__attachment-actions');
+        var previewButton = this.createRoundActionButton('detail', { label: '', ariaLabel: '添付をプレビュー', hoverLabel: 'プレビュー' }, 'target-bbs__attachment-preview');
+        previewButton.addEventListener('click', () =>
+        {
+          this.handleAttachmentPreview(attachment);
+        });
+        actions.appendChild(previewButton);
+
+        var downloadUrl = this.resolveAttachmentDownloadUrl(attachment);
+        var downloadButton = this.createRoundActionButton('download', {
+          element: 'a',
+          label: '',
+          ariaLabel: '添付をダウンロード',
+          hoverLabel: 'ダウンロード',
+          href: downloadUrl || '#',
+          target: downloadUrl ? '_blank' : undefined,
+          rel: downloadUrl ? 'noopener' : undefined
+        }, 'target-bbs__attachment-download');
+        if (!downloadUrl)
+        {
+          downloadButton.setAttribute('aria-disabled', 'true');
+          downloadButton.addEventListener('click', function (event)
+          {
+            event.preventDefault();
+          });
+        }
+        actions.appendChild(downloadButton);
+
+        if (this.canDeleteMessage(message))
+        {
+          var deleteButton = this.createRoundActionButton('delete', { label: '', ariaLabel: '添付を削除', hoverLabel: '削除' }, 'target-bbs__attachment-delete');
+          deleteButton.addEventListener('click', () =>
+          {
+            this.handleAttachmentDelete(thread, message, attachment, deleteButton);
+          });
+          actions.appendChild(deleteButton);
+        }
+
+        item.appendChild(actions);
+        container.appendChild(item);
+      });
+
+      return container;
+    }
+
     scrollThreadToTop()
     {
       if (!this.refs.messageViewport)
@@ -1212,6 +1459,44 @@
       {
         this.refs.messageViewport.scrollTop = 0;
       }
+    }
+
+    renderComposerAttachments()
+    {
+      var host = this.refs.composerAttachmentList;
+      if (!host)
+      {
+        return;
+      }
+      var attachments = Array.isArray(this.state.composerAttachments) ? this.state.composerAttachments.filter(Boolean) : [];
+      host.innerHTML = '';
+      if (!attachments.length)
+      {
+        host.classList.add('is-hidden');
+        host.setAttribute('hidden', 'hidden');
+        return;
+      }
+      host.classList.remove('is-hidden');
+      host.removeAttribute('hidden');
+      var title = createElement('p', 'target-bbs__composer-attachments-title');
+      title.textContent = '添付ファイル';
+      host.appendChild(title);
+      var list = createElement('ul', 'target-bbs__composer-attachments-list');
+      attachments.forEach((attachment, index) =>
+      {
+        var row = createElement('li', 'target-bbs__composer-attachment');
+        var label = createElement('span', 'target-bbs__composer-attachment-name');
+        label.textContent = attachment && (attachment.fileName || attachment.label || attachment.contentCode) ? (attachment.fileName || attachment.label || attachment.contentCode) : '添付ファイル';
+        row.appendChild(label);
+        var remove = this.createRoundActionButton('delete', { label: '', ariaLabel: '添付を削除', hoverLabel: '削除' }, 'target-bbs__composer-attachment-remove');
+        remove.addEventListener('click', () =>
+        {
+          this.removeComposerAttachment(index);
+        });
+        row.appendChild(remove);
+        list.appendChild(row);
+      });
+      host.appendChild(list);
     }
 
     setComposerEnabled(enabled)
@@ -1229,6 +1514,369 @@
       {
         this.refs.composerButton.disabled = !enabled;
         this.refs.composerButton.classList.toggle('is-disabled', !enabled);
+      }
+    }
+
+    removeComposerAttachment(index)
+    {
+      if (!Array.isArray(this.state.composerAttachments))
+      {
+        return;
+      }
+      var copy = this.state.composerAttachments.slice();
+      copy.splice(index, 1);
+      this.state.composerAttachments = copy;
+      this.renderComposerAttachments();
+    }
+
+    resolveAttachmentPreviewUrl(attachment)
+    {
+      if (!attachment)
+      {
+        return '';
+      }
+      if (attachment.previewUrl)
+      {
+        return attachment.previewUrl;
+      }
+      if (attachment.playbackUrl)
+      {
+        return attachment.playbackUrl;
+      }
+      if (attachment.streamUrl)
+      {
+        return attachment.streamUrl;
+      }
+      if (attachment.youtubeUrl)
+      {
+        return attachment.youtubeUrl;
+      }
+      if (attachment.posterUrl)
+      {
+        return attachment.posterUrl;
+      }
+      if (attachment.thumbnailUrl)
+      {
+        return attachment.thumbnailUrl;
+      }
+      if (attachment.previewImage)
+      {
+        return attachment.previewImage;
+      }
+      if (attachment.previewImageUrl)
+      {
+        return attachment.previewImageUrl;
+      }
+      if (attachment.imageUrl)
+      {
+        return attachment.imageUrl;
+      }
+      var url = attachment.previewUrl || attachment.url || '';
+      if (url)
+      {
+        return url;
+      }
+      if (attachment.downloadUrl)
+      {
+        return attachment.downloadUrl;
+      }
+      if (attachment.contentCode)
+      {
+        return this.buildContentFileUrl({ contentCode: attachment.contentCode });
+      }
+      return '';
+    }
+
+    resolveAttachmentDownloadUrl(attachment)
+    {
+      if (!attachment)
+      {
+        return '';
+      }
+      if (attachment.downloadUrl)
+      {
+        return attachment.downloadUrl;
+      }
+      if (attachment.url)
+      {
+        return attachment.url;
+      }
+      if (attachment.contentCode)
+      {
+        return this.buildContentFileUrl({ contentCode: attachment.contentCode });
+      }
+      return '';
+    }
+
+    buildContentFileUrl(record)
+    {
+      if (!record || !record.contentCode)
+      {
+        return '';
+      }
+
+      var apiConfig = this.page && this.page.config ? this.page.config : {};
+      var requestType = 'Contents';
+      var endpoint = apiConfig.apiEndpoint || '';
+      var token = apiConfig.apiToken || '';
+
+      if (window.Utils && typeof window.Utils.buildApiRequestOptions === 'function')
+      {
+        try
+        {
+          var defaults = window.Utils.buildApiRequestOptions(requestType, 'ContentFileGet', {});
+          if (!endpoint && defaults && typeof defaults.url === 'string')
+          {
+            endpoint = defaults.url;
+          }
+          if (!token && defaults && defaults.data && typeof defaults.data.get === 'function')
+          {
+            token = defaults.data.get('token') || token;
+          }
+        }
+        catch (_err)
+        {
+          // ignore fallback errors
+        }
+      }
+
+      if (!endpoint)
+      {
+        endpoint = window.Utils && typeof window.Utils.getApiEndpoint === 'function' ? window.Utils.getApiEndpoint() : '';
+      }
+
+      if (!endpoint)
+      {
+        return '';
+      }
+
+      var queryParams = [
+        ['requestType', requestType],
+        ['type', 'ContentFileGet'],
+        ['token', token],
+        ['contentCode', record.contentCode]
+      ];
+
+      var query = queryParams
+        .filter(function (entry)
+        {
+          return entry[1] !== undefined && entry[1] !== null;
+        })
+        .map(function (entry)
+        {
+          return encodeURIComponent(entry[0]) + '=' + encodeURIComponent(entry[1]);
+        })
+        .join('&');
+
+      return endpoint + '?' + query;
+    }
+
+    handleAttachmentPreview(attachment)
+    {
+      var resolvedUrl = this.resolveAttachmentPreviewUrl(attachment) || this.resolveAttachmentDownloadUrl(attachment);
+      var type = resolvePreviewType(attachment, resolvedUrl);
+      if (type === 'video')
+      {
+        this.openVideoAttachmentPreview(attachment);
+        return;
+      }
+      if (type === 'audio')
+      {
+        this.openAudioAttachmentPreview(attachment);
+        return;
+      }
+      if (type === 'image')
+      {
+        this.openImageAttachmentPreview(attachment);
+        return;
+      }
+      if (type === 'pdf')
+      {
+        this.openPdfAttachmentPreview(attachment);
+        return;
+      }
+      this.openGenericAttachmentPreview(attachment, resolvedUrl);
+    }
+
+    async openPdfAttachmentPreview(attachment)
+    {
+      var service = this.page && this.page.pdfModalService;
+      if (!service)
+      {
+        this.showAttachmentPreviewError();
+        return;
+      }
+      var url = this.resolveAttachmentPreviewUrl(attachment) || this.resolveAttachmentDownloadUrl(attachment);
+      if (!url && attachment && attachment.contentCode)
+      {
+        url = this.buildContentFileUrl({ contentCode: attachment.contentCode });
+      }
+      if (!url)
+      {
+        this.showAttachmentPreviewError();
+        return;
+      }
+      var title = resolveAttachmentTitle(attachment);
+      try
+      {
+        await service.show({
+          title: title,
+          src: url,
+          ariaLabel: title,
+          showDownload: true,
+          showOpenInNewTab: true
+        });
+      }
+      catch (_error)
+      {
+        this.showAttachmentPreviewError();
+      }
+    }
+
+    openAudioAttachmentPreview(attachment)
+    {
+      var service = this.page && this.page.audioModalService;
+      if (!service)
+      {
+        this.showAttachmentPreviewError();
+        return;
+      }
+      var url = this.resolveAttachmentPreviewUrl(attachment) || this.resolveAttachmentDownloadUrl(attachment);
+      if (!url && attachment && attachment.contentCode)
+      {
+        url = this.buildContentFileUrl({ contentCode: attachment.contentCode });
+      }
+      if (!url)
+      {
+        this.showAttachmentPreviewError();
+        return;
+      }
+      service.show(url, { ariaLabel: resolveAttachmentTitle(attachment) });
+    }
+
+    openImageAttachmentPreview(attachment)
+    {
+      var service = this.page && this.page.imageModalService;
+      if (!service)
+      {
+        this.showAttachmentPreviewError();
+        return;
+      }
+      var url = this.resolveAttachmentPreviewUrl(attachment) || this.resolveAttachmentDownloadUrl(attachment);
+      if (!url && attachment && attachment.contentCode)
+      {
+        url = this.buildContentFileUrl({ contentCode: attachment.contentCode });
+      }
+      if (!url)
+      {
+        this.showAttachmentPreviewError();
+        return;
+      }
+      var title = resolveAttachmentTitle(attachment);
+      service.show(url, { alt: title, caption: title });
+    }
+
+    openVideoAttachmentPreview(attachment)
+    {
+      var service = this.page && this.page.videoModalService;
+      if (!service)
+      {
+        throw new Error('[target-detail] video modal service is not available');
+      }
+      var title = resolveAttachmentTitle(attachment);
+      if (attachment && attachment.youtubeUrl)
+      {
+        var youtubeUrl = this.resolveAttachmentPreviewUrl(attachment);
+        if (!youtubeUrl)
+        {
+          this.showAttachmentPreviewError();
+          return;
+        }
+        service.openYouTube(youtubeUrl, { autoplay: false, title: title });
+        return;
+      }
+      if (attachment && attachment.contentCode)
+      {
+        try
+        {
+          var spec = { contentCode: attachment.contentCode, title: title };
+          if (attachment.content)
+          {
+            spec.contentRecord = attachment.content;
+          }
+          service.openContentVideo(spec, { autoplay: false });
+          return;
+        }
+        catch (_error)
+        {
+          // fallback to url handling below
+        }
+      }
+      var url = this.resolveAttachmentPreviewUrl(attachment);
+      if (!url)
+      {
+        this.showAttachmentPreviewError();
+        return;
+      }
+      service.openHtml5(url, { autoplay: false, title: title });
+    }
+
+    openGenericAttachmentPreview(attachment, resolvedUrl)
+    {
+      var url = resolvedUrl || this.resolveAttachmentPreviewUrl(attachment);
+      if (!url)
+      {
+        this.showAttachmentPreviewError();
+        return;
+      }
+      var service = this.page && typeof this.page.getContentPreviewService === 'function'
+        ? this.page.getContentPreviewService()
+        : null;
+      if (service && typeof service.show === 'function')
+      {
+        service.show({ src: url, title: resolveAttachmentTitle(attachment) });
+        return;
+      }
+      window.open(url, '_blank');
+    }
+
+    showAttachmentPreviewError()
+    {
+      if (this.page && typeof this.page.showToast === 'function')
+      {
+        this.page.showToast('error', 'プレビューできる添付ファイルが見つかりませんでした。');
+      }
+    }
+
+    async handleAttachmentDelete(thread, message, attachment, button)
+    {
+      if (!thread || !message || !attachment || !attachment.attachmentCode)
+      {
+        return;
+      }
+      if (button)
+      {
+        button.disabled = true;
+      }
+      try
+      {
+        var context = await this.page.deleteBbsAttachment(thread.threadCode, message.messageCode, attachment.attachmentCode);
+        this.updateContext(context, thread.threadCode);
+      }
+      catch (error)
+      {
+        if (this.page && typeof this.page.showToast === 'function')
+        {
+          this.page.showToast('error', '添付ファイルの削除に失敗しました。');
+        }
+        window.console.error('[target-detail] failed to delete bbs attachment', error);
+      }
+      finally
+      {
+        if (button)
+        {
+          button.disabled = false;
+        }
       }
     }
 
@@ -1335,6 +1983,608 @@
       });
     }
 
+    async openAttachmentModal()
+    {
+      if (!this.refs.attachmentModal)
+      {
+        this.refs.attachmentModal = this.createAttachmentModal();
+      }
+      var modal = this.refs.attachmentModal;
+      modal.selectedContents = Array.isArray(this.state.composerAttachments) ? this.state.composerAttachments.slice() : [];
+      this.renderAttachmentSelection(modal);
+      this.setAttachmentFeedback(modal, '', null);
+      this.switchAttachmentTab(modal, 'contents');
+      modal.root.removeAttribute('hidden');
+      modal.root.setAttribute('aria-hidden', 'false');
+      modal.root.classList.add('is-open');
+      modal.fileInput.value = '';
+      modal.restoreTarget = document.activeElement;
+      if (modal.confirmButton && typeof modal.confirmButton.focus === 'function')
+      {
+        modal.confirmButton.focus();
+      }
+    }
+
+    closeAttachmentModal()
+    {
+      if (!this.refs.attachmentModal)
+      {
+        return;
+      }
+      var modal = this.refs.attachmentModal;
+      modal.root.setAttribute('hidden', 'hidden');
+      modal.root.setAttribute('aria-hidden', 'true');
+      modal.root.classList.remove('is-open');
+      this.setAttachmentFeedback(modal, '', null);
+      if (modal.restoreTarget && typeof modal.restoreTarget.focus === 'function')
+      {
+        modal.restoreTarget.focus();
+      }
+    }
+
+    switchAttachmentTab(modal, tabKey)
+    {
+      if (!modal || !modal.tabButtons || !modal.tabPanels)
+      {
+        return;
+      }
+      var targetKey = tabKey === 'upload' ? 'upload' : 'contents';
+      ['contents', 'upload'].forEach((key) =>
+      {
+        var button = modal.tabButtons[key];
+        var panel = modal.tabPanels[key];
+        var isActive = key === targetKey;
+        if (button)
+        {
+          button.classList.toggle('is-active', isActive);
+          button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          button.setAttribute('tabindex', isActive ? '0' : '-1');
+        }
+        if (panel)
+        {
+          panel.hidden = !isActive;
+        }
+      });
+      modal.activeTab = targetKey;
+      if (targetKey === 'upload' && !this.contentLibrary.length)
+      {
+        this.loadContentLibrary(modal);
+      }
+    }
+
+    getContentsSelectModalService()
+    {
+      if (this.page && this.page.contentsSelectModalService)
+      {
+        return this.page.contentsSelectModalService;
+      }
+      return null;
+    }
+
+    openContentsSelectModal(modal)
+    {
+      var service = this.getContentsSelectModalService();
+      if (!service || typeof service.open !== 'function')
+      {
+        this.setAttachmentFeedback(modal, 'コンテンツ選択モーダルを利用できません。', 'error');
+        return;
+      }
+
+      var selectedItems = [];
+      if (service.jobs && service.jobs.data && typeof service.jobs.data.normalizeItem === 'function')
+      {
+        var attachments = Array.isArray(modal && modal.selectedContents) ? modal.selectedContents : [];
+        selectedItems = attachments.map(function (attachment)
+        {
+          var raw = attachment && (attachment.content || attachment.raw || attachment);
+          var normalized = raw ? service.jobs.data.normalizeItem(raw) : null;
+          if (normalized)
+          {
+            normalized.raw = normalized.raw || raw;
+            return normalized;
+          }
+          return null;
+        }).filter(Boolean);
+      }
+
+      var handleSelection = (items) =>
+      {
+        if (!items)
+        {
+          return;
+        }
+        var list = Array.isArray(items) ? items : [items];
+        list.forEach((entry) =>
+        {
+          if (entry)
+          {
+            this.addContentSelection(modal, entry.raw || entry);
+          }
+        });
+      };
+
+      try
+      {
+        service.open({
+          title: 'コンテンツを選択',
+          multiple: true,
+          selected: selectedItems,
+          onSelect: handleSelection,
+          onApply: handleSelection,
+          onClose: () =>
+          {
+            if (modal && modal.tabButtons && modal.tabButtons.contents && typeof modal.tabButtons.contents.focus === 'function')
+            {
+              modal.tabButtons.contents.focus();
+            }
+          },
+          forceRefresh: true
+        });
+      }
+      catch (error)
+      {
+        window.console.error('[target-detail] failed to open content select modal', error);
+      }
+    }
+
+    createAttachmentModal()
+    {
+      var backdrop = createElement('div', 'target-bbs__modal-backdrop');
+      backdrop.setAttribute('hidden', 'hidden');
+      var modal = createElement('div', 'target-bbs__modal');
+      var modalRefs = null;
+      var titleBlock = createElement('div', 'target-bbs__modal-header');
+      var heading = createElement('h3', 'target-bbs__modal-title');
+      heading.textContent = 'ファイルを添付';
+      var descriptionEl = createElement('p', 'target-bbs__modal-description');
+      descriptionEl.textContent = 'コンテンツ管理から選択するか、ファイルをアップロードして添付します。';
+      titleBlock.appendChild(heading);
+      titleBlock.appendChild(descriptionEl);
+      modal.appendChild(titleBlock);
+
+      var form = createElement('div', 'target-bbs__modal-form');
+      var tabs = createElement('div', 'target-bbs__modal-tabs');
+      tabs.setAttribute('role', 'tablist');
+
+      var contentsTabId = 'target-bbs__attachment-tab-contents';
+      var uploadTabId = 'target-bbs__attachment-tab-upload';
+      var contentsPanelId = 'target-bbs__attachment-panel-contents';
+      var uploadPanelId = 'target-bbs__attachment-panel-upload';
+
+      var contentsTab = createElement('button', 'target-bbs__modal-tab is-active');
+      contentsTab.id = contentsTabId;
+      contentsTab.type = 'button';
+      contentsTab.textContent = 'コンテンツ管理から選択';
+      contentsTab.dataset.tab = 'contents';
+      contentsTab.setAttribute('role', 'tab');
+      contentsTab.setAttribute('aria-selected', 'true');
+      contentsTab.setAttribute('aria-controls', contentsPanelId);
+      contentsTab.setAttribute('tabindex', '0');
+      tabs.appendChild(contentsTab);
+
+      var uploadTab = createElement('button', 'target-bbs__modal-tab');
+      uploadTab.id = uploadTabId;
+      uploadTab.type = 'button';
+      uploadTab.textContent = 'ファイルをアップロード';
+      uploadTab.dataset.tab = 'upload';
+      uploadTab.setAttribute('role', 'tab');
+      uploadTab.setAttribute('aria-selected', 'false');
+      uploadTab.setAttribute('aria-controls', uploadPanelId);
+      uploadTab.setAttribute('tabindex', '-1');
+      tabs.appendChild(uploadTab);
+      form.appendChild(tabs);
+
+      var feedback = createElement('p', 'target-bbs__modal-feedback');
+      form.appendChild(feedback);
+
+      var panels = createElement('div', 'target-bbs__modal-panels');
+
+      var contentsPanel = createElement('div', 'target-bbs__modal-panel');
+      contentsPanel.id = contentsPanelId;
+      contentsPanel.dataset.tab = 'contents';
+      contentsPanel.setAttribute('role', 'tabpanel');
+      contentsPanel.setAttribute('aria-labelledby', contentsTabId);
+      var contentsSummary = createElement('p', 'target-bbs__modal-description');
+      contentsSummary.textContent = 'コンテンツ管理で選択する場合は、コンテンツ選択モーダルを開いてください。';
+      var openContentsButton = this.createBannerButton({ buttonType: 'content-uploader-primary', label: 'コンテンツ選択モーダルを開く' });
+      openContentsButton.addEventListener('click', () =>
+      {
+        this.openContentsSelectModal(modalRefs);
+      });
+      contentsPanel.appendChild(contentsSummary);
+      contentsPanel.appendChild(openContentsButton);
+      panels.appendChild(contentsPanel);
+
+      var uploadPanel = createElement('div', 'target-bbs__modal-panel');
+      uploadPanel.id = uploadPanelId;
+      uploadPanel.dataset.tab = 'upload';
+      uploadPanel.setAttribute('role', 'tabpanel');
+      uploadPanel.setAttribute('aria-labelledby', uploadTabId);
+      uploadPanel.hidden = true;
+      var actionsRow = createElement('div', 'target-bbs__modal-actions-row');
+
+      var uploadButton = this.createBannerButton({ buttonType: 'content-uploader-primary', label: 'ファイルをアップロード' });
+      uploadButton.addEventListener('click', () =>
+      {
+        if (modalRefs && modalRefs.fileInput)
+        {
+          modalRefs.fileInput.click();
+        }
+      });
+      actionsRow.appendChild(uploadButton);
+      uploadPanel.appendChild(actionsRow);
+
+      var contentList = createElement('div', 'target-bbs__content-library');
+      uploadPanel.appendChild(contentList);
+
+      var uploadField = createElement('div', 'target-bbs__upload-field');
+      var fileInput = createElement('input', 'target-bbs__upload-input');
+      fileInput.type = 'file';
+      fileInput.multiple = true;
+      fileInput.addEventListener('change', () =>
+      {
+        this.uploadAttachmentsFromFiles(fileInput.files, modalRefs);
+      });
+      uploadField.appendChild(fileInput);
+      uploadPanel.appendChild(uploadField);
+      panels.appendChild(uploadPanel);
+
+      form.appendChild(panels);
+
+      var handleTabSwitch = (key) =>
+      {
+        this.switchAttachmentTab(modalRefs, key);
+      };
+      contentsTab.addEventListener('click', () => handleTabSwitch('contents'));
+      uploadTab.addEventListener('click', () => handleTabSwitch('upload'));
+
+      var selection = createElement('div', 'target-bbs__attachment-selection');
+      form.appendChild(selection);
+
+      var footer = createElement('div', 'target-bbs__modal-actions');
+      var cancel = createElement('button', 'target-bbs__modal-button target-bbs__modal-button--ghost');
+      cancel.type = 'button';
+      cancel.textContent = 'キャンセル';
+      cancel.addEventListener('click', () =>
+      {
+        this.closeAttachmentModal();
+      });
+      var submit = createElement('button', 'target-bbs__modal-button target-bbs__modal-button--primary');
+      submit.type = 'button';
+      submit.textContent = '添付する';
+      submit.addEventListener('click', () =>
+      {
+        this.state.composerAttachments = Array.isArray(modalRefs && modalRefs.selectedContents) ? modalRefs.selectedContents.slice() : [];
+        this.renderComposerAttachments();
+        this.closeAttachmentModal();
+      });
+      footer.appendChild(cancel);
+      footer.appendChild(submit);
+
+      modalRefs = {
+        root: backdrop,
+        contentList: contentList,
+        feedback: feedback,
+        selection: selection,
+        fileInput: fileInput,
+        confirmButton: submit,
+        tabButtons: { contents: contentsTab, upload: uploadTab },
+        tabPanels: { contents: contentsPanel, upload: uploadPanel },
+        activeTab: 'contents',
+        selectedContents: []
+      };
+
+      modal.appendChild(form);
+      modal.appendChild(footer);
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+
+      return modalRefs;
+    }
+
+    setAttachmentFeedback(modal, message, type)
+    {
+      if (!modal || !modal.feedback)
+      {
+        return;
+      }
+      modal.feedback.textContent = message || '';
+      modal.feedback.className = 'target-bbs__modal-feedback';
+      if (type)
+      {
+        modal.feedback.classList.add('target-bbs__modal-feedback--' + type);
+      }
+    }
+
+    renderAttachmentSelection(modal)
+    {
+      if (!modal || !modal.selection)
+      {
+        return;
+      }
+      var selections = Array.isArray(modal.selectedContents) ? modal.selectedContents.filter(Boolean) : [];
+      modal.selection.innerHTML = '';
+      var title = createElement('p', 'target-bbs__composer-attachments-title');
+      title.textContent = '選択中の添付';
+      modal.selection.appendChild(title);
+      if (!selections.length)
+      {
+        var empty = createElement('p', 'target-bbs__composer-attachments-empty');
+        empty.textContent = 'まだ添付がありません。';
+        modal.selection.appendChild(empty);
+        return;
+      }
+      var list = createElement('ul', 'target-bbs__composer-attachments-list');
+      selections.forEach((attachment, index) =>
+      {
+        var row = createElement('li', 'target-bbs__composer-attachment');
+        var label = createElement('span', 'target-bbs__composer-attachment-name');
+        label.textContent = attachment && (attachment.fileName || attachment.label || attachment.contentCode) ? (attachment.fileName || attachment.label || attachment.contentCode) : '添付ファイル';
+        row.appendChild(label);
+        var remove = this.createRoundActionButton('delete', { label: '', ariaLabel: '添付を削除', hoverLabel: '削除' }, 'target-bbs__composer-attachment-remove');
+        remove.addEventListener('click', () =>
+        {
+          modal.selectedContents.splice(index, 1);
+          this.renderAttachmentSelection(modal);
+        });
+        row.appendChild(remove);
+        list.appendChild(row);
+      });
+      modal.selection.appendChild(list);
+    }
+
+    async loadContentLibrary(modal)
+    {
+      if (this.isLoadingContentLibrary)
+      {
+        return;
+      }
+      this.isLoadingContentLibrary = true;
+      this.setAttachmentFeedback(modal, '登録済みコンテンツを読み込み中です…', 'info');
+      try
+      {
+        var payload = await this.page.callApi('ContentList', {}, { requestType: 'Contents' });
+        this.contentLibrary = this.normalizeContentLibrary(payload);
+        this.renderContentLibrary(modal);
+        this.setAttachmentFeedback(modal, '', null);
+      }
+      catch (error)
+      {
+        window.console.error('[target-detail] failed to load content library', error);
+        this.setAttachmentFeedback(modal, 'コンテンツ一覧の取得に失敗しました。', 'error');
+      }
+      finally
+      {
+        this.isLoadingContentLibrary = false;
+      }
+    }
+
+    normalizeContentLibrary(payload)
+    {
+      var list = [];
+      if (Array.isArray(payload && payload.usersContents))
+      {
+        list = payload.usersContents.filter(Boolean);
+      }
+      return list.map(function (entry)
+      {
+        var label = entry && (entry.fileName || entry.title || entry.contentCode || 'コンテンツ');
+        return { label: label, raw: entry };
+      });
+    }
+
+    renderContentLibrary(modal)
+    {
+      if (!modal || !modal.contentList)
+      {
+        return;
+      }
+      modal.contentList.innerHTML = '';
+      var list = this.contentLibrary.slice(0, 50);
+      if (!list.length)
+      {
+        var empty = createElement('p', 'target-bbs__composer-attachments-empty');
+        empty.textContent = 'コンテンツがありません。';
+        modal.contentList.appendChild(empty);
+        return;
+      }
+      list.forEach((entry) =>
+      {
+        var button = createElement('button', 'target-bbs__content-item');
+        button.type = 'button';
+        button.textContent = entry.label;
+        button.addEventListener('click', () =>
+        {
+          this.addContentSelection(modal, entry.raw);
+        });
+        modal.contentList.appendChild(button);
+      });
+    }
+
+    addContentSelection(modal, entry)
+    {
+      if (!modal)
+      {
+        return;
+      }
+      var attachments = this.buildAttachmentsFromContents([entry]);
+      if (!attachments || !attachments.length)
+      {
+        return;
+      }
+      if (!Array.isArray(modal.selectedContents))
+      {
+        modal.selectedContents = [];
+      }
+      attachments.forEach((attachment) =>
+      {
+        var exists = modal.selectedContents.some(function (item)
+        {
+          return item && attachment && item.contentCode === attachment.contentCode;
+        });
+        if (!exists)
+        {
+          modal.selectedContents.push(attachment);
+        }
+      });
+      this.renderAttachmentSelection(modal);
+    }
+
+    buildAttachmentsFromContents(contents)
+    {
+      if (this.page && typeof this.page.buildAttachmentsFromContents === 'function')
+      {
+        return this.page.buildAttachmentsFromContents(contents);
+      }
+      var list = Array.isArray(contents) ? contents : [];
+      return list.map(function (content)
+      {
+        if (!content)
+        {
+          return null;
+        }
+        var contentCode = content.contentCode || content.code || '';
+        return {
+          contentCode: contentCode,
+          label: content.fileName || content.title || contentCode,
+          contentType: content.contentType,
+          mimeType: content.mimeType,
+          fileName: content.fileName || content.title || contentCode,
+          downloadUrl: content.downloadUrl || content.url || ''
+        };
+      }).filter(Boolean);
+    }
+
+    async uploadAttachmentsFromFiles(fileList, modal)
+    {
+      if (!fileList || !fileList.length)
+      {
+        return;
+      }
+      var files = Array.prototype.slice.call(fileList);
+      this.setAttachmentFeedback(modal, 'ファイルをアップロードしています…', 'info');
+      try
+      {
+        var uploads = await Promise.all(files.map((file) => this.uploadAttachmentContent(file)));
+        var attachments = this.buildAttachmentsFromUploadResults(uploads);
+        if (!Array.isArray(modal.selectedContents))
+        {
+          modal.selectedContents = [];
+        }
+        modal.selectedContents = modal.selectedContents.concat(attachments);
+        this.renderAttachmentSelection(modal);
+        this.setAttachmentFeedback(modal, 'アップロードが完了しました。', 'success');
+      }
+      catch (error)
+      {
+        window.console.error('[target-detail] failed to upload attachments', error);
+        this.setAttachmentFeedback(modal, 'アップロードに失敗しました。', 'error');
+      }
+    }
+
+    buildAttachmentsFromUploadResults(results)
+    {
+      var list = Array.isArray(results) ? results : [];
+      return list.map(function (result)
+      {
+        var content = result && (result.content || result.response || result.result || result);
+        var contentCode = content && (content.contentCode || content.code || content.contentsCode);
+        if (!contentCode)
+        {
+          return null;
+        }
+        return {
+          contentCode: contentCode,
+          fileName: content.fileName || contentCode,
+          contentType: content.contentType,
+          mimeType: content.mimeType,
+          fileSize: content.fileSize,
+          downloadUrl: content.downloadUrl || content.url || ''
+        };
+      }).filter(Boolean);
+    }
+
+    uploadAttachmentContent(file, options)
+    {
+      if (!file)
+      {
+        return Promise.reject(new Error('ファイルを選択してください。'));
+      }
+      var formData = new window.FormData();
+      var fileName = file.name || 'bbs-attachment';
+      formData.append('fileName', fileName);
+      formData.append('file', file, fileName);
+      var requestOptions = window.Utils.buildApiRequestOptions('Contents', 'ContentUpload', formData);
+      return this.sendUploadRequestWithProgress(requestOptions, options || {});
+    }
+
+    sendUploadRequestWithProgress(requestOptions, options)
+    {
+      var onProgress = options && typeof options.onProgress === 'function' ? options.onProgress : null;
+      return new Promise(function (resolve, reject)
+      {
+        var xhr = new window.XMLHttpRequest();
+        xhr.open(requestOptions.type || 'POST', requestOptions.url, true);
+        if (xhr.upload && onProgress)
+        {
+          xhr.upload.addEventListener('progress', function (event)
+          {
+            if (!event)
+            {
+              return;
+            }
+            var total = event.total || 0;
+            var loaded = event.loaded || 0;
+            onProgress({ loaded: loaded, total: total });
+          });
+        }
+        xhr.onreadystatechange = function ()
+        {
+          if (xhr.readyState !== 4)
+          {
+            return;
+          }
+          if (xhr.status >= 200 && xhr.status < 300)
+          {
+            var payload = null;
+            try
+            {
+              payload = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+            }
+            catch (_error)
+            {
+              payload = null;
+            }
+            if (payload && typeof payload.status === 'string')
+            {
+              var status = payload.status.toUpperCase();
+              if (status && status !== 'OK')
+              {
+                var message = payload.response || payload.result || payload.reason || 'アップロードに失敗しました。';
+                reject(new Error(message));
+                return;
+              }
+            }
+            resolve((payload && payload.result) || payload || { ok: true });
+            return;
+          }
+          reject(new Error('アップロードに失敗しました (status ' + xhr.status + ')'));
+        };
+        xhr.onerror = function ()
+        {
+          reject(new Error('ネットワークエラーが発生しました'));
+        };
+        if (requestOptions && requestOptions.data)
+        {
+          xhr.send(requestOptions.data);
+        }
+        else
+        {
+          xhr.send();
+        }
+      });
+    }
+
     async handleSendMessage()
     {
       var thread = this.state.selectedThread;
@@ -1357,19 +2607,27 @@
         this.refs.composerButton.textContent = '送信者を選択中…';
         senderUserCode = await this.selectSenderUser(thread);
         this.refs.composerButton.disabled = false;
-        this.refs.composerButton.textContent = '送信';
+        this.refs.composerButton.textContent = '投稿する';
         if (!senderUserCode)
         {
           return;
         }
       }
       this.refs.composerButton.disabled = true;
-      this.refs.composerButton.textContent = '送信中…';
+      this.refs.composerButton.textContent = '投稿中…';
       try
       {
-        var context = await this.page.createBbsMessage(thread.threadCode, content, senderUserCode);
+        var attachments = Array.isArray(this.state.composerAttachments) ? this.state.composerAttachments.filter(Boolean) : [];
+        var appliedAttachments = attachments.map(function (attachment)
+        {
+          return attachment ? Object.assign({}, attachment) : attachment;
+        });
+        var context = await this.page.createBbsMessage(thread.threadCode, content, senderUserCode, attachments);
         this.updateContext(context, thread.threadCode);
+        this.applyAttachmentsToLatestMessage(thread.threadCode, appliedAttachments);
         this.refs.composerInput.value = '';
+        this.state.composerAttachments = [];
+        this.renderComposerAttachments();
       }
       catch (error)
       {
@@ -1382,8 +2640,29 @@
       finally
       {
         this.refs.composerButton.disabled = false;
-        this.refs.composerButton.textContent = '送信';
+        this.refs.composerButton.textContent = '投稿する';
       }
+    }
+
+    applyAttachmentsToLatestMessage(threadCode, attachments)
+    {
+      var hasAttachments = Array.isArray(attachments) && attachments.filter(Boolean).length;
+      if (!threadCode || !hasAttachments)
+      {
+        return;
+      }
+      var thread = this.findThreadByCode(threadCode);
+      if (!thread || !Array.isArray(thread.messages) || !thread.messages.length)
+      {
+        return;
+      }
+      var latestMessage = thread.messages[thread.messages.length - 1];
+      if (!latestMessage || (Array.isArray(latestMessage.attachments) && latestMessage.attachments.length))
+      {
+        return;
+      }
+      latestMessage.attachments = attachments.filter(Boolean);
+      this.renderThreadDetail();
     }
 
     updateContext(context, preferThreadCode)

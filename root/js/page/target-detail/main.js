@@ -613,7 +613,8 @@
     {
       return null;
     }
-    var attachmentCode = normalizeText(entry.attachmentCode || entry.contentCode || entry.id || entry.code);
+    var contentCode = normalizeText(entry.contentCode || entry.code || '');
+    var attachmentCode = normalizeText(entry.attachmentCode || contentCode || entry.id || entry.code);
     var typeRaw = normalizeText(entry.type || entry.category || entry.format || '');
     var type = typeRaw;
     if (!type) {
@@ -631,11 +632,15 @@
     }
     return {
       attachmentCode: attachmentCode || 'attachment-' + Math.random().toString(16).slice(2),
+      contentCode: contentCode,
       name: normalizeText(entry.name || entry.title || entry.fileName) || '添付ファイル',
       type: type,
       typeLabel: normalizeText(entry.typeLabel || entry.categoryLabel || ''),
       sizeDisplay: sizeDisplay,
+      downloadUrl: normalizeText(entry.downloadUrl || entry.url || entry.href || entry.linkUrl || ''),
       url: normalizeText(entry.url || entry.href || entry.downloadUrl || entry.linkUrl || ''),
+      previewUrl: normalizeText(entry.previewUrl || entry.posterUrl || ''),
+      fileName: normalizeText(entry.fileName || ''),
       uploadedAtDisplay: normalizeText(entry.uploadedAtDisplay || entry.createdAtDisplay || '')
     };
   }
@@ -793,14 +798,46 @@
   //
   // bbs
   //
+  function deriveAttachmentExtension(entry)
+  {
+    var candidates = [
+      entry && entry.fileName,
+      entry && entry.name,
+      entry && entry.url,
+      entry && entry.downloadUrl,
+      entry && entry.previewUrl,
+      entry && entry.playbackUrl,
+      entry && entry.streamUrl,
+      entry && entry.posterUrl,
+      entry && entry.thumbnailUrl
+    ];
+
+    for (var i = 0; i < candidates.length; i += 1)
+    {
+      var value = normalizeText(candidates[i]);
+      if (!value)
+      {
+        continue;
+      }
+      var match = value.match(/\.([^.\/\?#]+)(?:$|[\?#])/);
+      if (match && match[1])
+      {
+        return match[1];
+      }
+    }
+
+    return '';
+  }
+
   function normalizeBbsAttachmentData(entry)
   {
     if (!entry || typeof entry !== 'object')
     {
       return null;
     }
-    var attachmentCode = normalizeText(entry.attachmentCode || entry.contentCode || entry.id || entry.code);
-    var typeRaw = normalizeText(entry.type || entry.category || entry.format || '');
+    var contentCode = normalizeText(entry.contentCode || entry.code || '');
+    var attachmentCode = normalizeText(entry.attachmentCode || contentCode || entry.id || entry.code);
+    var typeRaw = normalizeText(entry.type || entry.contentType || entry.mimeType || entry.category || entry.format || '');
     var type = typeRaw;
     if (!type) {
       type = 'file';
@@ -815,13 +852,43 @@
     if (!sizeDisplay && Helpers) {
       sizeDisplay = Helpers.formatFileSize(entry.size);
     }
+    var previewUrl = normalizeText(
+      entry.previewUrl
+      || entry.posterUrl
+      || entry.thumbnailUrl
+      || entry.previewImage
+      || entry.previewImageUrl
+      || entry.imageUrl
+      || entry.playbackUrl
+      || entry.streamUrl
+      || entry.youtubeUrl
+      || ''
+    );
+    var extension = normalizeText(entry.extension || entry.ext || entry.fileExtension || deriveAttachmentExtension(entry));
     return {
       attachmentCode: attachmentCode || 'attachment-' + Math.random().toString(16).slice(2),
+      contentCode: contentCode,
       name: normalizeText(entry.name || entry.title || entry.fileName) || '添付ファイル',
       type: type,
       typeLabel: normalizeText(entry.typeLabel || entry.categoryLabel || ''),
       sizeDisplay: sizeDisplay,
+      downloadUrl: normalizeText(entry.downloadUrl || entry.url || entry.href || entry.linkUrl || ''),
       url: normalizeText(entry.url || entry.href || entry.downloadUrl || entry.linkUrl || ''),
+      previewUrl: previewUrl,
+      fileName: normalizeText(entry.fileName || ''),
+      contentType: normalizeText(entry.contentType || ''),
+      mimeType: normalizeText(entry.mimeType || ''),
+      fileSize: typeof entry.fileSize === 'number' ? entry.fileSize : null,
+      playbackUrl: normalizeText(entry.playbackUrl || entry.streamUrl || ''),
+      streamUrl: normalizeText(entry.streamUrl || ''),
+      posterUrl: normalizeText(entry.posterUrl || ''),
+      thumbnailUrl: normalizeText(entry.thumbnailUrl || ''),
+      previewImage: normalizeText(entry.previewImage || ''),
+      previewImageUrl: normalizeText(entry.previewImageUrl || ''),
+      imageUrl: normalizeText(entry.imageUrl || ''),
+      youtubeUrl: normalizeText(entry.youtubeUrl || ''),
+      extension: extension,
+      fileExtension: extension,
       uploadedAtDisplay: normalizeText(entry.uploadedAtDisplay || entry.createdAtDisplay || '')
     };
   }
@@ -1959,7 +2026,8 @@
         recipientCodes: payload && Array.isArray(payload.recipientCodes)
           ? JSON.stringify(payload.recipientCodes)
           : JSON.stringify([]),
-        threadType: payload && payload.threadType
+        threadType: payload && payload.threadType,
+        threadTitle: payload && payload.threadTitle
       };
       var result = await this.callApi(
         'TargetBbsThreadCreate',
@@ -1996,13 +2064,17 @@
       return context;
     }
 
-    async createBbsMessage(threadCode, content, senderUserCode)
+    async createBbsMessage(threadCode, content, senderUserCode, attachments)
     {
       var params = {
         targetCode: this.state.targetCode,
         threadCode: threadCode,
         content: content
       };
+      if (Array.isArray(attachments) && attachments.length)
+      {
+        params.attachments = window.JSON.stringify(attachments);
+      }
       if (senderUserCode)
       {
         params.senderUserCode = String(senderUserCode).trim();
@@ -2037,6 +2109,21 @@
           targetCode: this.state.targetCode,
           threadCode: threadCode,
           messageCode: messageCode
+        },
+        { requestType: 'TargetManagementBbs' }
+      );
+      return this.normalizeBbsContext(result);
+    }
+
+    async deleteBbsAttachment(threadCode, messageCode, attachmentCode)
+    {
+      var result = await this.callApi(
+        'TargetBbsAttachmentDelete',
+        {
+          targetCode: this.state.targetCode,
+          threadCode: threadCode,
+          messageCode: messageCode,
+          attachmentCode: attachmentCode
         },
         { requestType: 'TargetManagementBbs' }
       );

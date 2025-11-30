@@ -9898,7 +9898,7 @@ body.is-modal-open {
 }
 
 .contents-select-modal {
-  z-index: 120;
+  z-index: 1600;
 }
 
 .screen-modal.is-open {
@@ -11322,6 +11322,10 @@ body.is-modal-open {
   cursor: pointer;
 }
 
+.mock-avatar__upload-btn.table-action-button {
+  padding: 0;
+}
+
 .mock-avatar__upload-btn:hover,
 .mock-avatar__upload-btn:focus-visible {
   border-color: rgba(143, 213, 255, 0.6);
@@ -11383,13 +11387,13 @@ body.is-modal-open {
 }
 
 .mock-avatar__actions .table-action-button {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
 }
 
 .mock-avatar__actions .table-action-button svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 
 .mock-avatar__filename,

@@ -3864,6 +3864,166 @@
   width: 100%;
 }
 
+.target-bbs__composer-attachments,
+.target-bbs__attachment-selection {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.target-bbs__composer-attachments-title {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.target-bbs__composer-attachments-empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.target-bbs__composer-attachments-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.target-bbs__composer-attachment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: var(--text);
+}
+
+.target-bbs__composer-attachment-name {
+  font-size: 14px;
+  margin-right: 8px;
+  color: var(--text);
+}
+
+.target-bbs__attachments {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border-neutral);
+  display: grid;
+  gap: 6px;
+}
+
+.target-bbs__attachment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--color-surface-subtle);
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+
+.target-bbs__attachment-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.target-bbs__attachment-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.target-bbs__attachment-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-right: 0;
+}
+
+.target-bbs__attachment-title {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 4px 6px;
+  margin: -4px 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.target-bbs__attachment-title:hover,
+.target-bbs__attachment-title:focus-visible {
+  background: rgba(79, 139, 255, 0.12);
+  text-decoration: underline;
+}
+
+.target-bbs__attachment-actions {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.target-bbs__attachment-actions .table-action-button {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  padding: 0;
+}
+
+.target-bbs__attachment-actions .table-action-button svg {
+  width: 12px;
+  height: 12px;
+}
+
+.target-bbs__modal-feedback {
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.target-bbs__modal-feedback--info {
+  color: var(--color-text-muted);
+}
+
+.target-bbs__modal-feedback--error {
+  color: var(--color-danger);
+}
+
+.target-bbs__modal-feedback--success {
+  color: var(--color-success);
+}
+
+.target-bbs__content-library {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.target-bbs__content-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-neutral);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.target-bbs__upload-field {
+  margin: 12px 0;
+}
+
+.target-bbs__upload-input {
+  width: 100%;
+}
+
 .target-bbs__message-avatar img {
   width: 100%;
   height: 100%;
@@ -4052,6 +4212,55 @@
   margin: 0;
   font-size: 0.9rem;
   color: var(--text-muted);
+}
+
+.target-bbs__modal-tabs {
+  display: flex;
+  gap: 16px;
+  padding: 0 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  margin-bottom: 8px;
+}
+
+.target-bbs__modal-tab {
+  padding: 10px 4px 8px;
+  border-radius: 0;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 700;
+  text-align: center;
+  border-bottom: 2px solid transparent;
+  background: none;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.target-bbs__modal-tab:hover,
+.target-bbs__modal-tab:focus-visible {
+  color: var(--text);
+  border-bottom-color: rgba(131, 176, 255, 0.6);
+  outline: none;
+}
+
+.target-bbs__modal-tab.is-active {
+  color: var(--text);
+  border-bottom-color: #83b0ff;
+}
+
+.target-bbs__modal-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.target-bbs__modal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .target-bbs__modal-form {

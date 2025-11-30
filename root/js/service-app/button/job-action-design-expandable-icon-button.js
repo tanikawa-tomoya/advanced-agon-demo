@@ -27,6 +27,14 @@
       '</svg>',
       '</span>'
     ].join(''),
+    edit: [
+      '<span class="target-management__icon" aria-hidden="true">',
+      '<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">',
+      '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M4 20h3.5L19 8.5a2.12 2.12 0 0 0 0-3L18.5 5a2.12 2.12 0 0 0-3 0L6.5 14.5 4 20z"></path>',
+      '<path fill="currentColor" d="m14.75 6.25 3 3 .88-.88a1 1 0 0 0 0-1.42L17.05 4.3a1 1 0 0 0-1.41 0z"></path>',
+      '</svg>',
+      '</span>'
+    ].join(''),
     reload: [
       '<span class="target-management__icon" aria-hidden="true">',
       '<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">',
@@ -34,6 +42,13 @@
       '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M20.25 4.75v4.5h-4.5"></path>',
       '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M20.25 12a8.25 8.25 0 0 1-13.44 6.13"></path>',
       '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.75 19.25v-4.5h4.5"></path>',
+      '</svg>',
+      '</span>'
+    ].join(''),
+    up: [
+      '<span class="target-management__icon" aria-hidden="true">',
+      '<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">',
+      '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="m7.5 13.75 4.5-4.5 4.5 4.5"></path>',
       '</svg>',
       '</span>'
     ].join('')
@@ -53,6 +68,20 @@
       hoverLabel: '再読み込み',
       srLabelClass: 'target-management__icon-label',
       fallbackLabel: '再読み込み'
+    }),
+    createDefinition('expandable-icon-button/edit', {
+      baseClass: 'target-management__icon-button target-management__icon-button--ghost',
+      iconHtml: EXPANDABLE_BUTTON_ICONS.edit,
+      hoverLabel: '編集',
+      srLabelClass: 'target-management__icon-label',
+      fallbackLabel: '編集'
+    }),
+    createDefinition('expandable-icon-button/up', {
+      baseClass: 'target-management__icon-button target-management__icon-button--ghost',
+      iconHtml: EXPANDABLE_BUTTON_ICONS.up,
+      hoverLabel: '上へ移動',
+      srLabelClass: 'target-management__icon-label',
+      fallbackLabel: '上へ'
     })
   ]);
 

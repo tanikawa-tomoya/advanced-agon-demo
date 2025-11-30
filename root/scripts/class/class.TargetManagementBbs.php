@@ -36,12 +36,20 @@ class TargetManagementBbs extends Base
                 if (isset($this->params['targetCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
         }
 
-	protected function validationTargetBbsMessageCreate()
-	{
-		if (isset($this->params['targetCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
-		if (isset($this->params['threadCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
-		if (isset($this->params['content']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
-	}
+        protected function validationTargetBbsMessageCreate()
+        {
+                if (isset($this->params['targetCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+                if (isset($this->params['threadCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+                if (isset($this->params['content']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+        }
+
+        protected function validationTargetBbsAttachmentDelete()
+        {
+                if (isset($this->params['targetCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+                if (isset($this->params['threadCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+                if (isset($this->params['messageCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+                if (isset($this->params['attachmentCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+        }
 
 	protected function validationTargetBbsThreadDelete()
 	{
@@ -306,12 +314,14 @@ $bbsData = TargetManagementUtil::fetchTargetBbsData($targetCode, $loginUserCode,
                 $targetCode = htmlspecialchars($this->params['targetCode'], ENT_QUOTES, "UTF-8");
                 $contentRaw = isset($this->params['content']) ? $this->params['content'] : null;
                 $contentValue = Util::normalizeOptionalString($contentRaw, 4000);
+                $threadTitleRaw = isset($this->params['threadTitle']) ? $this->params['threadTitle'] : null;
+                $threadTitleValue = Util::normalizeOptionalString($threadTitleRaw, 120);
 
-                if ($targetCode === '' || $contentValue === false) {
+                if ($targetCode === '' || $contentValue === false || $threadTitleValue === false) {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'invalid';
                         return;
-		}
+                }
 
 		$targetRow = TargetManagementUtil::fetchActiveTargetByCode($targetCode, $this->getLoginUserCode(), $this->getPDOTarget(), $this->getUserInfo($this->getLoginUserCode()), $this->getPDOCommon());
 		if ($targetRow == null) {
@@ -382,7 +392,7 @@ $bbsData = TargetManagementUtil::fetchTargetBbsData($targetCode, $loginUserCode,
                         $pdo->beginTransaction();
 
                         $stmt = $pdo->prepare('INSERT INTO targetBbsThreads (threadCode, targetCode, threadType, title, description, createdByUserCode, createdAt, updatedAt, lastMessageAt, lastMessageSnippet, lastMessageSenderCode, isArchived, isLocked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)');
-                        $stmt->execute(array($threadCode, $targetCode, $threadType, null, null, $loginUserCode, $now, $now, $lastMessageAt, $lastMessageSnippet, $lastMessageSenderCode));
+                        $stmt->execute(array($threadCode, $targetCode, $threadType, $threadTitleValue, null, $loginUserCode, $now, $now, $lastMessageAt, $lastMessageSnippet, $lastMessageSenderCode));
 
                         $memberStmt = $pdo->prepare('INSERT OR IGNORE INTO targetBbsThreadMembers (threadCode, userCode, joinedAt, notificationsMuted) VALUES (?, ?, ?, 0)');
                         $memberStmt->execute(array($threadCode, $loginUserCode, $now));
@@ -493,12 +503,14 @@ $bbsData = TargetManagementUtil::fetchTargetBbsData($targetCode, $loginUserCode,
                 $messageCode = $this->generateUniqid();
                 $snippet = $this->createBbsSnippet($contentValue);
                 $metadata = json_encode(array('emphasis' => 'normal'));
-		if ($metadata === false) {
-			$metadata = '{}';
-		}
+                if ($metadata === false) {
+                        $metadata = '{}';
+                }
+                $attachmentsParam = isset($this->params['attachments']) ? $this->params['attachments'] : '';
+                $attachments = $this->parseBbsAttachments($attachmentsParam);
 
-		try {
-			$pdo->beginTransaction();
+                try {
+                        $pdo->beginTransaction();
 
                         $memberStmt = $pdo->prepare('INSERT OR IGNORE INTO targetBbsThreadMembers (threadCode, userCode, joinedAt, notificationsMuted) VALUES (?, ?, ?, 0)');
                         $memberStmt->execute(array($threadCode, $loginUserCode, $now));
@@ -508,6 +520,26 @@ $bbsData = TargetManagementUtil::fetchTargetBbsData($targetCode, $loginUserCode,
 
                         $messageStmt = $pdo->prepare('INSERT INTO targetBbsMessages (messageCode, threadCode, senderUserCode, content, sentAt, deliveredAt, readAt, createdAt, updatedAt, replyToMessageCode, metadata, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, 0)');
                         $messageStmt->execute(array($messageCode, $threadCode, $senderUserCode, $contentValue, $now, $now, $now, $now, $now, $metadata));
+
+                        if (count($attachments) > 0) {
+                                $attachmentStmt = $pdo->prepare('INSERT INTO targetBbsMessageAttachments (attachmentCode, messageCode, contentCode, contentType, fileName, mimeType, fileSize, downloadUrl, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                                foreach ($attachments as $attachment) {
+                                        $attachmentCode = $this->generateUniqid();
+                                        $fileSize = isset($attachment['fileSize']) && $attachment['fileSize'] !== null ? (int) $attachment['fileSize'] : null;
+                                        $attachmentStmt->execute(array(
+                                                $attachmentCode,
+                                                $messageCode,
+                                                $attachment['contentCode'],
+                                                $attachment['contentType'],
+                                                $attachment['fileName'],
+                                                $attachment['mimeType'],
+                                                $fileSize,
+                                                $attachment['downloadUrl'],
+                                                $now,
+                                                $now
+                                        ));
+                                }
+                        }
 
                         $readStmt = $pdo->prepare('INSERT OR REPLACE INTO targetBbsMessageReads (messageCode, userCode, readAt, createdAt) VALUES (?, ?, ?, ?)');
                         $readStmt->execute(array($messageCode, $senderUserCode, $now, $now));
@@ -867,10 +899,97 @@ $bbsData = TargetManagementUtil::fetchTargetBbsData($targetCode, $loginUserCode,
 			$this->status = parent::RESULT_ERROR;
 			$this->errorReason = 'failed';
 			return;
-		}
+                }
 
-		$this->buildBbsThreadResponse($targetCode, $threadCode);
-	}
+                $this->buildBbsThreadResponse($targetCode, $threadCode);
+        }
+
+
+        public function procTargetBbsAttachmentDelete()
+        {
+                $targetCode = htmlspecialchars($this->params['targetCode'], ENT_QUOTES, "UTF-8");
+                $threadCode = htmlspecialchars($this->params['threadCode'], ENT_QUOTES, "UTF-8");
+                $messageCode = htmlspecialchars($this->params['messageCode'], ENT_QUOTES, "UTF-8");
+                $attachmentCode = htmlspecialchars($this->params['attachmentCode'], ENT_QUOTES, "UTF-8");
+
+                if ($targetCode === '' || $threadCode === '' || $messageCode === '' || $attachmentCode === '') {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid';
+                        return;
+                }
+
+                $targetRow = TargetManagementUtil::fetchActiveTargetByCode($targetCode, $this->getLoginUserCode(), $this->getPDOTarget(), $this->getUserInfo($this->getLoginUserCode()), $this->getPDOCommon());
+                if ($targetRow == null) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                $loginUserCode = $this->getLoginUserCode();
+                if ($loginUserCode === null || $loginUserCode === '') {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'forbidden';
+                        return;
+                }
+
+                $bbsDependencies = $this->buildBbsUtilDependencies();
+
+                $pdo = $bbsDependencies['pdo'];
+                $threadStmt = $pdo->prepare('SELECT threadCode, targetCode FROM targetBbsThreads WHERE threadCode = ? AND (isArchived IS NULL OR isArchived = 0) LIMIT 1');
+                $threadStmt->execute(array($threadCode));
+                $threadRow = $threadStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($threadRow == false || !isset($threadRow['targetCode']) || $threadRow['targetCode'] !== $targetCode) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                $messageStmt = $pdo->prepare('SELECT messageCode, senderUserCode FROM targetBbsMessages WHERE messageCode = ? AND threadCode = ? AND (isDeleted IS NULL OR isDeleted = 0) LIMIT 1');
+                $messageStmt->execute(array($messageCode, $threadCode));
+                $messageRow = $messageStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($messageRow == false) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                $senderUserCode = isset($messageRow['senderUserCode']) ? trim((string)$messageRow['senderUserCode']) : '';
+                $canDelete = ($senderUserCode !== '' && $senderUserCode === $loginUserCode) || $this->isSupervisor() || $this->isOperator();
+                if ($canDelete == false) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'forbidden';
+                        return;
+                }
+
+                $attachmentStmt = $pdo->prepare('SELECT attachmentCode FROM targetBbsMessageAttachments WHERE attachmentCode = ? AND messageCode = ? LIMIT 1');
+                $attachmentStmt->execute(array($attachmentCode, $messageCode));
+                $attachmentRow = $attachmentStmt->fetch(PDO::FETCH_ASSOC);
+                if ($attachmentRow == false) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                try {
+                        $pdo->beginTransaction();
+
+                        $deleteStmt = $pdo->prepare('DELETE FROM targetBbsMessageAttachments WHERE attachmentCode = ? AND messageCode = ?');
+                        $deleteStmt->execute(array($attachmentCode, $messageCode));
+
+                        $pdo->commit();
+                } catch (Exception $error) {
+                        if ($pdo->inTransaction()) {
+                                $pdo->rollBack();
+                        }
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'failed';
+                        return;
+                }
+
+                $this->buildBbsThreadResponse($targetCode, $threadCode);
+        }
 
         public function buildBbsParticipantPayload($userCode, $role)
         {
@@ -1108,31 +1227,60 @@ $bbsData = TargetManagementUtil::fetchTargetBbsData($targetCode, $loginUserCode,
                         return null;
                 }
 
-		$contentCode = isset($row['contentCode']) ? trim((string)$row['contentCode']) : '';
-		if ($contentCode === '') {
-			return null;
-		}
+                $contentCode = isset($row['contentCode']) ? trim((string)$row['contentCode']) : '';
+                if ($contentCode === '') {
+                        return null;
+                }
 
-		$downloadUrl = isset($row['downloadUrl']) ? $row['downloadUrl'] : null;
+                $downloadUrl = isset($row['downloadUrl']) ? $row['downloadUrl'] : null;
+                $fileName = isset($row['fileName']) ? $row['fileName'] : null;
+                $fileSize = null;
+                if (isset($row['fileSize']) && $row['fileSize'] !== null && $row['fileSize'] !== '') {
+                        $fileSize = (int)$row['fileSize'];
+                }
 
-		$fileSize = null;
-		if (isset($row['fileSize']) && $row['fileSize'] !== null && $row['fileSize'] !== '') {
-			$fileSize = (int)$row['fileSize'];
-		}
+                $extension = null;
+                if (is_string($fileName) && $fileName !== '') {
+                        $pos = strrpos($fileName, '.');
+                        if ($pos !== false && $pos < strlen($fileName) - 1) {
+                                $extension = substr($fileName, $pos + 1);
+                        }
+                }
 
-		return array(
-					 'attachmentCode' => isset($row['attachmentCode']) ? $row['attachmentCode'] : null,
-					 'contentCode' => $contentCode,
-					 'contentType' => isset($row['contentType']) ? $row['contentType'] : null,
-					 'fileName' => isset($row['fileName']) ? $row['fileName'] : null,
-					 'mimeType' => isset($row['mimeType']) ? $row['mimeType'] : null,
-					 'fileSize' => $fileSize,
-					 'downloadUrl' => $downloadUrl,
-					 'url' => $downloadUrl,
-					 'createdAt' => isset($row['createdAt']) ? $row['createdAt'] : null,
-					 'updatedAt' => isset($row['updatedAt']) ? $row['updatedAt'] : null,
-					 );
-	}
+                $sizeDisplay = null;
+                if ($fileSize !== null) {
+                        $sizeDisplay = Util::formatBytes($fileSize);
+                }
+
+                $url = isset($row['url']) ? $row['url'] : $downloadUrl;
+
+                return array(
+                                         'attachmentCode' => isset($row['attachmentCode']) ? $row['attachmentCode'] : null,
+                                         'contentCode' => $contentCode,
+                                         'contentType' => isset($row['contentType']) ? $row['contentType'] : null,
+                                         'fileName' => $fileName,
+                                         'mimeType' => isset($row['mimeType']) ? $row['mimeType'] : null,
+                                         'fileSize' => $fileSize,
+                                         'sizeDisplay' => $sizeDisplay,
+                                         'downloadUrl' => $downloadUrl,
+                                         'url' => $url,
+                                         'previewUrl' => isset($row['previewUrl']) ? $row['previewUrl'] : null,
+                                         'playbackUrl' => isset($row['playbackUrl']) ? $row['playbackUrl'] : null,
+                                         'streamUrl' => isset($row['streamUrl']) ? $row['streamUrl'] : null,
+                                         'thumbnailUrl' => isset($row['thumbnailUrl']) ? $row['thumbnailUrl'] : null,
+                                         'posterUrl' => isset($row['posterUrl']) ? $row['posterUrl'] : null,
+                                         'previewImage' => isset($row['previewImage']) ? $row['previewImage'] : null,
+                                         'previewImageUrl' => isset($row['previewImageUrl']) ? $row['previewImageUrl'] : null,
+                                         'imageUrl' => isset($row['imageUrl']) ? $row['imageUrl'] : null,
+                                         'youtubeUrl' => isset($row['youtubeUrl']) ? $row['youtubeUrl'] : null,
+                                         'typeLabel' => isset($row['typeLabel']) ? $row['typeLabel'] : null,
+                                         'categoryLabel' => isset($row['categoryLabel']) ? $row['categoryLabel'] : null,
+                                         'extension' => $extension,
+                                         'fileExtension' => $extension,
+                                         'createdAt' => isset($row['createdAt']) ? $row['createdAt'] : null,
+                                         'updatedAt' => isset($row['updatedAt']) ? $row['updatedAt'] : null,
+                                         );
+        }
 
 
 
@@ -1174,10 +1322,54 @@ $bbsData = TargetManagementUtil::fetchTargetBbsData($targetCode, $loginUserCode,
 			return array();
 		}
 
-		$codes = array_values(array_unique($codes));
+                $codes = array_values(array_unique($codes));
 
-		return $codes;
-	}
+                return $codes;
+        }
+
+        private function parseBbsAttachments($value)
+        {
+                if ($value === null || $value === '') {
+                        return array();
+                }
+
+                $decoded = null;
+                if (is_string($value)) {
+                        $decoded = json_decode($value, true);
+                } else if (is_array($value)) {
+                        $decoded = $value;
+                }
+
+                if (is_array($decoded) == false) {
+                        return array();
+                }
+
+                $attachments = array();
+
+                foreach ($decoded as $entry) {
+                        if (!is_array($entry)) {
+                                continue;
+                        }
+
+                        $contentCode = isset($entry['contentCode']) ? trim((string)$entry['contentCode']) : '';
+                        if ($contentCode === '') {
+                                continue;
+                        }
+
+                        $attachment = array(
+                                'contentCode' => $contentCode,
+                                'contentType' => isset($entry['contentType']) ? trim((string)$entry['contentType']) : null,
+                                'fileName' => isset($entry['fileName']) ? trim((string)$entry['fileName']) : null,
+                                'mimeType' => isset($entry['mimeType']) ? trim((string)$entry['mimeType']) : null,
+                                'fileSize' => isset($entry['fileSize']) ? $entry['fileSize'] : null,
+                                'downloadUrl' => isset($entry['downloadUrl']) ? trim((string)$entry['downloadUrl']) : null,
+                        );
+
+                        $attachments[] = $attachment;
+                }
+
+                return $attachments;
+        }
 
 
 
