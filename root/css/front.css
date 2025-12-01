@@ -19,6 +19,10 @@
     box-sizing: border-box;
 }
 
+html {
+    min-height: 100%;
+}
+
 body {
     margin: 0;
     --anchor-offset: clamp(96px, 12vh, 140px);
@@ -151,6 +155,9 @@ body::after {
     --accent-primary: #ff75d8;
     --accent-secondary: #5be7ff;
     --accent-tertiary: #826bff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .page::selection {
@@ -1758,6 +1765,7 @@ body.is-modal-open {
     gap: 1rem;
     text-align: center;
     color: rgba(235, 238, 255, 0.65);
+    margin-top: auto;
 }
 
 .footer a {
