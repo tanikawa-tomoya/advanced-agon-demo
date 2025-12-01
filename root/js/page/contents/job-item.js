@@ -124,6 +124,7 @@
         this.pageInstance.state.items = items;
         this.pageInstance.state.page = res && res.page || 1;
         this.pageInstance.state.total = res && res.total || items.length;
+        this.pageInstance.state.pageSize = res && res.pageSize || this.pageInstance.uiConfig.defaultPageSize;
         this.pageInstance.renderList(items);
         this.pageInstance.toast(this.pageInstance.textConfig.deleted);
       } finally {
@@ -184,6 +185,7 @@
         this.pageInstance.state.items = items;
         this.pageInstance.state.page = res && res.page || 1;
         this.pageInstance.state.total = res && res.total || items.length;
+        this.pageInstance.state.pageSize = res && res.pageSize || this.pageInstance.uiConfig.defaultPageSize;
         this.pageInstance.renderList(items);
         var toastKey = nextVisible ? 'visibilityShown' : 'visibilityHidden';
         var message = this.pageInstance.textConfig[toastKey] || this.pageInstance.textConfig.saved;

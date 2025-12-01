@@ -19,6 +19,7 @@
         this.pageInstance.state.items = items;
         this.pageInstance.state.page = res && res.page || 1;
         this.pageInstance.state.total = res && res.total || items.length;
+        this.pageInstance.state.pageSize = res && res.pageSize || this.pageInstance.uiConfig.defaultPageSize;
         this.pageInstance.renderList(items);
       } finally {
         this.pageInstance.loading(false);

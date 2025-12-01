@@ -20,6 +20,7 @@
         this.pageInstance.state.items = items;
         this.pageInstance.state.page = res && res.page || page;
         this.pageInstance.state.total = res && res.total || items.length;
+        this.pageInstance.state.pageSize = res && res.pageSize || this.pageInstance.uiConfig.defaultPageSize;
         this.pageInstance.renderList(items);
       } finally {
         if (!silent) this.pageInstance.loading(false);
