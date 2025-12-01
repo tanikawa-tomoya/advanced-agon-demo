@@ -22,6 +22,7 @@ fi
 
 USER_ID_RAW="$1"
 CONTENT_SRC_DIR="$2"
+CONTENT_SRC_DIR_DISPLAY="$CONTENT_SRC_DIR"
 
 if [[ ! "$USER_ID_RAW" =~ ^[0-9]+$ ]]; then
   echo "Error: user-id must be a numeric ID." >&2
@@ -66,6 +67,11 @@ require_site_context
 
 if [[ ! -d "$CONTENT_SRC_DIR" ]]; then
   echo "Error: content directory does not exist: ${CONTENT_SRC_DIR}" >&2
+  exit 1
+fi
+
+if ! CONTENT_SRC_DIR=$(cd "$CONTENT_SRC_DIR" && pwd -P); then
+  echo "Error: failed to resolve absolute path for content directory: ${CONTENT_SRC_DIR_DISPLAY}" >&2
   exit 1
 fi
 
@@ -288,7 +294,14 @@ probe_image_dimensions() {
 NOW=$(date '+%Y-%m-%d %H:%M:%S')
 SQL_STATEMENTS="BEGIN;"
 
-while IFS= read -r -d '' file_path; do
+while IFS= read -r -d '' relative_path; do
+  file_path="${CONTENT_SRC_DIR}/${relative_path#./}"
+
+  if [[ ! -f "$file_path" ]]; then
+    echo "Error: source file does not exist or is not readable: ${file_path}" >&2
+    exit 1
+  fi
+
   file_name=$(basename "$file_path")
   extension="${file_name##*.}"
   mime=$(file --brief --mime-type "$file_path" 2>/dev/null || true)
@@ -346,9 +359,9 @@ while IFS= read -r -d '' file_path; do
   sql_width=$(number_or_null "$width")
   sql_height=$(number_or_null "$height")
 
-  SQL_STATEMENTS+=$'\n'"INSERT INTO userContents (contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt) VALUES($(sql_quote "$content_code"), $(sql_quote "$USER_CODE"), $(sql_quote "$content_type"), $(sql_quote "$file_name"), $(sql_quote "$relative_path"), $(sql_quote "$mime_type"), ${sql_file_size}, ${sql_duration}, ${sql_bitrate}, ${sql_width}, ${sql_height}, 1, $(sql_quote "$NOW"), $(sql_quote "$NOW"));"
+  SQL_STATEMENTS+=$'\n'"INSERT INTO userContents (contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt) VALUES($(sql_quote "$content_code"), $(sql_quote "$USER_CODE"), $(sql_quote "$content_type"), $(sql_quote "$file_name"), $(sql_quote "${relative_path#./}"), $(sql_quote "$mime_type"), ${sql_file_size}, ${sql_duration}, ${sql_bitrate}, ${sql_width}, ${sql_height}, 1, $(sql_quote "$NOW"), $(sql_quote "$NOW"));"
 
-done < <(find "$CONTENT_SRC_DIR" -type f -print0)
+done < <(cd "$CONTENT_SRC_DIR" && find . -type f -print0)
 
 SQL_STATEMENTS+=$'\nCOMMIT;'
 
