@@ -177,6 +177,8 @@
         autoRefreshIntervalMs: 0
       });
 
+      this.state.pageSize = this.uiConfig.defaultPageSize;
+
       // セレクタ
       this.selectorConfig = Object.freeze({
         // ヘルプ
@@ -197,6 +199,12 @@
         panelWrapper: '[data-cp-panel-wrapper]',
         listEmpty: '[data-cp-empty]',
         statusMessage: '[data-cp="status"]',
+        pagination: '[data-cp-pagination]',
+        paginationStatus: '[data-cp-pagination-status]',
+        paginationButton: '[data-cp-page]',
+        paginationPages: '[data-cp-pagination-pages]',
+        paginationPrevButton: '[data-cp-pagination-prev]',
+        paginationNextButton: '[data-cp-pagination-next]',
 
         // 表示モード
         viewModeButton: '[data-cp-view-mode]',
@@ -789,6 +797,29 @@
             var C = window.Contents && window.Contents.JobRefresh;
             if (C) {
               await new C(self).run({ page: 1 });
+            }
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // ページング
+      $(document)
+        .off('click.contents', selectors.paginationButton)
+        .on('click.contents', selectors.paginationButton, async function (e) {
+          e.preventDefault();
+          if ($(this).is(':disabled')) {
+            return;
+          }
+          try {
+            var targetPage = Number($(this).attr('data-cp-page'));
+            if (!targetPage || targetPage === self.state.page) {
+              return;
+            }
+            await window.Utils.loadScriptsSync([self.path + '/job-refresh.js'], { cache: true });
+            var PaginationRefresh = window.Contents && window.Contents.JobRefresh;
+            if (PaginationRefresh) {
+              await new PaginationRefresh(self).run({ page: targetPage });
             }
           } catch (err) {
             self.onError(err);
@@ -2032,12 +2063,21 @@
       {
         resolvedPageSize = this.uiConfig.defaultPageSize;
       }
+      var list = Array.isArray(items) ? items : [];
+      var totalItems = list.length;
+      var totalPages = resolvedPageSize ? Math.max(1, Math.ceil(totalItems / resolvedPageSize)) : 1;
+      if (resolvedPage > totalPages)
+      {
+        resolvedPage = totalPages;
+      }
       var start = (resolvedPage - 1) * resolvedPageSize;
-      var sliced = items.slice(start, start + resolvedPageSize);
+      var sliced = list.slice(start, start + resolvedPageSize);
       return {
         page: resolvedPage,
         items: sliced,
-        total: items.length
+        total: totalItems,
+        pageSize: resolvedPageSize,
+        totalPages: totalPages
       };
     }
 
@@ -2213,7 +2253,9 @@
       return {
         items: paginated.items,
         page: paginated.page,
-        total: paginated.total
+        total: paginated.total,
+        pageSize: paginated.pageSize,
+        totalPages: paginated.totalPages
       };
     }
 
@@ -2819,6 +2861,89 @@
       return key ? this.escapeHtml(key) : '-';
     }
 
+    renderPagination(total, page, pageSize)
+    {
+      var selectors = this.selectorConfig || {};
+      var container = selectors.pagination ? document.querySelector(selectors.pagination) : null;
+      var status = selectors.paginationStatus ? document.querySelector(selectors.paginationStatus) : null;
+      var pagesHost = selectors.paginationPages ? document.querySelector(selectors.paginationPages) : null;
+      var prevButton = selectors.paginationPrevButton ? document.querySelector(selectors.paginationPrevButton) : null;
+      var nextButton = selectors.paginationNextButton ? document.querySelector(selectors.paginationNextButton) : null;
+
+      var resolvedTotal = typeof total === 'number' ? total : 0;
+      var resolvedPageSize = Number(pageSize) || this.uiConfig.defaultPageSize;
+      var resolvedPage = Number(page) || 1;
+      var totalPages = resolvedPageSize ? Math.max(1, Math.ceil(resolvedTotal / resolvedPageSize)) : 1;
+      if (resolvedPage > totalPages)
+      {
+        resolvedPage = totalPages;
+      }
+      this.state.page = resolvedPage;
+      this.state.pageSize = resolvedPageSize;
+
+      var startIndex = resolvedTotal ? ((resolvedPage - 1) * resolvedPageSize) + 1 : 0;
+      var endIndex = resolvedTotal ? Math.min(resolvedTotal, resolvedPage * resolvedPageSize) : 0;
+
+      if (status)
+      {
+        var statusText = resolvedTotal
+          ? (startIndex <= endIndex
+            ? (startIndex + '～' + endIndex + '件を表示（全' + resolvedTotal + '件）')
+            : '表示できるコンテンツがありません')
+          : '表示できるコンテンツがありません';
+        status.textContent = statusText;
+      }
+
+      if (container)
+      {
+        if (resolvedTotal > 0)
+        {
+          container.removeAttribute('hidden');
+        }
+        else
+        {
+          container.setAttribute('hidden', 'hidden');
+        }
+      }
+
+      if (prevButton)
+      {
+        prevButton.setAttribute('data-cp-page', Math.max(1, resolvedPage - 1));
+        prevButton.disabled = resolvedPage <= 1;
+        prevButton.setAttribute('aria-disabled', prevButton.disabled ? 'true' : 'false');
+      }
+      if (nextButton)
+      {
+        nextButton.setAttribute('data-cp-page', Math.min(totalPages, resolvedPage + 1));
+        nextButton.disabled = resolvedPage >= totalPages;
+        nextButton.setAttribute('aria-disabled', nextButton.disabled ? 'true' : 'false');
+      }
+
+      if (pagesHost)
+      {
+        var pageButtons = [];
+        var startPage = Math.max(1, resolvedPage - 2);
+        var endPage = Math.min(totalPages, resolvedPage + 2);
+        for (var p = startPage; p <= endPage; p += 1)
+        {
+          var isCurrent = p === resolvedPage;
+          var classes = 'content-library__pagination-button';
+          if (isCurrent)
+          {
+            classes += ' is-current';
+          }
+          var attrs = ['type="button"', 'class="' + classes + '"', 'data-cp-page="' + p + '"'];
+          if (isCurrent)
+          {
+            attrs.push('aria-current="page"');
+            attrs.push('disabled');
+          }
+          pageButtons.push('<button ' + attrs.join(' ') + '>' + p + '</button>');
+        }
+        pagesHost.innerHTML = pageButtons.join('');
+      }
+    }
+
     /**
      * 描画（最小限 / 旧 general.js の renderList 移行先）
      */
@@ -2830,10 +2955,13 @@
       var $status = sel.statusMessage ? $(sel.statusMessage) : $();
       var listItems = Array.isArray(items) ? items : [];
       var count = listItems.length;
+      var total = (typeof this.state.total === 'number') ? this.state.total : count;
+      var page = this.state.page || 1;
+      var pageSize = this.state.pageSize || this.uiConfig.defaultPageSize;
 
       if ($status.length) {
-        var statusText = count
-          ? count + '件のコンテンツが見つかりました'
+        var statusText = total
+          ? total + '件のコンテンツが見つかりました'
           : '表示できるコンテンツがありません';
         $status.text(statusText);
       }
@@ -2849,6 +2977,7 @@
         if ($empty.length) {
           $empty.removeAttr('hidden');
         }
+        this.renderPagination(total, page, pageSize);
         this.updateViewModeVisibility();
         return;
       }
@@ -2874,6 +3003,7 @@
         this.renderPanelThumbPlaceholders();
       }
       this.updateViewModeVisibility();
+      this.renderPagination(total, page, pageSize);
     }
 
     buildItemDisplayProps(item, index)

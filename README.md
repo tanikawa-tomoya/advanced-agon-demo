@@ -7,7 +7,7 @@ https://advanced.marmo-hub.tokyo
 `./scripts/bin/init-data.sh` を実行すると、以下の表がランダムに更新されます。
 
 <!-- INIT_CREDENTIALS_START -->
-最終更新: 2025-11-28 17:31:09 +0900
+最終更新: 2025-12-01 15:38:26 +0900
 
 | ユーザーコード | 初期パスワード |
 | --- | --- |
