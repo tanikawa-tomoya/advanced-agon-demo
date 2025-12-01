@@ -23,6 +23,8 @@
     'displayReferences',
     'displaySchedules',
     'displayProducts',
+    'displayCreator',
+    'displayAudience',
     'displayChat',
     'displayBbs',
     'displaySubmissions',
@@ -2232,8 +2234,8 @@
       this.lastHelpTrigger = trigger || this.refs.helpButton || this.lastHelpTrigger;
       this.helpModalService.show({
         title: 'ターゲット詳細のヒント',
-        text: 'この画面ではターゲットの設定や提出、参考資料、バッジ管理をまとめて確認できます。'
-      });      
+        text: 'この画面ではターゲットの設定や提出、資料、バッジ管理をまとめて確認できます。'
+      });
       this.refs.helpModalElement.removeAttribute('hidden');
       this.refs.helpModalElement.setAttribute('aria-hidden', 'false');
       var closeButton = this.refs.helpModalElement.querySelector('[data-modal-close]');

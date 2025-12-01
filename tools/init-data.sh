@@ -704,6 +704,8 @@ CREATE TABLE IF NOT EXISTS targets (
     displayReferences INTEGER DEFAULT 1,
     displaySchedules INTEGER DEFAULT 1,
     displayProducts INTEGER DEFAULT 1,
+    displayCreator INTEGER DEFAULT 1,
+    displayAudience INTEGER DEFAULT 1,
     displayChat INTEGER DEFAULT 1,
     displayBbs INTEGER DEFAULT 1,
     displaySubmissions INTEGER DEFAULT 1,
@@ -2048,7 +2050,7 @@ INSERT OR REPLACE INTO targets (
     targetCode, title, description, imageFile, status, priority, dueDate,
     startDate, endDate, assignedUserCode, assignedGroupCode,
     displayGuidance, displayGoals, displayAgreements, displayAnnouncements,
-    displayReferences, displaySchedules, displayProducts, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
+    displayReferences, displaySchedules, displayProducts, displayCreator, displayAudience, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
     createdByUserCode, createdAt, updatedAt, isDeleted
 )
 VALUES (
@@ -2063,6 +2065,8 @@ VALUES (
     date('now','+${end_offset} days'),
     '${assigned_user}',
     NULL,
+    1,
+    1,
     1,
     1,
     1,

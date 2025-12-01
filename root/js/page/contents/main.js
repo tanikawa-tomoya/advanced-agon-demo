@@ -139,7 +139,7 @@
         usageError: '使用箇所の取得に失敗しました',
         usageTypeLabels: Object.freeze({
           guidance: 'ガイダンスコンテンツ',
-          reference: '参考資料',
+          reference: '資料',
           submission: '提出',
           review: 'レビュー'
         }),
