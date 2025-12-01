@@ -179,12 +179,43 @@
       return metaParts.join(' / ');
     }
 
+    resolveDurationLabel(item)
+    {
+      if (!item || item.kind !== 'movie')
+      {
+        return '';
+      }
+      var label = item.durationLabel || '';
+      if (!label && item.raw && item.raw.durationLabel)
+      {
+        label = String(item.raw.durationLabel);
+      }
+      return label;
+    }
+
+    resolveFileName(item)
+    {
+      if (!item)
+      {
+        return '';
+      }
+      var raw = item.raw || {};
+      return item.fileName || raw.fileName || raw.name || '';
+    }
+
     createBadgeElement(kind)
     {
       var badge = createElement('span', 'contents-select-modal__badge');
       var kindKey = (kind || 'content').toLowerCase();
       badge.textContent = this.resolveKindLabel(kindKey);
       badge.dataset.kind = kindKey;
+      return badge;
+    }
+
+    createDurationBadge(label)
+    {
+      var badge = createElement('span', 'contents-select-modal__duration');
+      badge.textContent = label;
       return badge;
     }
 
@@ -241,6 +272,11 @@
         var placeholder = createElement('div', 'contents-select-modal__thumb-placeholder');
         placeholder.textContent = this.resolveKindLabel(item.kind);
         media.appendChild(placeholder);
+      }
+      var durationLabel = this.resolveDurationLabel(item);
+      if (durationLabel)
+      {
+        media.appendChild(this.createDurationBadge(durationLabel));
       }
       wrapper.appendChild(media);
       return wrapper;
@@ -481,6 +517,13 @@
       meta.textContent = this.buildMetaText(item);
       container.appendChild(title);
       container.appendChild(meta);
+      var fileName = this.resolveFileName(item);
+      if (fileName)
+      {
+        var name = createElement('div', 'contents-select-modal__info-name');
+        name.textContent = fileName;
+        container.appendChild(name);
+      }
       if (item.description)
       {
         var desc = createElement('div', 'contents-select-modal__info-desc');
@@ -835,6 +878,11 @@
           placeholder.textContent = this.resolveKindLabel(item.kind);
           media.appendChild(placeholder);
         }
+        var durationLabel = this.resolveDurationLabel(item);
+        if (durationLabel)
+        {
+          media.appendChild(this.createDurationBadge(durationLabel));
+        }
         card.appendChild(media);
 
         var body = createElement('div', 'contents-select-modal__card-body');
@@ -842,10 +890,20 @@
         title.textContent = item.title || '-';
         var meta = createElement('p', 'contents-select-modal__card-meta');
         meta.textContent = this.buildMetaText(item);
+        var fileName = this.resolveFileName(item);
+        var name = fileName ? createElement('p', 'contents-select-modal__card-name') : null;
+        if (name)
+        {
+          name.textContent = fileName;
+        }
         var desc = createElement('p', 'contents-select-modal__card-desc');
         desc.textContent = item.description || '';
         body.appendChild(title);
         body.appendChild(meta);
+        if (name)
+        {
+          body.appendChild(name);
+        }
         body.appendChild(desc);
 
         var actions = createElement('div', 'contents-select-modal__card-actions');

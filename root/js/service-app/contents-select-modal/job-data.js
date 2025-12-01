@@ -133,6 +133,101 @@
       return true;
     }
 
+    parseDurationString(value)
+    {
+      if (typeof value !== 'string')
+      {
+        return 0;
+      }
+      var parts = value.split(':');
+      var total = 0;
+      var multiplier = 1;
+      for (var i = parts.length - 1; i >= 0; i -= 1)
+      {
+        var num = Number(parts[i]);
+        if (Number.isNaN(num) || num < 0)
+        {
+          return 0;
+        }
+        total += num * multiplier;
+        multiplier *= 60;
+      }
+      return total;
+    }
+
+    formatDuration(seconds)
+    {
+      var total = Number(seconds);
+      if (!Number.isFinite(total) || total <= 0)
+      {
+        return '';
+      }
+      var rounded = Math.max(0, Math.floor(total));
+      var hours = Math.floor(rounded / 3600);
+      var minutes = Math.floor((rounded % 3600) / 60);
+      var secs = rounded % 60;
+      var parts = [];
+      if (hours > 0)
+      {
+        parts.push(String(hours));
+        parts.push(String(minutes).padStart(2, '0'));
+      }
+      else
+      {
+        parts.push(String(minutes));
+      }
+      parts.push(String(secs).padStart(2, '0'));
+      return parts.join(':');
+    }
+
+    resolveDurationSeconds(raw)
+    {
+      var source = raw || {};
+      var candidates = [
+        source.duration,
+        source.durationSeconds,
+        source.durationLabel,
+        source.lengthSeconds,
+        source.length,
+        source.videoDuration,
+        source.movieDuration
+      ];
+      var meta = source.metadata || source.meta || null;
+      if (meta && typeof meta === 'object')
+      {
+        candidates.push(meta.duration, meta.lengthSeconds);
+      }
+      for (var i = 0; i < candidates.length; i += 1)
+      {
+        var candidate = candidates[i];
+        var seconds = Number(candidate);
+        if (Number.isFinite(seconds) && seconds > 0)
+        {
+          return Math.floor(seconds);
+        }
+        if (typeof candidate === 'string' && candidate.indexOf(':') >= 0)
+        {
+          var parsed = this.parseDurationString(candidate);
+          if (parsed > 0)
+          {
+            return parsed;
+          }
+        }
+      }
+      return 0;
+    }
+
+    resolveDurationLabel(raw)
+    {
+      var seconds = this.resolveDurationSeconds(raw);
+      if (seconds > 0)
+      {
+        return this.formatDuration(seconds);
+      }
+      var label = raw && raw.durationLabel ? String(raw.durationLabel) : '';
+      return label;
+    }
+
   resolveKind(record)
   {
       var source = resolveSource(record) || {};
@@ -334,6 +429,9 @@
       var idBase = source.contentCode || source.id || source.uuid || source.code || normalizeText(source.fileName);
       var identifier = kind + '-' + (idBase || String(Date.now()));
       var timestamp = this.parseTimestamp(source.updatedAt || source.createdAt || source.registeredAt);
+      var fileName = normalizeText(source.fileName || source.name || '');
+      var durationSeconds = this.resolveDurationSeconds(source);
+      var durationLabel = durationSeconds > 0 ? this.formatDuration(durationSeconds) : this.resolveDurationLabel(source);
       var title = this.resolveTitle(source, kind);
       var description = normalizeText(source.description || source.memo || source.note || source.summary);
       var isVisible = this.normalizeVisibilityFlag(source.isVisible);
@@ -347,7 +445,7 @@
         title,
         description,
         normalizeText(source.contentCode || source.id || ''),
-        normalizeText(source.fileName || ''),
+        fileName,
         kind
       ];
       var searchText = searchParts
@@ -361,10 +459,13 @@
         kind: kind,
         title: title,
         description: description,
+        fileName: fileName,
         isVisible: isVisible,
         visibilityLabel: isVisible ? '表示' : '非表示',
         updatedAt: timestamp.value,
         updatedAtLabel: timestamp.label,
+        durationSeconds: durationSeconds,
+        durationLabel: durationLabel,
         fileUrl: fileUrl,
         thumbnailUrl: thumbnailUrl,
         raw: source,

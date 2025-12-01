@@ -258,6 +258,66 @@
         </div>
       </section>
     </main>
+
+    <div
+      class="screen-modal screen-modal--preview"
+      id="contents-edit-modal"
+      data-cp-edit-modal
+      aria-hidden="true"
+      role="dialog"
+      aria-labelledby="contents-edit-title"
+      aria-describedby="contents-edit-summary"
+      hidden
+    >
+      <div class="screen-modal__overlay" data-cp-edit-close aria-hidden="true"></div>
+      <div class="screen-modal__container" role="document">
+        <section class="screen-modal__content">
+          <div class="screen-modal__header">
+            <p class="screen-modal__summary" id="contents-edit-summary">コンテンツ情報を編集します。</p>
+            <h2 class="screen-modal__title" id="contents-edit-title">コンテンツ編集</h2>
+          </div>
+          <div class="screen-modal__body">
+            <form class="content-edit-form" data-cp-edit-form>
+              <div class="content-edit-form__grid">
+                <div class="content-edit-form__field content-edit-form__field--full">
+                  <label class="content-edit-form__label" for="contents-edit-title">タイトル</label>
+                  <input
+                    id="contents-edit-title"
+                    type="text"
+                    class="user-management__input content-edit-form__control"
+                    data-cp-edit-title
+                    maxlength="120"
+                  />
+                </div>
+                <div class="content-edit-form__field content-edit-form__field--full">
+                  <label class="content-edit-form__label" for="contents-edit-description">説明</label>
+                  <textarea
+                    id="contents-edit-description"
+                    class="user-management__input content-edit-form__control content-edit-form__textarea"
+                    data-cp-edit-description
+                    rows="3"
+                  ></textarea>
+                </div>
+                <div class="content-edit-form__field">
+                  <label class="content-edit-form__label" for="contents-edit-created-at">作成日</label>
+                  <input
+                    id="contents-edit-created-at"
+                    type="datetime-local"
+                    class="user-management__input content-edit-form__control"
+                    data-cp-edit-created-at
+                  />
+                </div>
+              </div>
+              <p class="user-management__feedback content-edit-form__feedback" data-cp-edit-error hidden></p>
+              <div class="content-edit-form__actions">
+                <button type="button" class="btn btn--ghost" data-cp-edit-cancel>キャンセル</button>
+                <button type="submit" class="btn btn--primary" data-cp-edit-save>保存</button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
     <div
       class="screen-modal"
       id="contents-upload-modal"

@@ -2553,10 +2553,24 @@
     {
       var self = this;
       var flags = {};
-      var source = raw && raw.displayFlags ? raw.displayFlags : raw;
+      var sources = [
+        raw && raw.displayFlags,
+        raw && raw.displaySettings,
+        raw
+      ];
       DISPLAY_FLAG_KEYS.forEach(function (key)
       {
-        flags[key] = self.normalizeBooleanFlag(source && source[key], true);
+        var value;
+        for (var i = 0; i < sources.length; i++)
+        {
+          var candidate = sources[i];
+          if (candidate && typeof candidate[key] !== 'undefined')
+          {
+            value = candidate[key];
+            break;
+          }
+        }
+        flags[key] = self.normalizeBooleanFlag(value, true);
       });
       return flags;
     }
