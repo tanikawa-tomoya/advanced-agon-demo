@@ -29,16 +29,19 @@
 
      _collectSectionMappings()
      {
-       var sections = [];
-       var hero = document.querySelector('.hero');
-       var standardSections = document.querySelectorAll('.page-main .section');
+      var sections = [];
 
-       var mapping = [
-         { element: hero, image: 'https://picsum.photos/seed/agon-hero-backdrop/1920/1080', key: 'hero' },
-         { element: standardSections[0], image: 'https://picsum.photos/seed/agon-schedule/1920/1080', key: 'schedule' },
-         { element: standardSections[1], image: 'https://picsum.photos/seed/agon-features/1920/1080', key: 'features' },
-         { element: standardSections[2], image: 'https://picsum.photos/seed/agon-flow/1920/1080', key: 'flow' }
-       ];
+      var mapping = [
+        { element: document.getElementById('hero'), image: '/image/sample/open-book-1428428_1920.jpg', key: 'hero' },
+        { element: document.getElementById('eventarchive'), image: '/image/sample/particles-4822857_1920.jpg', key: 'eventarchive' },
+        { element: document.getElementById('schedule'), image: '/image/sample/particles-4822857_1920.jpg', key: 'schedule' },
+        { element: document.getElementById('about'), image: '/image/sample/fujisan-6195139_1920.jpg', key: 'about' },
+        { element: document.getElementById('contents1'), image: '/image/sample/fire-184885_1920.jpg', key: 'contents1' },
+        { element: document.getElementById('contents2'), image: '/image/sample/autumnal-leaves-2704406_1920.jpg', key: 'contents2' },
+        { element: document.getElementById('wellness'), image: '/image/sample/balance-110850_1920.jpg', key: 'wellness' },
+        { element: document.getElementById('membership'), image: '/image/sample/sky-2546570_1920.jpg', key: 'membership' },
+        { element: document.getElementById('contact'), image: '/image/sample/sky-2546570_1920.jpg', key: 'contact' }
+      ];
 
        for (var i = 0; i < mapping.length; i++) {
          var entry = mapping[i];
