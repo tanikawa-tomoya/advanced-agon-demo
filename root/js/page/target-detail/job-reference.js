@@ -342,7 +342,7 @@
 
       var empty = document.createElement('div');
       empty.className = 'target-reference__empty';
-      empty.textContent = 'このターゲットに共有された参考資料はまだありません。';
+      empty.textContent = 'このターゲットに共有された資料はまだありません。';
       this.refs.empty = empty;
       section.appendChild(empty);
 
@@ -362,7 +362,7 @@
       header.className = 'target-detail__section-header';
 
       var title = document.createElement('h2');
-      title.textContent = '参考資料';
+      title.textContent = '資料';
       header.appendChild(title);
 
       var actions = document.createElement('div');
@@ -370,7 +370,7 @@
 
       if (this.canManage)
       {
-        var openButton = this.createBannerButton('参考資料を追加', 'target-reference__open', {
+        var openButton = this.createBannerButton('資料を追加', 'target-reference__open', {
           baseClass: 'target-management__icon-button target-management__icon-button--primary target-reference__open',
           buttonType: 'expandable-icon-button/add'
         });
@@ -382,9 +382,9 @@
         baseClass: 'target-management__icon-button target-management__icon-button--ghost target-reference__refresh',
         buttonType: 'expandable-icon-button/reload',
         fallbackClass: 'btn btn--ghost',
-        title: '参考資料を再読み込み',
-        hoverLabel: '参考資料を再読み込み',
-        ariaLabel: '参考資料を再読み込み'
+        title: '資料を再読み込み',
+        hoverLabel: '資料を再読み込み',
+        ariaLabel: '資料を再読み込み'
       });
       actions.appendChild(refreshButton);
       this.refs.refreshButton = refreshButton;
@@ -402,13 +402,13 @@
       search.type = 'search';
       search.placeholder = 'タイトルで絞り込み';
       search.className = 'target-reference__search';
-      search.setAttribute('aria-label', '参考資料を検索');
+      search.setAttribute('aria-label', '資料を検索');
       filters.appendChild(search);
       this.refs.search = search;
 
       var filter = document.createElement('select');
       filter.className = 'target-reference__filter';
-      filter.setAttribute('aria-label', '参考資料カテゴリを絞り込み');
+      filter.setAttribute('aria-label', '資料カテゴリを絞り込み');
       filter.innerHTML = (
         '<option value="all">すべて</option>' +
         '<option value="link">リンク</option>' +
@@ -1096,16 +1096,16 @@
       {
         this.refs.refreshButton.disabled = true;
       }
-      this.setFeedback('参考資料を再読み込みしています…', 'info');
+      this.setFeedback('資料を再読み込みしています…', 'info');
       try
       {
         await this.reloadReferencesFromServer();
-        this.setFeedback('最新の参考資料を読み込みました。', 'success');
+        this.setFeedback('最新の資料を読み込みました。', 'success');
       }
       catch (error)
       {
         console.error('[target-detail] reference refresh failed', error);
-        this.setFeedback('参考資料の再読み込みに失敗しました。', 'error');
+        this.setFeedback('資料の再読み込みに失敗しました。', 'error');
       }
       finally
       {
@@ -1359,8 +1359,8 @@
         if (this.refs.empty)
         {
           var message = this.state.items.length
-            ? '条件に一致する参考資料はありません。'
-            : 'このターゲットに共有された参考資料はまだありません。';
+            ? '条件に一致する資料はありません。'
+            : 'このターゲットに共有された資料はまだありません。';
           this.refs.empty.textContent = message;
           this.refs.empty.hidden = false;
         }
@@ -1480,8 +1480,8 @@
       if (this.canManage)
       {
         var editButton = this.createRoundButton('edit', '編集', 'target-reference__action target-reference__edit', {
-          hoverLabel: '参考資料を編集',
-          title: '参考資料を編集'
+          hoverLabel: '資料を編集',
+          title: '資料を編集'
         });
         editButton.addEventListener('click', (event) =>
         {
@@ -1491,8 +1491,8 @@
         actions.appendChild(editButton);
 
         var deleteButton = this.createRoundButton('delete', '削除', 'target-reference__action target-reference__delete', {
-          hoverLabel: '参考資料を削除',
-          title: '参考資料を削除'
+          hoverLabel: '資料を削除',
+          title: '資料を削除'
         });
         deleteButton.addEventListener('click', (event) =>
         {
@@ -1528,7 +1528,7 @@
         image.className = 'target-reference__thumbnail-image';
         image.src = thumbnailUrl;
         image.loading = 'lazy';
-        image.alt = item && item.title ? item.title : '参考資料のサムネイル';
+        image.alt = item && item.title ? item.title : '資料のサムネイル';
         wrapper.appendChild(image);
       }
       else if (isPdfThumbnail)
@@ -2289,7 +2289,7 @@
         return;
       }
 
-      var confirmed = await this.page.confirmDialogService.open('この参考資料を削除しますか？', { type: 'warning' });
+      var confirmed = await this.page.confirmDialogService.open('この資料を削除しますか？', { type: 'warning' });
       if (!confirmed)
       {
         return;
@@ -2300,7 +2300,7 @@
         button.disabled = true;
         button.setAttribute('aria-busy', 'true');
       }
-      this.setFeedback('参考資料を削除しています…', 'info');
+      this.setFeedback('資料を削除しています…', 'info');
 
       try
       {
@@ -2324,19 +2324,19 @@
         }
         this.renderList();
         this.updateFilterOptions();
-        this.setFeedback('参考資料を削除しました。', 'success');
+        this.setFeedback('資料を削除しました。', 'success');
         if (typeof this.page.showToast === 'function')
         {
-          this.page.showToast('success', '参考資料を削除しました。');
+          this.page.showToast('success', '資料を削除しました。');
         }
       }
       catch (error)
       {
         window.console.error('[target-detail] failed to delete reference', error);
-        this.setFeedback('参考資料の削除に失敗しました。', 'error');
+        this.setFeedback('資料の削除に失敗しました。', 'error');
         if (typeof this.page.showToast === 'function')
         {
-          this.page.showToast('error', '参考資料の削除に失敗しました。');
+          this.page.showToast('error', '資料の削除に失敗しました。');
         }
       }
       finally
@@ -2465,8 +2465,8 @@
         '<section class="screen-modal__content target-reference__modal" role="dialog" aria-modal="true" aria-labelledby="target-reference-modal-title">' +
         '<button type="button" class="screen-modal__close" aria-label="モーダルを閉じる">×</button>' +
         '<header class="screen-modal__header">' +
-        '<h2 class="screen-modal__title" id="target-reference-modal-title">参考資料を追加</h2>' +
-        '<p class="screen-modal__summary">リンクやファイル情報を入力して参考資料を登録します。</p>' +
+        '<h2 class="screen-modal__title" id="target-reference-modal-title">資料を追加</h2>' +
+        '<p class="screen-modal__summary">リンクやファイル情報を入力して資料を登録します。</p>' +
         '</header>' +
         '<form class="screen-modal__body target-reference__form" novalidate>' +
         '<div class="target-reference__form-field target-reference__form-row--full">' +
@@ -2726,13 +2726,13 @@
       var isEditMode = modal.mode === 'edit';
       if (modal.titleNode)
       {
-        modal.titleNode.textContent = isEditMode ? '参考資料を編集' : '参考資料を追加';
+        modal.titleNode.textContent = isEditMode ? '資料を編集' : '資料を追加';
       }
       if (modal.summaryNode)
       {
         modal.summaryNode.textContent = isEditMode
-          ? '登録済みの情報を編集して参考資料を更新します。'
-          : 'リンクやファイル情報を入力して参考資料を登録します。';
+          ? '登録済みの情報を編集して資料を更新します。'
+          : 'リンクやファイル情報を入力して資料を登録します。';
       }
       if (modal.submitButton)
       {
@@ -3537,7 +3537,7 @@
             throw new Error('アップロードしたコンテンツ情報を取得できませんでした。');
           }
         }
-        this.setModalFeedback('参考資料を登録しています…', 'info');
+        this.setModalFeedback('資料を登録しています…', 'info');
         var derivedCategory = 'document';
         if (uploadedContent)
         {
@@ -3620,7 +3620,7 @@
         }
         if (!material)
         {
-          throw new Error('参考資料の登録結果を取得できませんでした。');
+          throw new Error('資料の登録結果を取得できませんでした。');
         }
         var normalized = this.normalizeMaterial(material);
         if (normalized)
@@ -3671,17 +3671,17 @@
         {
           window.console.warn('[target-detail] reference reload failed after submit', refreshError);
         }
-        this.setFeedback(isEditMode ? '参考資料を更新しました。' : '参考資料を追加しました。', 'success');
+        this.setFeedback(isEditMode ? '資料を更新しました。' : '資料を追加しました。', 'success');
         if (this.page && typeof this.page.showToast === 'function')
         {
-          this.page.showToast('success', isEditMode ? '参考資料を更新しました。' : '参考資料を追加しました。');
+          this.page.showToast('success', isEditMode ? '資料を更新しました。' : '資料を追加しました。');
         }
-        this.setModalFeedback(isEditMode ? '参考資料を更新しました。' : '参考資料を追加しました。', 'success');
+        this.setModalFeedback(isEditMode ? '資料を更新しました。' : '資料を追加しました。', 'success');
         this.closeAddModal();
       }
       catch (error)
       {
-        var message = error && error.message ? error.message : '参考資料の登録に失敗しました。';
+        var message = error && error.message ? error.message : '資料の登録に失敗しました。';
         this.setModalFeedback(message, 'error');
       }
       finally

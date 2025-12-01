@@ -5,7 +5,7 @@
   var TAB_DEFINITIONS = [
     { id: 'basic', label: '基本情報' },
     { id: 'announcements', label: 'お知らせ' },
-    { id: 'references', label: '参考資料' },
+    { id: 'references', label: '資料' },
     { id: 'schedules', label: 'スケジュール' },
     { id: 'products', label: '商品' },
     { id: 'chat', label: 'チャット' },
@@ -1043,6 +1043,30 @@
       panel.appendChild(body);
     }
 
+    shouldDisplayCreator()
+    {
+      var flags = this.page && typeof this.page.getDisplayFlags === 'function'
+        ? this.page.getDisplayFlags()
+        : null;
+      if (!flags || typeof flags.displayCreator === 'undefined')
+      {
+        return true;
+      }
+      return !!flags.displayCreator;
+    }
+
+    shouldDisplayAudience()
+    {
+      var flags = this.page && typeof this.page.getDisplayFlags === 'function'
+        ? this.page.getDisplayFlags()
+        : null;
+      if (!flags || typeof flags.displayAudience === 'undefined')
+      {
+        return true;
+      }
+      return !!flags.displayAudience;
+    }
+
     renderOverviewCard(target)
     {
       var card = document.createElement('section');
@@ -1080,11 +1104,16 @@
       primaryColumn.appendChild(description);
 
       var statusBadge = this.createStatusBadgeElement(target);
-      var creatorOverview = this.buildOverviewCreatorIdentity(target);
-      primaryColumn.appendChild(createDefinitionList([
-        { term: '作成者', description: creatorOverview },
-        { term: 'ステータス', description: statusBadge }
-      ]));
+      var overviewDefinitions = [];
+      if (this.shouldDisplayCreator())
+      {
+        overviewDefinitions.push({ term: '作成者', description: this.buildOverviewCreatorIdentity(target) });
+      }
+      overviewDefinitions.push({ term: 'ステータス', description: statusBadge });
+      if (overviewDefinitions.length)
+      {
+        primaryColumn.appendChild(createDefinitionList(overviewDefinitions));
+      }
 
       primaryColumn.appendChild(createDefinitionList([
         { term: '期限', description: target.dueDateDisplay || '—' },
@@ -1100,8 +1129,8 @@
       if (audienceSection)
       {
         secondaryColumn.appendChild(audienceSection);
+        content.appendChild(secondaryColumn);
       }
-      content.appendChild(secondaryColumn);
 
       card.appendChild(content);
 
@@ -2240,6 +2269,10 @@
 
     renderOverviewAudienceSection(target)
     {
+      if (!this.shouldDisplayAudience())
+      {
+        return null;
+      }
       var section = document.createElement('section');
       section.className = 'target-detail__overview-audience';
       var heading = document.createElement('h3');

@@ -208,8 +208,7 @@
       return '' +
         '<tr ' + attrs.join(' ') + '>' +
           '<td class="target-table__image-cell">' + this._renderImageCell(it) + '</td>' +
-          '<td class="target-table__creator-cell">' + this._renderCreatorCell(creator || {}, creatorKey) + '</td>' +
-          '<td class="target-table__assignees-cell">' + this._renderAudienceCell(it, creators || [], creatorKey) + '</td>' +
+          '<td class="target-table__status-cell">' + this._renderStatus(it) + '</td>' +
           '<td>' + this._esc(it.dueDate || it.createdAt) + '</td>' +
           '<td class="row-actions">' +
             this._renderRowActions(it) +
@@ -361,7 +360,7 @@
     }
 
     _emptyTemplate() {
-      return '<tr><td colspan="5">データがありません。</td></tr>';
+      return '<tr><td colspan="4">データがありません。</td></tr>';
     }
 
     _normalizeItem(raw) {
@@ -860,24 +859,61 @@
     }
 
     _renderStatus(item) {
-      var svc = this.page && this.page.labelService;
-      if (!svc || typeof svc.create !== 'function') {
-        throw new Error('[targets] label service is unavailable');
+      var statusKey = (item && (item.statusKey || item.status)) || '';
+      var statusLabel = (item && (item.statusLabel || item.status)) || '';
+      var svc = this._getButtonService();
+      var badgeHtml = '';
+      if (svc && typeof svc.resolveStatusPresentation === 'function' && typeof svc.createActionButton === 'function') {
+        try {
+          var presentation = svc.resolveStatusPresentation({
+            status: statusKey,
+            statusLabel: statusLabel
+          });
+          var badge = svc.createActionButton('target-detail-status', {
+            label: presentation && presentation.text ? presentation.text : statusLabel,
+            variant: presentation && presentation.variant
+              ? presentation.variant
+              : (presentation && presentation.statusKey) || statusKey || 'unknown',
+            dataset: {
+              statusKey: presentation && typeof presentation.statusKey === 'string'
+                ? presentation.statusKey
+                : statusKey
+            },
+            attributes: {
+              'data-status-key': presentation && typeof presentation.statusKey === 'string'
+                ? presentation.statusKey
+                : statusKey
+            }
+          });
+          if (badge) {
+            badge.className = badge.className
+              ? (badge.className + ' target-table__status-badge')
+              : 'target-table__status-badge';
+            badgeHtml = this._nodeToHtml(badge);
+          }
+        } catch (err) {
+          if (w.console && typeof w.console.warn === 'function') {
+            w.console.warn('[targets] failed to render status badge', err);
+          }
+        }
       }
-      var node = svc.create({
-        status: item && (item.statusKey || item.status || ''),
-        label: item && (item.statusLabel || item.status || '')
-      });
-      if (!node) {
-        throw new Error('[targets] failed to render status label');
+
+      if (!badgeHtml) {
+        var fallbackKey = this._normalizeStatusKey(statusKey) || 'unknown';
+        var variantMap = (this.page && this.page.statusLabelConfig && this.page.statusLabelConfig.variantMap) || {};
+        if (variantMap && Object.prototype.hasOwnProperty.call(variantMap, fallbackKey)) {
+          fallbackKey = variantMap[fallbackKey] || fallbackKey;
+        }
+        var labelMap = this._getStatusLabelMap();
+        var fallbackLabel = statusLabel || statusKey || '―';
+        if (!statusLabel && labelMap && Object.prototype.hasOwnProperty.call(labelMap, fallbackKey)) {
+          fallbackLabel = labelMap[fallbackKey];
+        }
+        badgeHtml = '<span class="mock-avatar__upload-btn target-detail__status-button target-detail__badge target-detail__badge--status-' +
+          this._esc(fallbackKey) + ' target-table__status-badge" data-status-key="' + this._esc(fallbackKey) + '">' +
+          this._esc(fallbackLabel) + '</span>';
       }
-      var extraClass = 'targets__status-label';
-      if (node.classList) {
-        node.classList.add(extraClass);
-      } else if (node.className != null) {
-        node.className = (node.className ? (node.className + ' ') : '') + extraClass;
-      }
-      return this._nodeToHtml(node);
+      return '<div class="target-table__status">' + badgeHtml + '</div>';
     }
 
     _nodeToHtml(node) {

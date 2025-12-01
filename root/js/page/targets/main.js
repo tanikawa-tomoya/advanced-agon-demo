@@ -839,6 +839,8 @@
         'displayReferences',
         'displaySchedules',
         'displayProducts',
+        'displayCreator',
+        'displayAudience',
         'displayChat',
         'displaySubmissions',
         'displayReviews',

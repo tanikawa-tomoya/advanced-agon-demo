@@ -11,7 +11,10 @@ class TargetManagementTargets extends Base
                 'displayAgreements',
                 'displayAnnouncements',
                 'displayReferences',
-				'displaySchedules',
+                'displaySchedules',
+                'displayProducts',
+                'displayCreator',
+                'displayAudience',
                 'displayChat',
                 'displaySubmissions',
                 'displayReviews',
@@ -973,7 +976,7 @@ class TargetManagementTargets extends Base
                         $creatorCode = $this->getLoginUserCode();
                 }
 
-                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayReferences, displaySchedules, displayProducts, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayReferences, displaySchedules, displayProducts, displayCreator, displayAudience, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
                 $stmt->execute(array(
                         $targetCode,
                         $title,
@@ -992,6 +995,8 @@ class TargetManagementTargets extends Base
                         $displayFlags['displayReferences'],
                         $displayFlags['displaySchedules'],
                         $displayFlags['displayProducts'],
+                        $displayFlags['displayCreator'],
+                        $displayFlags['displayAudience'],
                         $displayFlags['displayChat'],
                         $displayFlags['displayBbs'],
                         $displayFlags['displaySubmissions'],
@@ -1801,7 +1806,10 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
                                          'displayAgreements' => $displayFlags['displayAgreements'],
                                          'displayAnnouncements' => $displayFlags['displayAnnouncements'],
                                          'displayReferences' => $displayFlags['displayReferences'],
-                                         'displaySchedules' => $displayFlags['displaySchedules'],										 
+                                         'displaySchedules' => $displayFlags['displaySchedules'],
+                                         'displayProducts' => $displayFlags['displayProducts'],
+                                         'displayCreator' => $displayFlags['displayCreator'],
+                                         'displayAudience' => $displayFlags['displayAudience'],
                                          'displayChat' => $displayFlags['displayChat'],
                                          'displaySubmissions' => $displayFlags['displaySubmissions'],
                                          'displayReviews' => $displayFlags['displayReviews'],
@@ -2043,7 +2051,7 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
 		$stmt->execute(array($targetCode));
 		while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 			$title = isset($row['title']) ? trim((string)$row['title']) : '';
-			$subject = $title !== '' ? '参考資料「' . $title . '」' : '参考資料';
+                   $subject = $title !== '' ? '資料「' . $title . '」' : '資料';
 			$owner = $this->resolveActivityActorSummary(
 														isset($row['ownerUserCode']) ? $row['ownerUserCode'] : null,
 														isset($row['ownerDisplayName']) ? $row['ownerDisplayName'] : null
@@ -2259,7 +2267,7 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
 					 'target' => 'ターゲット',
 					 'agreement' => '規約',
 					 'guidance' => 'ガイダンスコンテンツ',
-					 'reference' => '参考資料',
+                                        'reference' => '資料',
 					 'schedule' => 'スケジュール',
 					 'submission' => '提出',
 					 'review' => 'レビュー',
