@@ -1428,10 +1428,11 @@
       {
         idBase = String(Date.now());
       }
-      var fileName = record.fileName || record.title || record.name || '';
+      var fileName = record.fileName || record.name || '';
+      var titleFromRecord = record.title || record.name || '';
       var resolvedTitle = isYouTube
-        ? this.resolveYouTubeTitle(record, fileName)
-        : (fileName || this.resolveCategoryLabel(resolvedKind));
+        ? this.resolveYouTubeTitle(record, titleFromRecord || fileName)
+        : (titleFromRecord || fileName || this.resolveCategoryLabel(resolvedKind));
       var durationSeconds = this.resolveDurationSecondsFromRecord(record);
       var durationLabel = durationSeconds > 0 ? this.formatDuration(durationSeconds) : '';
       var timestamp = this.parseTimestamp(record.updatedAt || record.createdAt || record.registeredAt);
@@ -1443,6 +1444,7 @@
         kind: resolvedKind,
         recordId: idBase,
         title: resolvedTitle,
+        fileName: fileName,
         size: this.normalizeNumber(record.fileSize || record.size),
         bitrate: this.normalizeNumber(record.bitrate),
         durationSeconds: durationSeconds,
@@ -3015,12 +3017,14 @@
       var isYouTube = item.kind === 'youtube';
       var isVisible = !(item && item.isVisible === false);
       var id = (item.id != null) ? String(item.id) : String(index);
-      var titleRaw = item.title || item.name || ('#' + (index + 1));
+      var titleRaw = item.title || (item.raw && item.raw.title) || item.name || item.fileName || ('#' + (index + 1));
       var title = this.escapeHtml(titleRaw);
       var categoryRaw = item.categoryLabel || this.resolveCategoryLabel(item.kind) || 'コンテンツ';
       var categoryLabel = this.escapeHtml(categoryRaw);
       var sizeLabel = this.formatBytes(item.size);
       var visibilityLabel = item && item.visibilityLabel ? item.visibilityLabel : (isVisible ? '表示' : '非表示');
+      var fileNameRaw = item.fileName || (item.raw && item.raw.fileName) || '';
+      var fileName = fileNameRaw ? this.escapeHtml(fileNameRaw) : '';
       var durationLabel = this.resolveDurationLabel(item);
       var visibilityLabelSafe = this.escapeHtml(visibilityLabel);
       var metaParts = [];
@@ -3077,7 +3081,10 @@
         downloadHoverLabel: titleRaw + 'をダウンロード',
         deleteHoverLabel: titleRaw + 'を削除',
         proxyStatusHtml: this.buildProxyStatusHtml(item),
-        bitrateHtml: this.buildBitrateBadges(item, id)
+        bitrateHtml: this.buildBitrateBadges(item, id),
+        fileName: fileName,
+        fileNameRaw: fileNameRaw,
+        fileNameHtml: fileName ? '<p class="content-item__description content-item__description--sub content-item__filename">' + fileName + '</p>' : ''
       };
     }
 
@@ -3102,6 +3109,7 @@
               '<div class="content-library__panel-meta-body">' +
                 view.bitrateHtml +
                 (view.meta ? '<p class="content-item__description content-library__panel-description">' + view.meta + '</p>' : '') +
+                (view.fileNameHtml || '') +
                 view.proxyStatusHtml +
               '</div>' +
               actionsHtml +
@@ -3692,6 +3700,7 @@
               '<button type="button" class="content-item__title-button" data-cp-open data-id="' + view.id + '">' + view.title + '</button>' +
               view.bitrateHtml +
               (view.meta ? '<p class="content-item__description">' + view.meta + '</p>' : '') +
+              (view.fileNameHtml || '') +
               view.proxyStatusHtml +
             '</div>' +
           '</td>' +
