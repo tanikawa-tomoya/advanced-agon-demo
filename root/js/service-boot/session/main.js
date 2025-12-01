@@ -240,6 +240,11 @@
 
     _storeLogoutNoticeFlag()
     {
+      if (!this._user || typeof this._user !== 'object')
+      {
+        return;
+      }
+      
       var storage = window.sessionStorage;
       if (!storage || typeof storage.setItem !== 'function')
       {
