@@ -622,6 +622,7 @@ CREATE TABLE IF NOT EXISTS userContents (
     contentCode VARCHAR(32) NOT NULL UNIQUE,
     userCode VARCHAR(32) NOT NULL,
     contentType VARCHAR(32) NOT NULL,
+    title VARCHAR(256),
     fileName VARCHAR(256),
     filePath VARCHAR(256),
     mimeType VARCHAR(64),
@@ -1578,6 +1579,13 @@ seed_user_content_templates() {
         local extension="${file_stub##*.}"
         local file_name="${user_code}-${file_stub}"
         local file_path="content/${content_code}.${extension}"
+        local base_title="${file_stub%.*}"
+        local title="${base_title//[-_]/ }"
+        title="${title^}"
+
+        if [[ -z "${title// }" ]]; then
+            title="Sample ${content_type^} ${padded_idx}"
+        fi
         local duration="NULL"
         local width="NULL"
         local height="NULL"
@@ -1602,11 +1610,12 @@ seed_user_content_templates() {
 
         sqlite3 "$db_path" <<SQL
 INSERT OR REPLACE INTO userContents (
-    contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
+    contentCode, userCode, contentType, title, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
 ) VALUES (
     '${content_code}',
     '${user_code}',
     '${content_type}',
+    '${title}',
     '${file_name}',
     '${file_path}',
     '${mime_type}',
@@ -2080,12 +2089,13 @@ SQL
 
         sqlite3 "${contents_db_path}" <<SQL
 INSERT OR REPLACE INTO userContents (
-    contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
+    contentCode, userCode, contentType, title, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
 )
 VALUES (
     '${submission_content_code}',
     '${assigned_user}',
     'text',
+    '${title} 提出メモ',
     '${target_code}-submission.txt',
     'content/${submission_content_code}.txt',
     'text/plain',
@@ -2212,13 +2222,13 @@ SQL
 
     sqlite3 "${contents_db_path}" <<SQL
 INSERT OR REPLACE INTO userContents (
-    contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
+    contentCode, userCode, contentType, title, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
 )
 VALUES
-    ('${doc_content_code}', '${creator}', 'document', '${target_code}-guide.pdf', 'content/${doc_content_code}.pdf', 'application/pdf', 4096, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
-    ('${support_content_code}', '${creator}', 'link', '${target_code}-faq.html', 'content/${support_content_code}.html', 'text/html', 0, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
-    ('${chat_attachment_content_code}', '${assigned_user}', 'note', '${target_code}-memo.txt', 'content/${chat_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
-    ('${bbs_attachment_content_code}', '${assigned_user}', 'note', '${target_code}-memo.txt', 'content/${bbs_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
+    ('${doc_content_code}', '${creator}', 'document', '${title} ガイド', '${target_code}-guide.pdf', 'content/${doc_content_code}.pdf', 'application/pdf', 4096, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
+    ('${support_content_code}', '${creator}', 'link', '${title} FAQ', '${target_code}-faq.html', 'content/${support_content_code}.html', 'text/html', 0, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
+    ('${chat_attachment_content_code}', '${assigned_user}', 'note', '${title} チャットメモ', '${target_code}-memo.txt', 'content/${chat_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
+    ('${bbs_attachment_content_code}', '${assigned_user}', 'note', '${title} BBSメモ', '${target_code}-memo.txt', 'content/${bbs_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
 SQL
 
         local doc_content_id
@@ -2482,9 +2492,9 @@ SQL
             local video_watch_url="https://www.youtube.com/watch?v=${video_id}"
             sqlite3 "${contents_db_path}" <<SQL
 INSERT OR REPLACE INTO userContents (
-    contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
+    contentCode, userCode, contentType, title, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
 )
-VALUES ('${video_content_code}', '${creator}', 'video', 'youtube-${video_id}.html', 'content/${video_content_code}.html', 'text/html', 0, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
+VALUES ('${video_content_code}', '${creator}', 'video', '${title} 動画チュートリアル', 'youtube-${video_id}.html', 'content/${video_content_code}.html', 'text/html', 0, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
 SQL
 
             sqlite3 "$db_path" <<SQL
@@ -2823,14 +2833,16 @@ SQL
     for submission_info in "${additional_submissions[@]}"; do
         IFS='|' read -r submission_code submitter_code content_code target_code content_body comment_body primary_file <<<"${submission_info}"
         local extra_thread_code="${target_code/target/thread}"
+        local submission_title="${target_code} 提出コンテンツ"
         sqlite3 "${contents_db_path}" <<SQL
 INSERT OR REPLACE INTO userContents (
-    contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
+    contentCode, userCode, contentType, title, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
 )
 VALUES (
     '${content_code}',
     '${submitter_code}',
     'text',
+    '${submission_title}',
     '${primary_file}',
     'content/${content_code}.txt',
     'text/plain',
