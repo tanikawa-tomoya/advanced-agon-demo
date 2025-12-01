@@ -20,6 +20,9 @@
         case 'download':
           await this.downloadItem(params);
           break;
+        case 'edit':
+          await this.editItem(params);
+          break;
         case 'delete':
           await this.deleteItems(params);
           break;
@@ -99,6 +102,16 @@
         return;
       }
       await this.pageInstance.downloadItem(String(id));
+    }
+
+    async editItem(params)
+    {
+      var id = params && params.id;
+      if (!id || !this.pageInstance || typeof this.pageInstance.openContentEditModal !== 'function')
+      {
+        return;
+      }
+      this.pageInstance.openContentEditModal(String(id));
     }
 
     async deleteItems(params)

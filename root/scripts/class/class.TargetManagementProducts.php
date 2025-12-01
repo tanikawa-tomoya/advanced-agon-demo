@@ -675,13 +675,13 @@ class TargetManagementProducts extends Base
 			}
 		}
 
-		$selectSql =
-			' SELECT ucp.contentCode, ucp.userCode, ucp.contentType, ucp.fileName, ucp.filePath, ucp.mimeType, '
-			. 'ucp.fileSize, ucp.createdAt, ucp.updatedAt, u.displayName AS ownerDisplayName, '
-			. 'ccb.clipTimes AS clipTimesJson, ccb.updatedAt AS clipUpdatedAt'
-			. $baseSql
-			. ' ORDER BY COALESCE(ucp.updatedAt, ucp.createdAt) DESC, ucp.contentCode ASC'
-			. ' LIMIT ? OFFSET ?';
+                $selectSql =
+                        ' SELECT ucp.contentCode, ucp.userCode, ucp.contentType, ucp.fileName, ucp.description, ucp.filePath, ucp.mimeType, '
+                        . 'ucp.fileSize, ucp.createdAt, ucp.updatedAt, u.displayName AS ownerDisplayName, '
+                        . 'ccb.clipTimes AS clipTimesJson, ccb.updatedAt AS clipUpdatedAt'
+                        . $baseSql
+                        . ' ORDER BY COALESCE(ucp.updatedAt, ucp.createdAt) DESC, ucp.contentCode ASC'
+                        . ' LIMIT ? OFFSET ?';
 
 		$selectParams = array_merge($countParams, array($perPage, $offset));
 		$stmt = $pdo->prepare($selectSql);
@@ -880,35 +880,36 @@ class TargetManagementProducts extends Base
 			return null;
 		}
 
-		$materialRow = array(
-							 'materialCode' => $contentCode,
-							 'targetCode' => null,
-							 'contentCode' => $contentCode,
-							 'title' => isset($row['fileName']) ? $row['fileName'] : $contentCode,
-							 'description' => null,
-							 'category' => isset($row['contentType']) ? $this->mapContentTypeToCategory($row['contentType']) : null,
-							 'linkUrl' => null,
-							 'downloadUrl' => null,
-							 'fileName' => isset($row['fileName']) ? $row['fileName'] : null,
-							 'fileSize' => isset($row['fileSize']) ? $row['fileSize'] : null,
-							 'ownerUserCode' => isset($row['userCode']) ? $row['userCode'] : null,
-							 'ownerDisplayName' => isset($row['ownerDisplayName']) ? $row['ownerDisplayName'] : null,
-							 'createdAt' => isset($row['createdAt']) ? $row['createdAt'] : null,
-							 'updatedAt' => isset($row['updatedAt']) ? $row['updatedAt'] : null,
-							 'clipTimesJson' => isset($row['clipTimesJson']) ? $row['clipTimesJson'] : null,
-							 'clipUpdatedAt' => isset($row['clipUpdatedAt']) ? $row['clipUpdatedAt'] : null,
-							 );
+                $materialRow = array(
+                                                         'materialCode' => $contentCode,
+                                                         'targetCode' => null,
+                                                         'contentCode' => $contentCode,
+                                                         'title' => isset($row['fileName']) ? $row['fileName'] : $contentCode,
+                                                         'description' => isset($row['description']) ? $row['description'] : null,
+                                                         'category' => isset($row['contentType']) ? $this->mapContentTypeToCategory($row['contentType']) : null,
+                                                         'linkUrl' => null,
+                                                         'downloadUrl' => null,
+                                                         'fileName' => isset($row['fileName']) ? $row['fileName'] : null,
+                                                         'fileSize' => isset($row['fileSize']) ? $row['fileSize'] : null,
+                                                         'ownerUserCode' => isset($row['userCode']) ? $row['userCode'] : null,
+                                                         'ownerDisplayName' => isset($row['ownerDisplayName']) ? $row['ownerDisplayName'] : null,
+                                                         'createdAt' => isset($row['createdAt']) ? $row['createdAt'] : null,
+                                                         'updatedAt' => isset($row['updatedAt']) ? $row['updatedAt'] : null,
+                                                         'clipTimesJson' => isset($row['clipTimesJson']) ? $row['clipTimesJson'] : null,
+                                                         'clipUpdatedAt' => isset($row['clipUpdatedAt']) ? $row['clipUpdatedAt'] : null,
+                                                         );
 
-		$contentRow = array(
-							'contentCode' => $contentCode,
-							'contentType' => isset($row['contentType']) ? $row['contentType'] : null,
-							'fileName' => isset($row['fileName']) ? $row['fileName'] : null,
-							'filePath' => isset($row['filePath']) ? $row['filePath'] : null,
-							'mimeType' => isset($row['mimeType']) ? $row['mimeType'] : null,
-							'fileSize' => isset($row['fileSize']) ? $row['fileSize'] : null,
-							'clipTimesJson' => isset($row['clipTimesJson']) ? $row['clipTimesJson'] : null,
-							'clipUpdatedAt' => isset($row['clipUpdatedAt']) ? $row['clipUpdatedAt'] : null,
-							);
+                $contentRow = array(
+                                                        'contentCode' => $contentCode,
+                                                        'contentType' => isset($row['contentType']) ? $row['contentType'] : null,
+                                                        'fileName' => isset($row['fileName']) ? $row['fileName'] : null,
+                                                        'description' => isset($row['description']) ? $row['description'] : null,
+                                                        'filePath' => isset($row['filePath']) ? $row['filePath'] : null,
+                                                        'mimeType' => isset($row['mimeType']) ? $row['mimeType'] : null,
+                                                        'fileSize' => isset($row['fileSize']) ? $row['fileSize'] : null,
+                                                        'clipTimesJson' => isset($row['clipTimesJson']) ? $row['clipTimesJson'] : null,
+                                                        'clipUpdatedAt' => isset($row['clipUpdatedAt']) ? $row['clipUpdatedAt'] : null,
+                                                        );
 
                 $payload = TargetManagementUtil::buildProductMaterialPayload($materialRow, $this->siteId, $contentRow);
 		if ($payload != null) {

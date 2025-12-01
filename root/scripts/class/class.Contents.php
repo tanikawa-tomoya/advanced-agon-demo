@@ -33,6 +33,46 @@ class Contents extends Base
                 if (array_key_exists('isVisible', $this->params) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
         }
 
+        protected function validationContentUpdate()
+        {
+                $this->requireParams(array('contentCode'));
+
+                $contentCode = isset($this->params['contentCode']) ? trim((string)$this->params['contentCode']) : '';
+                if ($contentCode === '') {
+                        throw new Exception(__FILE__ . ":" . __LINE__);
+                }
+
+                if (array_key_exists('title', $this->params)) {
+                        $normalizedTitle = Util::normalizeOptionalString($this->params['title'], 255);
+                        if ($normalizedTitle === false) {
+                                throw new Exception(__FILE__ . ":" . __LINE__);
+                        }
+                        $this->params['title'] = $normalizedTitle;
+                }
+
+                if (array_key_exists('description', $this->params)) {
+                        $normalizedDescription = Util::normalizeOptionalString($this->params['description'], 2048);
+                        if ($normalizedDescription === false) {
+                                throw new Exception(__FILE__ . ":" . __LINE__);
+                        }
+                        $this->params['description'] = $normalizedDescription;
+                }
+
+                if (array_key_exists('createdAt', $this->params)) {
+                        $createdAtRaw = trim((string) $this->params['createdAt']);
+                        if ($createdAtRaw === '') {
+                                unset($this->params['createdAt']);
+                        } else {
+                                try {
+                                        $createdAt = new DateTimeImmutable($createdAtRaw);
+                                        $this->params['createdAt'] = $createdAt->format('Y-m-d H:i:s');
+                                } catch (Exception $exception) {
+                                        throw new Exception(__FILE__ . ":" . __LINE__);
+                                }
+                        }
+                }
+        }
+
         protected function validationContentClipUpdate()
         {
                 if (isset($this->params['contentCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
@@ -127,6 +167,18 @@ class Contents extends Base
                 $width = null;
                 $height = null;
 
+                $description = null;
+                if (array_key_exists('description', $this->params)) {
+                        $descriptionValue = Util::normalizeOptionalString($this->params['description'], 2048);
+                        if ($descriptionValue === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid_description';
+                                $this->response = array('message' => 'コンテンツの説明は2048文字以内で入力してください。');
+                                return;
+                        }
+                        $description = $descriptionValue;
+                }
+
                 if ($contentType === 'video') {
                         $bitrate = $this->probeVideoBitrate($fileEntry['tmp_name']);
                         $duration = $this->probeVideoDuration($fileEntry['tmp_name']);
@@ -161,8 +213,8 @@ class Contents extends Base
                         $mimeType = isset($fileEntry['type']) && $fileEntry['type'] !== '' ? $fileEntry['type'] : 'application/octet-stream';
                         $fileSize = isset($fileEntry['size']) ? (int)$fileEntry['size'] : null;
 
-                        $stmt = $this->getPDOContents()->prepare('INSERT INTO userContents (contentCode, userCode, contentType, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                        $stmt->execute(array($contentCode, $ownerUserCode, $contentType, $originalName, $relativePath, $mimeType, $fileSize, $duration, $bitrate, $width, $height, 1, $now, $now));
+                        $stmt = $this->getPDOContents()->prepare('INSERT INTO userContents (contentCode, userCode, contentType, description, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                        $stmt->execute(array($contentCode, $ownerUserCode, $contentType, $description, $originalName, $relativePath, $mimeType, $fileSize, $duration, $bitrate, $width, $height, 1, $now, $now));
 
                         $baseDir = $this->dataBasePath . '/userdata/' . $ownerUserInfo["id"] . '/' . $contentCode;
                         if (is_dir($baseDir) == false && mkdir($baseDir, 0775, true) == false && is_dir($baseDir) == false) {
@@ -194,6 +246,7 @@ class Contents extends Base
                                 'bitrate' => $bitrate,
                                 'width' => $width,
                                 'height' => $height,
+                                'description' => $description,
                                 'createdAt' => $now,
                                 'updatedAt' => $now,
                         );
@@ -863,6 +916,99 @@ class Contents extends Base
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'database_error';
                         $this->response = array('message' => '表示状態を更新できませんでした。');
+                        return;
+                }
+        }
+
+        public function procContentUpdate()
+        {
+                $loginUserCode = $this->getLoginUserCode();
+                if ($loginUserCode === null) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'login_required';
+                        return;
+                }
+
+                $contentCode = isset($this->params['contentCode']) ? trim((string) $this->params['contentCode']) : '';
+                if ($contentCode === '') {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid_content';
+                        return;
+                }
+
+                $stmt = $this->getPDOContents()->prepare('SELECT contentCode, userCode FROM userContents WHERE contentCode = ? LIMIT 1');
+                $stmt->execute(array($contentCode));
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($row === false) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                $ownerUserCode = isset($row['userCode']) ? trim((string) $row['userCode']) : '';
+                if ($ownerUserCode === '' || ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator())) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'forbidden';
+                        return;
+                }
+
+                $fields = array();
+                $values = array();
+
+                if (array_key_exists('title', $this->params)) {
+                        $fields[] = 'title = ?';
+                        $values[] = $this->params['title'];
+                }
+
+                if (array_key_exists('description', $this->params)) {
+                        $fields[] = 'description = ?';
+                        $values[] = $this->params['description'];
+                }
+
+                if (array_key_exists('createdAt', $this->params)) {
+                        $fields[] = 'createdAt = ?';
+                        $values[] = $this->params['createdAt'];
+                }
+
+                $now = (new DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+                $fields[] = 'updatedAt = ?';
+                $values[] = $now;
+                $values[] = $contentCode;
+
+                if (count($fields) === 1) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid';
+                        $this->response = array('message' => '更新対象の項目がありません。');
+                        return;
+                }
+
+                $sql = 'UPDATE userContents SET ' . implode(', ', $fields) . ' WHERE contentCode = ?';
+
+                try {
+                        $stmtUpdate = $this->getPDOContents()->prepare($sql);
+                        $stmtUpdate->execute($values);
+
+                        $responsePayload = array(
+                                'contentCode' => $contentCode,
+                                'updatedAt' => $now,
+                        );
+
+                        if (array_key_exists('title', $this->params)) {
+                                $responsePayload['title'] = $this->params['title'];
+                        }
+                        if (array_key_exists('description', $this->params)) {
+                                $responsePayload['description'] = $this->params['description'];
+                        }
+                        if (array_key_exists('createdAt', $this->params)) {
+                                $responsePayload['createdAt'] = $this->params['createdAt'];
+                        }
+
+                        $this->response = $responsePayload;
+                } catch (Exception $exception) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'database_error';
+                        $this->response = array('message' => 'コンテンツ情報を更新できませんでした。');
                         return;
                 }
         }

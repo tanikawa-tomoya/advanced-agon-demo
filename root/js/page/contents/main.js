@@ -24,6 +24,7 @@
         isUploadingQueue: false,
         uploadModalSnapshot: [],
         profile: null,
+        activeEditItemId: null,
       };
 
       // サービス（header, toast, loading-overlay, help-modal など）
@@ -130,7 +131,13 @@
         downloadUnavailable: 'ダウンロードできるファイルが見つかりません。',
         downloadModalTitle: 'ダウンロード',
         downloadModalSubtitle: 'ファイルの取得状況',
+        editModalTitle: 'コンテンツ編集',
+        editModalSummary: 'タイトル・説明・作成日を更新します。',
+        editSaved: 'コンテンツを更新しました',
+        editTitleRequired: 'タイトルを入力してください。',
+        editInvalidDate: '作成日を正しく入力してください。',
         usageButtonLabel: '参照',
+        editButtonLabel: '編集',
         usageDialogTitle: 'コンテンツの使用箇所',
         usageDialogIntro: 'このコンテンツが利用されているターゲットの一覧です。',
         usageDialogEmpty: 'このコンテンツが使用されている箇所はまだありません。',
@@ -211,6 +218,7 @@
 
         // 個別操作
         openButton: '[data-cp-open]',
+        editButton: '[data-cp-edit]',
         submitButton: '[data-cp-submit]',
         referenceButton: '[data-cp-reference]',
         proxyButton: '[data-cp-proxy]',
@@ -232,6 +240,17 @@
         youtubeInput: '[data-cp-youtube-url]',
         youtubeTitleInput: '[data-cp-youtube-title]',
         youtubeSubmitButton: '[data-cp-youtube-submit]',
+
+        // コンテンツ編集モーダル
+        editModal: '[data-cp-edit-modal]',
+        editForm: '[data-cp-edit-form]',
+        editTitleInput: '[data-cp-edit-title]',
+        editDescriptionInput: '[data-cp-edit-description]',
+        editCreatedAtInput: '[data-cp-edit-created-at]',
+        editErrorMessage: '[data-cp-edit-error]',
+        editSaveButton: '[data-cp-edit-save]',
+        editCancelButton: '[data-cp-edit-cancel]',
+        editModalClose: '[data-cp-edit-close]',
 
         // アップロード進行モーダル
         uploadModal: '#contents-upload-modal',
@@ -279,6 +298,7 @@
         token: apiToken,
         listTypes: ['ContentList'],
         visibilityUpdateType: 'ContentVisibilityUpdate',
+        updateType: 'ContentUpdate',
         deleteTypes: {
           movie: 'ContentDelete',
           image: 'ContentDelete',
@@ -852,6 +872,18 @@
           }
         });
 
+      $(document)
+        .off('click.contents', selectors.editButton)
+        .on('click.contents', selectors.editButton, async function (e) {
+          e.preventDefault();
+          try {
+            var id = $(this).attr('data-id');
+            await runItemJob('edit', { id: id });
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
       // 提出
       $(document)
         .off('click.contents', selectors.submitButton)
@@ -946,6 +978,50 @@
           try {
             var id = $(this).attr('data-id');
             await runItemJob('delete', { ids: [id] });
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      $(document)
+        .off('submit.contents', selectors.editForm)
+        .on('submit.contents', selectors.editForm, async function (e) {
+          e.preventDefault();
+          try {
+            await self.submitContentEditForm();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      $(document)
+        .off('click.contents', selectors.editSaveButton)
+        .on('click.contents', selectors.editSaveButton, async function (e) {
+          e.preventDefault();
+          try {
+            await self.submitContentEditForm();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      $(document)
+        .off('click.contents', selectors.editCancelButton)
+        .on('click.contents', selectors.editCancelButton, function (e) {
+          e.preventDefault();
+          try {
+            self.closeContentEditModal();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      $(document)
+        .off('click.contents', selectors.editModalClose)
+        .on('click.contents', selectors.editModalClose, function (e) {
+          e.preventDefault();
+          try {
+            self.closeContentEditModal();
           } catch (err) {
             self.onError(err);
           }
@@ -2224,11 +2300,11 @@
      * 一覧取得（検索・ページング対応）
      * @param {Object} params {query, page, pageSize}
     */
-    async apiFetchList(params) {
-      var listTypes = this.apiConfig.listTypes || [];
-      var requests = [];
-      for (var i = 0; i < listTypes.length; i += 1)
-      {
+      async apiFetchList(params) {
+        var listTypes = this.apiConfig.listTypes || [];
+        var requests = [];
+        for (var i = 0; i < listTypes.length; i += 1)
+        {
         requests.push(this.fetchMediaList(listTypes[i]));
       }
       var responses = await Promise.all(requests);
@@ -2250,16 +2326,218 @@
       {
         return (b.updatedAtValue || 0) - (a.updatedAtValue || 0);
       });
-      var filtered = this.filterItems(aggregate, params || {});
-      var paginated = this.paginateItems(filtered, params && params.page, params && params.pageSize);
-      return {
-        items: paginated.items,
-        page: paginated.page,
-        total: paginated.total,
-        pageSize: paginated.pageSize,
-        totalPages: paginated.totalPages
-      };
-    }
+        var filtered = this.filterItems(aggregate, params || {});
+        var paginated = this.paginateItems(filtered, params && params.page, params && params.pageSize);
+        return {
+          items: paginated.items,
+          page: paginated.page,
+          total: paginated.total,
+          pageSize: paginated.pageSize,
+          totalPages: paginated.totalPages
+        };
+      }
+
+      toggleModalVisibility(modal, visible)
+      {
+        if (!modal)
+        {
+          return;
+        }
+        var body = document.body;
+        if (visible)
+        {
+          modal.classList.add('is-open');
+          modal.setAttribute('aria-hidden', 'false');
+          modal.removeAttribute('hidden');
+          if (body && body.classList && !body.classList.contains('is-modal-open'))
+          {
+            body.classList.add('is-modal-open');
+          }
+        }
+        else
+        {
+          modal.classList.remove('is-open');
+          modal.setAttribute('aria-hidden', 'true');
+          modal.setAttribute('hidden', 'hidden');
+          var stillOpen = document.querySelector('.screen-modal.is-open');
+          if (!stillOpen && body && body.classList)
+          {
+            body.classList.remove('is-modal-open');
+          }
+        }
+      }
+
+      openContentEditModal(itemId)
+      {
+        var item = this.getItemById(itemId);
+        var selectors = this.selectorConfig || {};
+        var modal = selectors.editModal ? document.querySelector(selectors.editModal) : null;
+        if (!item || !modal)
+        {
+          return;
+        }
+        this.state.activeEditItemId = item.id;
+        this.fillContentEditForm(item);
+        var titleNode = modal.querySelector('#contents-edit-title');
+        var summaryNode = modal.querySelector('#contents-edit-summary');
+        if (titleNode)
+        {
+          titleNode.textContent = this.textConfig.editModalTitle || 'コンテンツ編集';
+        }
+        if (summaryNode)
+        {
+          summaryNode.textContent = this.textConfig.editModalSummary || 'タイトルや説明を編集します。';
+        }
+        this.toggleModalVisibility(modal, true);
+        var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
+        if (titleInput && typeof titleInput.focus === 'function')
+        {
+          try { titleInput.focus(); } catch (_err) { /* ignore */ }
+        }
+      }
+
+      closeContentEditModal()
+      {
+        var selectors = this.selectorConfig || {};
+        var modal = selectors.editModal ? document.querySelector(selectors.editModal) : null;
+        this.state.activeEditItemId = null;
+        this.setContentEditError('');
+        this.toggleModalVisibility(modal, false);
+      }
+
+      fillContentEditForm(item)
+      {
+        var selectors = this.selectorConfig || {};
+        var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
+        var descriptionInput = selectors.editDescriptionInput ? document.querySelector(selectors.editDescriptionInput) : null;
+        var createdAtInput = selectors.editCreatedAtInput ? document.querySelector(selectors.editCreatedAtInput) : null;
+        if (titleInput)
+        {
+          var rawTitle = (item && item.raw && item.raw.title) || item.title || item.fileName || '';
+          titleInput.value = rawTitle;
+        }
+        if (descriptionInput)
+        {
+          var rawDescription = (item && item.raw && item.raw.description) || '';
+          descriptionInput.value = rawDescription;
+        }
+        if (createdAtInput)
+        {
+          var createdAt = (item && item.raw && (item.raw.createdAt || item.raw.registeredAt || item.raw.updatedAt)) || '';
+          createdAtInput.value = this.formatDateInputValue(createdAt);
+        }
+        this.setContentEditError('');
+      }
+
+      setContentEditError(message)
+      {
+        var selectors = this.selectorConfig || {};
+        var errorNode = selectors.editErrorMessage ? document.querySelector(selectors.editErrorMessage) : null;
+        if (!errorNode)
+        {
+          return;
+        }
+        var text = String(message || '').trim();
+        if (text)
+        {
+          errorNode.textContent = text;
+          errorNode.removeAttribute('hidden');
+        }
+        else
+        {
+          errorNode.textContent = '';
+          errorNode.setAttribute('hidden', 'hidden');
+        }
+      }
+
+      formatDateInputValue(value)
+      {
+        if (!value)
+        {
+          return '';
+        }
+        var date = new Date(value);
+        if (isNaN(date.getTime()))
+        {
+          return '';
+        }
+        var y = date.getFullYear();
+        var m = ('0' + (date.getMonth() + 1)).slice(-2);
+        var d = ('0' + date.getDate()).slice(-2);
+        var hh = ('0' + date.getHours()).slice(-2);
+        var mm = ('0' + date.getMinutes()).slice(-2);
+        return y + '-' + m + '-' + d + 'T' + hh + ':' + mm;
+      }
+
+      normalizeDateInput(value)
+      {
+        var raw = String(value || '').trim();
+        if (!raw)
+        {
+          return '';
+        }
+        var date = new Date(raw);
+        if (isNaN(date.getTime()))
+        {
+          return null;
+        }
+        return date.toISOString();
+      }
+
+      getContentEditFormValues()
+      {
+        var selectors = this.selectorConfig || {};
+        var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
+        var descriptionInput = selectors.editDescriptionInput ? document.querySelector(selectors.editDescriptionInput) : null;
+        var createdAtInput = selectors.editCreatedAtInput ? document.querySelector(selectors.editCreatedAtInput) : null;
+        return {
+          title: titleInput ? String(titleInput.value || '').trim() : '',
+          description: descriptionInput ? String(descriptionInput.value || '').trim() : '',
+          createdAtRaw: createdAtInput ? createdAtInput.value : ''
+        };
+      }
+
+      async submitContentEditForm()
+      {
+        var id = this.state.activeEditItemId;
+        if (!id)
+        {
+          return;
+        }
+        var values = this.getContentEditFormValues();
+        if (!values.title)
+        {
+          this.setContentEditError(this.textConfig.editTitleRequired || 'タイトルを入力してください。');
+          return;
+        }
+        var normalizedCreatedAt = this.normalizeDateInput(values.createdAtRaw);
+        if (values.createdAtRaw && normalizedCreatedAt === null)
+        {
+          this.setContentEditError(this.textConfig.editInvalidDate || '作成日を正しく入力してください。');
+          return;
+        }
+        this.setContentEditError('');
+        try
+        {
+          this.loading(true, this.textConfig.loading);
+          await this.apiUpdateContent(id, {
+            title: values.title,
+            description: values.description,
+            createdAt: normalizedCreatedAt || values.createdAtRaw || ''
+          });
+          this.renderList(this.state.items);
+          this.toast(this.textConfig.editSaved || this.textConfig.saved);
+          this.closeContentEditModal();
+        }
+        catch (err)
+        {
+          this.setContentEditError(err && err.message ? err.message : (this.textConfig.error || 'エラーが発生しました'));
+        }
+        finally
+        {
+          this.loading(false);
+        }
+      }
 
     /**
      * 単体削除
@@ -2302,6 +2580,44 @@
       target.isVisible = !!isVisible;
       target.visibilityLabel = target.isVisible ? '表示' : '非表示';
       return { ok: true };
+    }
+
+    async apiUpdateContent(id, payload)
+    {
+      if (!id)
+      {
+        return { ok: false };
+      }
+      var target = this.getItemById(id);
+      if (!target)
+      {
+        return { ok: false };
+      }
+      var raw = Object.assign({}, target.raw || {});
+      var nextTitle = (payload && typeof payload.title === 'string') ? payload.title : '';
+      var nextDescription = (payload && typeof payload.description === 'string') ? payload.description : '';
+      var nextCreatedAt = payload && payload.createdAt ? payload.createdAt : '';
+      var requestPayload = {
+        contentCode: target.recordId,
+        title: nextTitle,
+        description: nextDescription,
+        createdAt: nextCreatedAt
+      };
+      await this.callApi(this.apiConfig.updateType, requestPayload);
+      raw.title = requestPayload.title;
+      raw.description = requestPayload.description;
+      if (requestPayload.createdAt)
+      {
+        raw.createdAt = requestPayload.createdAt;
+        raw.updatedAt = requestPayload.createdAt;
+      }
+      target.raw = raw;
+      target.title = requestPayload.title || target.title;
+      target.visibilityLabel = target.visibilityLabel || (target.isVisible ? '表示' : '非表示');
+      var parsed = this.parseTimestamp(raw.updatedAt || raw.createdAt || raw.registeredAt);
+      target.updatedAtValue = parsed.value || 0;
+      target.updatedAtLabel = parsed.label || '';
+      return { ok: true, item: target };
     }
 
     /**
@@ -3176,6 +3492,19 @@
           id: view.id
         }
       });
+      var editLabel = this.textConfig.editButtonLabel || '編集';
+      var editButtonHtml = this.buildActionButtonHtml('edit', {
+        label: editLabel,
+        hoverLabel: view.titleRaw + 'を編集',
+        ariaLabel: view.titleRaw + 'を編集',
+        baseClass: 'content-item__action table-action-button',
+        fallbackClass: 'content-item__action btn btn--ghost',
+        type: 'button',
+        dataset: {
+          cpEdit: 'true',
+          id: view.id
+        }
+      });
       var proxyButtonHtml = this.buildActionButtonHtml('proxy', {
         label: this.textConfig.proxyButtonLabel,
         hoverLabel: view.proxyHoverLabel,
@@ -3216,6 +3545,7 @@
       });
       return '<div class="content-item__actions content-library__panel-item-actions content-library__panel-actions">'
         + openButtonHtml
+        + editButtonHtml
         + submitButtonHtml
         + usageButtonHtml
         + proxyButtonHtml
@@ -3648,6 +3978,19 @@
           id: view.id
         }
       });
+      var editLabel = this.textConfig.editButtonLabel || '編集';
+      var editButtonHtml = this.buildActionButtonHtml('edit', {
+        label: editLabel,
+        hoverLabel: view.titleRaw + 'を編集',
+        ariaLabel: view.titleRaw + 'を編集',
+        baseClass: 'content-item__action table-action-button',
+        fallbackClass: 'content-item__action btn btn--ghost',
+        type: 'button',
+        dataset: {
+          cpEdit: 'true',
+          id: view.id
+        }
+      });
       var proxyButtonHtml = this.buildActionButtonHtml('proxy', {
         label: this.textConfig.proxyButtonLabel,
         hoverLabel: view.proxyHoverLabel,
@@ -3710,6 +4053,7 @@
           '<td class="content-item__cell content-item__cell--actions">' +
             '<div class="content-item__actions">' +
               openButtonHtml +
+              editButtonHtml +
               submitButtonHtml +
               usageButtonHtml +
               proxyButtonHtml +

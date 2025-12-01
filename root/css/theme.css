@@ -14641,6 +14641,21 @@ body.is-modal-open {
   border: 1px solid rgba(143, 213, 255, 0.25);
 }
 
+.contents-select-modal__duration {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(8, 12, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #e8eefb;
+  font-weight: 700;
+  font-size: 0.78rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  z-index: 1;
+}
+
 .contents-select-modal__thumb-media img,
 .contents-select-modal__thumb-placeholder {
   position: absolute;
@@ -14730,6 +14745,12 @@ body.is-modal-open {
 .contents-select-modal__info-meta {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.contents-select-modal__info-name {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  word-break: break-all;
 }
 
 .contents-select-modal__info-desc {
@@ -14826,6 +14847,12 @@ body.is-modal-open {
 .contents-select-modal__card-meta {
   font-size: 0.9rem;
   color: var(--text-muted);
+}
+
+.contents-select-modal__card-name {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  word-break: break-all;
 }
 
 .contents-select-modal__card-desc {
@@ -15343,4 +15370,73 @@ body.is-modal-open {
 :root[data-theme="light"] .status-badge--warning {
   background: color-mix(in srgb, #f6c94c 18%, rgba(255, 255, 255, 0.92));
   color: color-mix(in srgb, #8a6d1f 68%, #2c2a27);
+}
+
+.content-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 760px;
+}
+
+.content-edit-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.content-edit-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(120, 206, 255, 0.14);
+  border-radius: 12px;
+}
+
+.content-edit-form__field--full {
+  grid-column: 1 / -1;
+}
+
+.content-edit-form__label {
+  font-weight: 700;
+  color: var(--text, #e2e8f0);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.content-edit-form__control {
+  width: 100%;
+}
+
+.content-edit-form__textarea {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.content-edit-form__feedback {
+  margin: 0 0 -4px;
+}
+
+.content-edit-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#contents-edit-modal .screen-modal__content {
+  width: min(920px, 96vw);
+}
+
+#contents-edit-modal .screen-modal__body {
+  align-items: center;
+}
+
+#contents-edit-modal .content-edit-form {
+  width: 100%;
+  margin: 0 auto;
 }
