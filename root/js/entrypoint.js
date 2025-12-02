@@ -82,7 +82,7 @@
       hidePageBootOverlay(bootOverlay);
       console.error('[ENTRYPOINT]', e);
     });
-  }
+        }
 
   function runPageBoot(instance)
   {
@@ -92,14 +92,19 @@
       return Promise.reject(e);
     }
   }
-	
-	function detectPageName()
+
+        function detectPageName()
   {
-		var name = document.body && document.body.getAttribute('data-page');
-		if (name) return name.replace(/^\/+|\/+$/g, '');
-		var tail = (location.pathname.split('/').pop() || '').replace(/\.html?$/i, '');
-		return tail || 'index';
-	}
+    var body = document.body || null;
+    var dataset = body && body.dataset ? body.dataset : {};
+    if (dataset.pageName) {
+      return String(dataset.pageName).trim();
+    }
+
+                var path = location.pathname.replace(/\/+$/, '');
+                var tail = (path.split('/').pop() || '').replace(/\.html?$/i, '');
+                return tail || 'index';
+        }
   
 	function kebabToPascal(s)
   {
