@@ -1,0 +1,354 @@
+:root {
+  --pwa-downloader-backdrop: rgba(3, 10, 22, 0.82);
+  --pwa-downloader-surface: #0f1b2e;
+  --pwa-downloader-surface-alt: #152544;
+  --pwa-downloader-border: rgba(255, 255, 255, 0.08);
+  --pwa-downloader-text: #f5f8ff;
+  --pwa-downloader-muted: rgba(245, 248, 255, 0.72);
+  --pwa-downloader-radius: 24px;
+  --pwa-downloader-shadow: 0 30px 80px rgba(5, 11, 24, 0.55);
+  --pwa-downloader-progress: linear-gradient(90deg, #2d9cff, #23e5ff);
+}
+
+.c-pwa-downloader-region {
+  pointer-events: none;
+}
+
+.c-pwa-downloader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  font-family: "Noto Sans JP", "Hanken Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--pwa-downloader-text);
+  pointer-events: none;
+}
+
+.c-pwa-downloader__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--pwa-downloader-backdrop);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.c-pwa-downloader__panel {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  background: linear-gradient(140deg, var(--pwa-downloader-surface), var(--pwa-downloader-surface-alt));
+  border-radius: 0;
+  border: 1px solid var(--pwa-downloader-border);
+  box-shadow: none;
+  padding: 28px 32px 32px;
+  z-index: 1;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.c-pwa-downloader__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.c-pwa-downloader__header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.c-pwa-downloader__title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.c-pwa-downloader__subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--pwa-downloader-muted);
+}
+
+.c-pwa-downloader__select {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--pwa-downloader-text);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.c-pwa-downloader__select:hover,
+.c-pwa-downloader__select:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.36);
+  transform: translateY(-1px);
+}
+
+.c-pwa-downloader__close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--pwa-downloader-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.c-pwa-downloader__close:hover,
+.c-pwa-downloader__close:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.c-pwa-downloader__body {
+  position: relative;
+  z-index: 1;
+}
+
+
+.c-pwa-downloader__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.c-pwa-downloader__section-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--pwa-downloader-text);
+}
+
+.c-pwa-downloader__table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.c-pwa-downloader__head-row {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.c-pwa-downloader__head {
+  text-align: left;
+  padding: 14px 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--pwa-downloader-muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.c-pwa-downloader__head--actions {
+  text-align: right;
+  width: 180px;
+}
+
+.c-pwa-downloader__body-rows {
+  display: block;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.c-pwa-downloader__body-rows tr {
+  display: grid;
+  grid-template-columns: 1fr minmax(180px, 240px) 220px;
+  align-items: center;
+}
+
+.c-pwa-downloader__row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.c-pwa-downloader__row:last-child {
+  border-bottom: none;
+}
+
+.c-pwa-downloader__empty-row {
+  display: block;
+}
+
+.c-pwa-downloader__empty-row td {
+  display: block;
+}
+
+.c-pwa-downloader__cell {
+  padding: 14px 16px;
+  color: var(--pwa-downloader-text);
+  vertical-align: middle;
+}
+
+.c-pwa-downloader__cell--title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.c-pwa-downloader__cell--actions {
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.c-pwa-downloader__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  word-break: break-all;
+}
+
+.c-pwa-downloader__size {
+  font-size: 0.9rem;
+  color: var(--pwa-downloader-muted);
+  white-space: nowrap;
+}
+
+.c-pwa-downloader__status-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--pwa-downloader-muted);
+  font-size: 0.88rem;
+}
+
+.c-pwa-downloader__status {
+  color: var(--pwa-downloader-text);
+  font-weight: 600;
+}
+
+.c-pwa-downloader__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(45, 156, 255, 0.16);
+  color: #8fd1ff;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.c-pwa-downloader__progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.c-pwa-downloader__progress-bar {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--pwa-downloader-progress);
+  transition: width 200ms ease;
+}
+
+.c-pwa-downloader__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--pwa-downloader-muted);
+}
+
+.c-pwa-downloader__percent {
+  font-weight: 600;
+  color: var(--pwa-downloader-text);
+}
+
+.c-pwa-downloader__rate {
+  font-family: "Hanken Grotesk", "Noto Sans JP", system-ui, sans-serif;
+}
+
+.c-pwa-downloader__action-button {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--pwa-downloader-text);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.c-pwa-downloader__action-button:hover,
+.c-pwa-downloader__action-button:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.c-pwa-downloader__action-button--play {
+  background: rgba(46, 204, 113, 0.14);
+  border-color: rgba(46, 204, 113, 0.4);
+}
+
+.c-pwa-downloader__action-button--pause {
+  background: rgba(255, 206, 86, 0.14);
+  border-color: rgba(255, 206, 86, 0.4);
+}
+
+.c-pwa-downloader__action-button--remove {
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.4);
+}
+
+.c-pwa-downloader__empty-row td,
+.c-pwa-downloader__empty-cell {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--pwa-downloader-muted);
+}
+
+@media (max-width: 599px) {
+  .c-pwa-downloader {
+    padding: 20px 12px;
+  }
+
+  .c-pwa-downloader__panel {
+    padding: 24px 20px 24px;
+  }
+
+  .c-pwa-downloader__header {
+    flex-direction: row;
+  }
+
+  .c-pwa-downloader__body-rows {
+    max-height: 65vh;
+  }
+
+  .c-pwa-downloader__body-rows tr {
+    grid-template-columns: 1fr;
+    grid-row-gap: 10px;
+  }
+
+  .c-pwa-downloader__cell--actions {
+    justify-content: flex-start;
+  }
+}

@@ -22,6 +22,7 @@
     var bootOverlay = showPageBootOverlay();
     loadUtilSync();
     await syncThemeWithServer();
+    registerServiceWorker();
 
     var pageName = detectPageName();
     var className = kebabToPascal(pageName);
@@ -174,6 +175,15 @@
       return window.FooterConfig;
     }
     return {};
+  }
+
+  function registerServiceWorker()
+  {
+    if (!navigator.serviceWorker)
+    {
+      return;
+    }
+    navigator.serviceWorker.register('/service-worker.js').catch(function () {});
   }
 
   function showPageBootOverlay()
