@@ -2612,6 +2612,7 @@
       var titleInput = form.querySelector('#target-reference-title');
       var titleField = titleInput ? titleInput.closest('.target-reference__form-field') : null;
       var descriptionInput = form.querySelector('#target-reference-description');
+      var descriptionField = descriptionInput ? descriptionInput.closest('.target-reference__form-field') : null;
       var authorField = form.querySelector('.target-reference__author');
       if (authorField && authorField.closest('.target-reference__form-field'))
       {
@@ -2656,6 +2657,7 @@
         titleInput: titleInput,
         titleField: titleField,
         descriptionInput: descriptionInput,
+        descriptionField: descriptionField,
         authorField: authorField,
         authorActions: authorActions,
         authorSummary: authorSummary,
@@ -2686,7 +2688,8 @@
         mode: 'create',
         currentMaterial: null,
         selectedUser: null,
-        selectedContents: []
+        selectedContents: [],
+        allowMultipleContents: true
       };
 
       var closeConfirmMessage = '入力内容が保存されていません。モーダルを閉じますか？';
@@ -2797,6 +2800,7 @@
       }
       modal.mode = mode === 'edit' ? 'edit' : 'create';
       var isEditMode = modal.mode === 'edit';
+      modal.allowMultipleContents = !isEditMode;
       if (modal.titleNode)
       {
         modal.titleNode.textContent = isEditMode ? '資料を編集' : '資料を追加';
@@ -2923,6 +2927,7 @@
         this.notifyAuthorSelectionRequired(modal, true, 'error');
         return;
       }
+      var allowMultiple = modal && modal.allowMultipleContents !== false;
       var selectedItems = [];
       if (service.jobs && service.jobs.data && typeof service.jobs.data.normalizeItem === 'function')
       {
@@ -2943,10 +2948,6 @@
           return normalized;
         }).filter(Boolean);
       }
-      if (selectedItems.length > 1)
-      {
-        selectedItems = selectedItems.slice(0, 1);
-      }
       var handleSelection = (items) =>
       {
         if (!items)
@@ -2959,23 +2960,30 @@
           this.resetContentSelection(modal);
           return;
         }
-        var entry = list[0];
-        if (entry)
+        var replaceSelection = !allowMultiple;
+        if (replaceSelection)
         {
-          this.addContentSelection(modal, entry.raw || entry);
+          this.resetContentSelection(modal);
         }
+        list.forEach((entry) =>
+        {
+          if (entry)
+          {
+            this.addContentSelection(modal, entry.raw || entry, { replace: replaceSelection });
+          }
+        });
       };
 
       try
       {
         service.open({
-          title: 'コンテンツを選択',
-          owner: ownerKey,
-          ownerParams: ownerParams,
-          maxSelection: 1,
-          selectedItems: selectedItems,
-          onSelect: handleSelection,
-          onApply: handleSelection,
+        title: 'コンテンツを選択',
+        owner: ownerKey,
+        ownerParams: ownerParams,
+        multiple: allowMultiple,
+        selectedItems: selectedItems,
+        onSelect: handleSelection,
+        onApply: handleSelection,
           onClose: (reason, payload) =>
           {
             if (Array.isArray(payload) && !payload.length)
@@ -3041,7 +3049,10 @@
           requestPayload.userId = ownerParams.userId;
         }
         var payload = await this.page.callApi('ContentList', requestPayload, { requestType: 'Contents' });
-        this.contentLibrary = this.normalizeContentLibrary(payload);
+        this.contentLibrary = this.filterContentLibraryByOwner(
+          this.normalizeContentLibrary(payload),
+          ownerParams
+        );
         this.contentLibraryCache[cacheKey] = this.contentLibrary.slice();
         this.setContentPickerFeedback(modal, this.contentLibrary.length ? '' : '登録済みコンテンツが見つかりませんでした。', this.contentLibrary.length ? null : 'info');
       }
@@ -3088,12 +3099,23 @@
         }
         var label = entry.title || entry.fileName || entry.originalName || entry.name || code;
         var type = entry.contentType || entry.mimeType || entry.type || '';
+        var ownerCode =
+          entry.ownerUserCode ||
+          entry.ownerCode ||
+          entry.userCode ||
+          entry.ownerUserId ||
+          entry.ownerId ||
+          entry.userId ||
+          '';
+        var ownerId = entry.ownerUserId || entry.ownerId || entry.userId || '';
         var updatedAtValue = Date.parse(entry.updatedAt || '') || Date.parse(entry.updated_at || '') || 0;
         normalized.push({
           code: String(code),
           label: label,
           type: type,
           owner: entry.ownerDisplayName || entry.ownerUserCode || '',
+          ownerCode: ownerCode || '',
+          ownerId: ownerId || '',
           updatedAtDisplay: entry.updatedAtDisplay || entry.updated_at_display || '',
           updatedAtValue: updatedAtValue,
           raw: entry
@@ -3104,6 +3126,31 @@
         return (b.updatedAtValue || 0) - (a.updatedAtValue || 0);
       });
       return normalized;
+    }
+
+    filterContentLibraryByOwner(entries, ownerParams)
+    {
+      if (!Array.isArray(entries) || !ownerParams)
+      {
+        return entries || [];
+      }
+      var ownerCode = ownerParams.userCode || '';
+      var ownerId = ownerParams.userId || '';
+      if (!ownerCode && !ownerId)
+      {
+        return entries;
+      }
+      return entries.filter(function (entry)
+      {
+        var raw = entry && entry.raw ? entry.raw : null;
+        var entryOwnerCode =
+          (entry && (entry.ownerCode || entry.ownerId)) ||
+          (raw && (raw.ownerUserCode || raw.ownerCode || raw.userCode || raw.ownerUserId || raw.ownerId || raw.userId)) ||
+          '';
+        var entryOwnerId = (entry && entry.ownerId) || (raw && (raw.ownerUserId || raw.ownerId || raw.userId)) || '';
+        return (ownerCode && entryOwnerCode && ownerCode === String(entryOwnerCode))
+          || (ownerId && entryOwnerId && ownerId === String(entryOwnerId));
+      });
     }
 
     renderContentPickerResults(modal)
@@ -3161,7 +3208,34 @@
       });
     }
 
-    addContentSelection(modal, entry)
+    toggleBaseContentFields(modal, shouldShow)
+    {
+      if (!modal)
+      {
+        return;
+      }
+      var targets = [modal.titleField, modal.descriptionField];
+      for (var i = 0; i < targets.length; i += 1)
+      {
+        var target = targets[i];
+        if (!target)
+        {
+          continue;
+        }
+        if (shouldShow)
+        {
+          target.removeAttribute('hidden');
+          target.style.display = '';
+        }
+        else
+        {
+          target.setAttribute('hidden', 'hidden');
+          target.style.display = 'none';
+        }
+      }
+    }
+
+    addContentSelection(modal, entry, options)
     {
       if (!modal)
       {
@@ -3191,15 +3265,56 @@
       {
         modal.selectedContents = [];
       }
-      modal.selectedContents = attachment && attachment.contentCode ? [attachment] : [];
       var rawContent = attachment && attachment.raw ? attachment.raw : entry;
-      if (modal.titleInput && rawContent && typeof rawContent.title !== 'undefined')
+      var defaultTitle = '';
+      if (rawContent && typeof rawContent.title !== 'undefined')
       {
-        modal.titleInput.value = rawContent.title || '';
+        defaultTitle = rawContent.title || '';
       }
-      if (modal.descriptionInput && rawContent && typeof rawContent.description !== 'undefined')
+      else if (attachment && attachment.label)
       {
-        modal.descriptionInput.value = rawContent.description || '';
+        defaultTitle = attachment.label;
+      }
+      var defaultDescription = '';
+      if (rawContent && typeof rawContent.description !== 'undefined')
+      {
+        defaultDescription = rawContent.description || '';
+      }
+      else if (rawContent && (rawContent.memo || rawContent.note || rawContent.summary))
+      {
+        defaultDescription = rawContent.memo || rawContent.note || rawContent.summary || '';
+      }
+      attachment.title = typeof attachment.title !== 'undefined' ? attachment.title : defaultTitle;
+      attachment.description = typeof attachment.description !== 'undefined' ? attachment.description : defaultDescription;
+      var allowMultiple = modal.allowMultipleContents !== false;
+      var replaceSelection = options && options.replace;
+      var existingIndex = modal.selectedContents.findIndex(function (item)
+      {
+        return item && attachment && item.contentCode === attachment.contentCode;
+      });
+      if (existingIndex >= 0)
+      {
+        modal.selectedContents[existingIndex] = attachment;
+      }
+      else if (!allowMultiple || replaceSelection)
+      {
+        modal.selectedContents = attachment && attachment.contentCode ? [attachment] : [];
+      }
+      else if (attachment && attachment.contentCode)
+      {
+        modal.selectedContents.push(attachment);
+      }
+      var shouldSyncBaseFields = !modal.allowMultipleContents || modal.selectedContents.length === 1;
+      if (shouldSyncBaseFields)
+      {
+        if (modal.titleInput)
+        {
+          modal.titleInput.value = attachment.title || '';
+        }
+        if (modal.descriptionInput)
+        {
+          modal.descriptionInput.value = attachment.description || '';
+        }
       }
       this.renderSelectedContents(modal);
       this.setFieldErrorState(modal.uploadField, false);
@@ -3216,6 +3331,9 @@
       var summary = modal.contentSummary;
       var clearButton = modal.contentClearButton;
       var selections = Array.isArray(modal.selectedContents) ? modal.selectedContents.filter(Boolean) : [];
+      var usePerContentForm = modal.allowMultipleContents !== false
+        && selections.length > 0
+        && !this.hasUploadQueueItems();
       if (clearButton)
       {
         if (selections.length)
@@ -3232,6 +3350,7 @@
         return;
       }
       listNode.innerHTML = '';
+      this.toggleBaseContentFields(modal, !usePerContentForm || !selections.length);
       if (!selections.length)
       {
         listNode.hidden = true;
@@ -3260,6 +3379,43 @@
           text.appendChild(codeNode);
         }
         row.appendChild(text);
+        if (usePerContentForm)
+        {
+          var fieldWrap = document.createElement('div');
+          fieldWrap.className = 'target-submission__content-item-fields';
+          var titleId = 'target-reference-selected-title-' + (code || 'index-' + Math.random().toString(36).slice(2));
+          var descId = 'target-reference-selected-description-' + (code || 'index-' + Math.random().toString(36).slice(2));
+          var titleField = document.createElement('label');
+          titleField.className = 'target-reference__form-label';
+          titleField.setAttribute('for', titleId);
+          titleField.textContent = 'タイトル';
+          var titleInput = document.createElement('input');
+          titleInput.id = titleId;
+          titleInput.className = 'user-management__input target-reference__input';
+          titleInput.value = item.title || label || '';
+          titleInput.addEventListener('input', function ()
+          {
+            item.title = titleInput.value;
+          });
+          var descField = document.createElement('label');
+          descField.className = 'target-reference__form-label';
+          descField.setAttribute('for', descId);
+          descField.textContent = '説明 (任意)';
+          var descInput = document.createElement('textarea');
+          descInput.id = descId;
+          descInput.className = 'user-management__input target-reference__textarea';
+          descInput.rows = 3;
+          descInput.value = item.description || '';
+          descInput.addEventListener('input', function ()
+          {
+            item.description = descInput.value;
+          });
+          fieldWrap.appendChild(titleField);
+          fieldWrap.appendChild(titleInput);
+          fieldWrap.appendChild(descField);
+          fieldWrap.appendChild(descInput);
+          row.appendChild(fieldWrap);
+        }
         var remove = document.createElement('button');
         remove.type = 'button';
         remove.className = 'target-submission__content-remove';
@@ -3296,6 +3452,64 @@
       }
       targetModal.selectedContents = [];
       this.renderSelectedContents(targetModal);
+    }
+
+    collectSelectedContentEntries(modal)
+    {
+      var targetModal = modal || this.modals.add;
+      var selections = Array.isArray(targetModal && targetModal.selectedContents)
+        ? targetModal.selectedContents
+        : [];
+      var list = [];
+      for (var i = 0; i < selections.length; i += 1)
+      {
+        var selection = selections[i];
+        if (!selection || !selection.contentCode)
+        {
+          continue;
+        }
+        var rawContent = selection.raw || selection.content || null;
+        var title = selection.title;
+        if (!title && rawContent)
+        {
+          title = rawContent.title || rawContent.fileName || rawContent.name || selection.label || '';
+        }
+        else if (!title)
+        {
+          title = selection.label || '';
+        }
+        var description = typeof selection.description !== 'undefined'
+          ? selection.description
+          : '';
+        if (!description && rawContent)
+        {
+          description = rawContent.description || rawContent.memo || rawContent.note || rawContent.summary || '';
+        }
+        list.push({
+          contentCode: selection.contentCode,
+          label: selection.label || title || selection.contentCode,
+          type: selection.type || (rawContent && (rawContent.contentType || rawContent.mimeType || rawContent.type)),
+          title: title || '',
+          description: description || '',
+          raw: rawContent,
+          content: selection.content || rawContent || null
+        });
+      }
+      return list;
+    }
+
+    resolveDerivedCategoryFromSelection(selection, fallbackTitle)
+    {
+      var rawContent = selection && (selection.content || selection.raw || null);
+      var type = selection && selection.type ? selection.type : (rawContent && (rawContent.contentType || rawContent.mimeType));
+      var name = (selection && (selection.label || selection.title))
+        || (rawContent && (rawContent.fileName || rawContent.title))
+        || fallbackTitle
+        || '';
+      var derivedCategory = normalizeCategoryValue(
+        deriveCategoryFromMime(type) || deriveCategoryFromFileName(name)
+      );
+      return derivedCategory || 'document';
     }
 
     fillFormWithMaterial(modal, material)
@@ -3425,6 +3639,10 @@
       {
         this.pendingUploadResults = [];
       }
+      if (this.modals && this.modals.add)
+      {
+        this.renderSelectedContents(this.modals.add);
+      }
     }
 
     handleUploaderStart(queue)
@@ -3491,6 +3709,16 @@
       return queue.length > 0;
     }
 
+    collectAuthorValues(modal)
+    {
+      var targetModal = modal || this.modals.add;
+      var selectedUser = targetModal ? (targetModal.selectedUser || null) : null;
+      return {
+        authorDisplayName: selectedUser && selectedUser.displayName ? String(selectedUser.displayName).trim() : '',
+        authorCode: selectedUser && selectedUser.userCode ? String(selectedUser.userCode).trim() : ''
+      };
+    }
+
     collectModalFormValues(modal)
     {
       if (!modal)
@@ -3502,12 +3730,12 @@
           authorCode: ''
         };
       }
-      var selectedUser = modal.selectedUser || null;
+      var author = this.collectAuthorValues(modal);
       return {
         title: modal.titleInput.value.trim(),
         description: modal.descriptionInput.value.trim(),
-        authorDisplayName: selectedUser && selectedUser.displayName ? String(selectedUser.displayName).trim() : '',
-        authorCode: selectedUser && selectedUser.userCode ? String(selectedUser.userCode).trim() : ''
+        authorDisplayName: author.authorDisplayName,
+        authorCode: author.authorCode
       };
     }
 
@@ -3591,7 +3819,19 @@
       var isEditMode = modal.mode === 'edit';
       var currentMaterial = isEditMode ? modal.currentMaterial : null;
       var values = this.collectModalFormValues(modal);
-      if (!values.title)
+      var selectedEntries = this.collectSelectedContentEntries(modal);
+      var needsUpload = this.hasUploadQueueItems();
+      var hasExistingContent = !!(currentMaterial && (
+        currentMaterial.contentCode ||
+        currentMaterial.objectUrl ||
+        currentMaterial.downloadUrl ||
+        currentMaterial.linkUrl ||
+        currentMaterial.embedUrl ||
+        currentMaterial.youtubeUrl
+      ));
+      var hasSelectedContents = selectedEntries.length > 0;
+      var usesSelectionForms = hasSelectedContents && modal.allowMultipleContents !== false && !isEditMode && !needsUpload;
+      if (!usesSelectionForms && !values.title)
       {
         this.setModalFeedback('タイトルを入力してください。', 'error');
         this.setFieldErrorState(modal.titleInput, true);
@@ -3609,22 +3849,24 @@
         }
         return;
       }
-      var needsUpload = this.hasUploadQueueItems();
-      var hasExistingContent = !!(currentMaterial && (
-        currentMaterial.contentCode ||
-        currentMaterial.objectUrl ||
-        currentMaterial.downloadUrl ||
-        currentMaterial.linkUrl ||
-        currentMaterial.embedUrl ||
-        currentMaterial.youtubeUrl
-      ));
-      var hasSelectedContents = Array.isArray(modal.selectedContents) && modal.selectedContents.length > 0;
-      var selectedAttachment = hasSelectedContents ? modal.selectedContents[0] : null;
+      var selectedAttachment = hasSelectedContents ? selectedEntries[0] : null;
       if (!needsUpload && !hasExistingContent && !hasSelectedContents)
       {
         this.setModalFeedback('コンテンツファイルを選択してください。', 'error');
         this.setFieldErrorState(modal.uploadField, true);
         return;
+      }
+      if (usesSelectionForms)
+      {
+        var hasMissingTitle = selectedEntries.some(function (entry)
+        {
+          return !entry || !entry.title;
+        });
+        if (hasMissingTitle)
+        {
+          this.setModalFeedback('各コンテンツのタイトルを入力してください。', 'error');
+          return;
+        }
       }
       this.setModalSubmitting(modal, true);
       try
@@ -3643,6 +3885,87 @@
           {
             throw new Error('アップロードしたコンテンツ情報を取得できませんでした。');
           }
+        }
+        if (usesSelectionForms)
+        {
+          this.setModalFeedback('資料を登録しています…', 'info');
+          var createdMaterials = [];
+          for (var i = 0; i < selectedEntries.length; i += 1)
+          {
+            var entry = selectedEntries[i];
+            if (!entry || !entry.contentCode)
+            {
+              continue;
+            }
+            var entryCategory = this.resolveDerivedCategoryFromSelection(entry, entry.title || values.title);
+            var createParams = {
+              targetCode: this.page.state.targetCode,
+              title: entry.title,
+              category: entryCategory || 'document'
+            };
+            if (entry.description)
+            {
+              createParams.description = entry.description;
+            }
+            if (values.authorDisplayName)
+            {
+              createParams.ownerDisplayName = values.authorDisplayName;
+            }
+            if (values.authorCode)
+            {
+              createParams.ownerUserCode = values.authorCode;
+            }
+            createParams.contentCode = entry.contentCode;
+            var createResponse = await this.page.callApi('TargetReferenceCreate', createParams, { requestType: 'TargetManagementReferences' });
+            var createdMaterial = createResponse && createResponse.material ? createResponse.material : null;
+            if (!createdMaterial)
+            {
+              throw new Error('資料の登録結果を取得できませんでした。');
+            }
+            var normalizedCreated = this.normalizeMaterial(createdMaterial);
+            if (normalizedCreated)
+            {
+              if (!normalizedCreated.ownerDisplayName && values.authorDisplayName)
+              {
+                normalizedCreated.ownerDisplayName = values.authorDisplayName;
+              }
+              if (!normalizedCreated.ownerUserCode && values.authorCode)
+              {
+                normalizedCreated.ownerUserCode = values.authorCode;
+              }
+              createdMaterials.push(normalizedCreated);
+            }
+          }
+          if (!createdMaterials.length)
+          {
+            throw new Error('資料の登録結果を取得できませんでした。');
+          }
+          this.state.items = this.normalizeMaterials(createdMaterials.concat(this.state.items || []));
+          if (Array.isArray(this.page.state.references))
+          {
+            this.page.state.references = this.normalizeMaterials(createdMaterials.concat(this.page.state.references));
+          }
+          this.renderList();
+          this.updateFilterOptions();
+          try
+          {
+            await this.reloadReferencesFromServer();
+          }
+          catch (refreshError)
+          {
+            window.console.warn('[target-detail] reference reload failed after submit', refreshError);
+          }
+          var successMessage = createdMaterials.length > 1
+            ? createdMaterials.length + '件の資料を追加しました。'
+            : '資料を追加しました。';
+          this.setFeedback(successMessage, 'success');
+          if (this.page && typeof this.page.showToast === 'function')
+          {
+            this.page.showToast('success', successMessage);
+          }
+          this.setModalFeedback(successMessage, 'success');
+          this.closeAddModal();
+          return;
         }
         this.setModalFeedback('資料を登録しています…', 'info');
         var derivedCategory = 'document';
