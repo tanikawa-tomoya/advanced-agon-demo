@@ -195,13 +195,13 @@ class TargetManagementReferences extends Base
 					return;
 				}
 
-				$entryOwner = isset($contentEntry['userCode']) ? $contentEntry['userCode'] : null;
-				if ($entryOwner !== null && $entryOwner !== '' && $ownerCode !== null && $ownerCode !== '' && $entryOwner !== $ownerCode) {
-					$this->status = parent::RESULT_ERROR;
-					$this->errorReason = 'forbidden';
-					return;
-				}
-			}
+                                $entryOwner = isset($contentEntry['userCode']) ? $contentEntry['userCode'] : null;
+                                if ($entryOwner !== null && $entryOwner !== '' && $ownerCode !== null && $ownerCode !== '' && $entryOwner !== $ownerCode && $this->isSupervisor() == false) {
+                                        $this->status = parent::RESULT_ERROR;
+                                        $this->errorReason = 'forbidden';
+                                        return;
+                                }
+                        }
 		}
 
 		if (($linkUrl === null || $linkUrl === '') && $contentEntry === null) {
@@ -401,13 +401,13 @@ $pdo = $this->getPDOTarget();
 					return;
 				}
 
-				$entryOwner = isset($contentEntry['userCode']) ? $contentEntry['userCode'] : null;
-				if ($entryOwner !== null && $entryOwner !== '' && $ownerCode !== null && $ownerCode !== '' && $entryOwner !== $ownerCode) {
-					$this->status = parent::RESULT_ERROR;
-					$this->errorReason = 'forbidden';
-					return;
-				}
-			}
+                                $entryOwner = isset($contentEntry['userCode']) ? $contentEntry['userCode'] : null;
+                                if ($entryOwner !== null && $entryOwner !== '' && $ownerCode !== null && $ownerCode !== '' && $entryOwner !== $ownerCode && $this->isSupervisor() == false) {
+                                        $this->status = parent::RESULT_ERROR;
+                                        $this->errorReason = 'forbidden';
+                                        return;
+                                }
+                       }
 		}
 
 		$contentCode = isset($material['contentCode']) ? $material['contentCode'] : null;
