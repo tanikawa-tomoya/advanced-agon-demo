@@ -613,7 +613,7 @@
         selectableList: '選択可能ユーザーの取得に失敗しました。'
       };
       const base = defaults[action] || defaults.list;
-      const detail = (payload && (payload.reason || (payload.result && payload.result.message) || payload.message)) || '';
+      const detail = (payload && (payload.message || (payload.result && payload.result.message) || payload.reason)) || '';
       return detail ? base + ' (' + detail + ')' : base;
     }
 

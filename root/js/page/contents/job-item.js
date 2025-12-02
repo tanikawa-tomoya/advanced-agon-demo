@@ -47,6 +47,9 @@
         case 'submit':
           await this.submitItem(params);
           break;
+        case 'delegate':
+          await this.delegateItem(params);
+          break;
       }
     }
 
@@ -88,6 +91,16 @@
         return;
       }
       await this.pageInstance.submitContentToTargets(String(id));
+    }
+
+    async delegateItem(params)
+    {
+      var id = params && params.id;
+      if (!id || !this.pageInstance || typeof this.pageInstance.delegateContentToUser !== 'function')
+      {
+        return;
+      }
+      await this.pageInstance.delegateContentToUser(String(id));
     }
 
     async downloadItem(params)
