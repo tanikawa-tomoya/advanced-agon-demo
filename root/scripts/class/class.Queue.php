@@ -336,14 +336,14 @@ class Queue extends Base
         }
 
         $jobType = isset($job['job_type']) ? (string) $job['job_type'] : '';
-        if ($jobType !== 'video_transcode') {
+        if (!in_array($jobType, array('video_transcode', 'hash_create'), true)) {
             $this->status = self::RESULT_ERROR;
             $this->errorReason = 'unsupported_job_type';
             $this->response = array(
-									'message' => 'このジョブタイプは手動実行に対応していません。',
-									'jobId' => $jobId,
-									'jobType' => $jobType,
-									);
+                                                                        'message' => 'このジョブタイプは手動実行に対応していません。',
+                                                                        'jobId' => $jobId,
+                                                                       'jobType' => $jobType,
+                                                                       );
             return;
         }
 

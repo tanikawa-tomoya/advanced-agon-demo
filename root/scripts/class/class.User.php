@@ -566,46 +566,108 @@ class User extends Base
 			}
 		}
 
-		$baseDir = $this->dataBasePath . "/userdata/" . $userInfo["id"];
+                $baseDir = $this->dataBasePath . "/userdata/" . $userInfo["id"];
 
-		if (isset($this->params["userCode"])) {
-			$userCode = htmlspecialchars($this->params['userCode'], ENT_QUOTES, "UTF-8");
-			if ($userCode == "admin") {
-				$this->status = parent::RESULT_ERROR;
-				$this->errorReason = "reserved";
-				return;
-			}
-			$stmt = $this->getPDOCommon()->prepare("SELECT COUNT(*) AS count FROM user WHERE isDeleted IS NULL AND userCode = ? AND id IS NOT ?");
-			$stmt->execute(array($userCode, $userInfo["id"]));
-			if ($stmt->fetch(PDO::FETCH_ASSOC)["count"] != 0)  {
-				$this->status = parent::RESULT_ERROR;
-				$this->errorReason = "duplicated";
-				return;
-			}
-		}
+                $userCodeChanged = false;
+                $previousUserCode = isset($userInfo['userCode']) ? (string) $userInfo['userCode'] : '';
+                $requestedUserCode = $previousUserCode;
 
-		$changed = false;
+                if (isset($this->params["userCode"])) {
+                        $requestedUserCode = htmlspecialchars($this->params['userCode'], ENT_QUOTES, "UTF-8");
+                        if ($requestedUserCode == "admin") {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = "reserved";
+                                return;
+                        }
+                        $stmt = $this->getPDOCommon()->prepare("SELECT COUNT(*) AS count FROM user WHERE isDeleted IS NULL AND userCode = ? AND id IS NOT ?");
+                        $stmt->execute(array($requestedUserCode, $userInfo["id"]));
+                        if ($stmt->fetch(PDO::FETCH_ASSOC)["count"] != 0)  {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = "duplicated";
+                                return;
+                        }
 
-		$stmt = $this->getPDOCommon()->prepare("PRAGMA TABLE_INFO ('user')");
-		$stmt->execute(array());
-		$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        $userCodeChanged = ($requestedUserCode !== '' && $requestedUserCode !== $previousUserCode);
+                }
 
-		$this->getPDOCommon()->beginTransaction();
-		foreach ($result as $r) {
-			$key = $r["name"];
-			$this->userUpdateSub($key, $id, $changed);
-		}
+                $relatedUserCodeTables = array();
+                if ($userCodeChanged) {
+                        $relatedUserCodeTables = $this->filterExistingUserCodeTables($this->buildUserCodeTableMap());
 
-		// パスワード設定したら初期パスワードは終わり
-		if (isset($this->params["hash"])) {
-			$hash = htmlspecialchars($this->params['hash'], ENT_QUOTES, "UTF-8");
-			if ($this->getHash($p) != $userInfo["hash"]) {
-				$stmt = $this->getPDOCommon()->prepare("UPDATE user SET autoPassword = NULL WHERE id = ?");
-				$stmt->execute(array($id));
-			}
-		}
+                        foreach ($relatedUserCodeTables as $entry) {
+                                $pdo = $entry['pdo'];
+                                $table = $entry['table'];
+                                $column = $entry['column'];
+                                $qualified = $this->qualifyUserCodeTableName($entry);
+                                $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM "' . $qualified . '" WHERE "' . $column . '" = ?');
+                                $stmt->execute(array($requestedUserCode));
+                                $count = $stmt->fetch(PDO::FETCH_ASSOC);
+                                if (isset($count['count']) && (int) $count['count'] > 0) {
+                                        $this->status = parent::RESULT_ERROR;
+                                        $this->errorReason = 'usercode_conflict';
+                                        $this->response = array('message' => '指定したユーザーコードは既に関連データで使用されています。');
+                                        return;
+                                }
+                        }
+                }
 
-		$this->getPDOCommon()->commit();
+                $changed = false;
+
+                $stmt = $this->getPDOCommon()->prepare("PRAGMA TABLE_INFO ('user')");
+                $stmt->execute(array());
+                $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $transactions = array($this->getPDOCommon());
+                foreach ($relatedUserCodeTables as $entry) {
+                        if (!in_array($entry['pdo'], $transactions, true)) {
+                                $transactions[] = $entry['pdo'];
+                        }
+                }
+
+                try {
+                        foreach ($transactions as $pdo) {
+                                $pdo->beginTransaction();
+                        }
+
+                        foreach ($result as $r) {
+                                $key = $r["name"];
+                                $this->userUpdateSub($key, $id, $changed);
+                        }
+
+                        if ($userCodeChanged) {
+                                foreach ($relatedUserCodeTables as $entry) {
+                                        $pdo = $entry['pdo'];
+                                        $table = $this->qualifyUserCodeTableName($entry);
+                                        $column = $entry['column'];
+                                        $stmt = $pdo->prepare('UPDATE "' . $table . '" SET "' . $column . '" = ? WHERE "' . $column . '" = ?');
+                                        $stmt->execute(array($requestedUserCode, $previousUserCode));
+                                }
+                                $userInfo['userCode'] = $requestedUserCode;
+                        }
+
+                        // パスワード設定したら初期パスワードは終わり
+                        if (isset($this->params["hash"])) {
+                                $hash = htmlspecialchars($this->params['hash'], ENT_QUOTES, "UTF-8");
+                                if ($this->getHash($p) != $userInfo["hash"]) {
+                                        $stmt = $this->getPDOCommon()->prepare("UPDATE user SET autoPassword = NULL WHERE id = ?");
+                                        $stmt->execute(array($id));
+                                }
+                        }
+
+                        foreach ($transactions as $pdo) {
+                                $pdo->commit();
+                        }
+                } catch (Exception $exception) {
+                        foreach ($transactions as $pdo) {
+                                if ($pdo->inTransaction()) {
+                                        $pdo->rollBack();
+                                }
+                        }
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'usercode_update_failed';
+                        $this->response = array('message' => 'ユーザー情報の更新に失敗しました。');
+                        return;
+                }
 
 		$avatarResponse = array();
 
@@ -1515,6 +1577,84 @@ class User extends Base
                         }
                 }
                 return 0;
+        }
+
+        private function buildUserCodeTableMap()
+        {
+                return array(
+                        array(
+                                'pdo' => $this->getPDOContents(),
+                                'table' => 'userContents',
+                                'column' => 'userCode'
+                                ),
+                        array(
+                                'pdo' => $this->getPDOContents(),
+                                'table' => 'userContentClipBookmarks',
+                                'column' => 'userCode'
+                                ),
+                        array(
+                                'pdo' => $this->getPDOTarget(),
+                                'table' => 'targetGoalAssignees',
+                                'column' => 'userCode'
+                                ),
+                        array(
+                                'pdo' => $this->getPDOTarget(),
+                                'table' => 'targetBbsThreadMembers',
+                                'column' => 'userCode'
+                                ),
+                        array(
+                                'pdo' => $this->getPDOTarget(),
+                                'table' => 'targetBbsMessageReads',
+                                'column' => 'userCode'
+                                ),
+                        array(
+                                'pdo' => $this->getPDOTarget(),
+                                'table' => 'announcementRecipients',
+                                'column' => 'userCode'
+                                ),
+                        );
+        }
+
+        private function qualifyUserCodeTableName($entry)
+        {
+                return isset($entry['table']) ? $entry['table'] : '';
+        }
+
+        private function tableHasColumn(PDO $pdo, $table, $column)
+        {
+                if (!is_string($table) || $table === '' || !is_string($column) || $column === '') {
+                        return false;
+                }
+
+                $tableName = str_replace("'", "''", $table);
+                $stmt = $pdo->prepare("PRAGMA table_info('" . $tableName . "')");
+                $stmt->execute();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                        if (isset($row['name']) && $row['name'] === $column) {
+                                return true;
+                        }
+                }
+                return false;
+        }
+
+        private function filterExistingUserCodeTables(array $candidates)
+        {
+                $result = array();
+
+                foreach ($candidates as $entry) {
+                        if (!isset($entry['pdo'], $entry['table'], $entry['column'])) {
+                                continue;
+                        }
+                        $pdo = $entry['pdo'];
+                        $table = $entry['table'];
+                        $column = $entry['column'];
+                        if ($this->tableHasColumn($pdo, $table, $column)) {
+                                $result[] = $entry;
+                        }
+                }
+
+                return $result;
         }
 
         private function userUpdateSub($columnName, $id, &$changed)

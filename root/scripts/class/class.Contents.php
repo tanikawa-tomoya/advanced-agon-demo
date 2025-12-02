@@ -33,6 +33,12 @@ class Contents extends Base
                 if (array_key_exists('isVisible', $this->params) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
         }
 
+        protected function validationContentDelegate()
+        {
+                if (isset($this->params['contentCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+                if (isset($this->params['targetUserCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+        }
+
         protected function validationContentUpdate()
         {
                 $this->requireParams(array('contentCode'));
@@ -858,6 +864,166 @@ class Contents extends Base
 		}
 
                 $this->response = array('contentCode' => $contentCode);
+        }
+
+        public function procContentDelegate()
+        {
+                $loginUserCode = $this->getLoginUserCode();
+                if ($loginUserCode === null) {
+                        $this->writeLog('procContentDelegate denied: login_required', 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'login_required';
+                        return;
+                }
+                if (!$this->isSupervisor()) {
+                        $this->writeLog('procContentDelegate denied: forbidden (not supervisor) user=' . $loginUserCode, 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'forbidden';
+                        return;
+                }
+
+                $contentCode = isset($this->params['contentCode']) ? trim((string) $this->params['contentCode']) : '';
+                $targetUserCode = isset($this->params['targetUserCode']) ? trim((string) $this->params['targetUserCode']) : '';
+                if ($contentCode === '' || $targetUserCode === '') {
+                        $this->writeLog('procContentDelegate denied: invalid_param content=' . $contentCode . ' target=' . $targetUserCode, 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid_param';
+                        return;
+                }
+
+                $stmt = $this->getPDOContents()->prepare('SELECT * FROM userContents WHERE contentCode = ? LIMIT 1');
+                $stmt->execute(array($contentCode));
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row === false) {
+                        $this->writeLog('procContentDelegate denied: notfound content=' . $contentCode, 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                $sourceUserCode = isset($row['userCode']) ? trim((string) $row['userCode']) : '';
+                $sourceUserInfo = $sourceUserCode !== '' ? $this->getUserInfo($sourceUserCode) : null;
+                $targetUserInfo = $this->getUserInfo($targetUserCode);
+                if ($targetUserInfo === null || $sourceUserInfo === null || !isset($sourceUserInfo['id']) || !isset($targetUserInfo['id'])) {
+                        $this->writeLog('procContentDelegate denied: invalid_target_user source=' . $sourceUserCode . ' target=' . $targetUserCode, 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid_target_user';
+                        return;
+                }
+
+                $relativePath = isset($row['filePath']) ? trim((string) $row['filePath']) : '';
+                $moved = false;
+                $sourceBaseDir = $this->dataBasePath . '/userdata/' . $sourceUserInfo['id'];
+                $targetBaseDir = $this->dataBasePath . '/userdata/' . $targetUserInfo['id'];
+                $relativeDirCandidates = array($contentCode);
+                $relativeFileCandidates = array();
+
+                if ($relativePath !== '') {
+                        $normalizedRelativePath = ltrim($relativePath, '/');
+                        $relativeFileCandidates[] = $normalizedRelativePath;
+
+                        $relativeDir = trim(dirname($normalizedRelativePath), './');
+                        if ($relativeDir !== '' && $relativeDir !== '.') {
+                                $relativeDirCandidates[] = $relativeDir;
+                        }
+
+                        $relativeDirCandidates[] = rtrim($normalizedRelativePath, '/');
+                }
+
+                $relativeDirCandidates[] = 'content/' . $contentCode;
+                $relativeDirCandidates = array_values(array_unique(array_filter($relativeDirCandidates, function ($candidate) {
+                        return $candidate !== '';
+                })));
+                $relativeFileCandidates = array_values(array_unique(array_filter($relativeFileCandidates, function ($candidate) {
+                        return $candidate !== '';
+                })));
+
+                $sourcePath = null;
+                $relativeTargetPath = null;
+                foreach ($relativeDirCandidates as $relativeDir) {
+                        $candidate = $sourceBaseDir . '/' . $relativeDir;
+                        if (is_dir($candidate)) {
+                                $sourcePath = $candidate;
+                                $relativeTargetPath = $relativeDir;
+                                break;
+                        }
+                }
+
+                if ($sourcePath === null) {
+                        foreach ($relativeFileCandidates as $relativeFile) {
+                                $candidate = $sourceBaseDir . '/' . $relativeFile;
+                                if (is_file($candidate)) {
+                                        $sourcePath = $candidate;
+                                        $relativeTargetPath = $relativeFile;
+                                        break;
+                                }
+                        }
+                }
+
+                if ($sourcePath === null) {
+                        $this->writeLog('procContentDelegate aborted: source path not found for content=' . $contentCode . ' sourceDir=' . $sourceBaseDir, 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'file_notfound';
+                        $this->response = array('message' => '移譲元のコンテンツデータが見つかりませんでした。');
+                        return;
+                }
+
+                $targetPath = $targetBaseDir . '/' . $relativeTargetPath;
+                $targetParent = dirname($targetPath);
+                if (!is_dir($targetParent)) {
+                        if (!mkdir($targetParent, 0775, true) && !is_dir($targetParent)) {
+                                $this->writeLog('procContentDelegate aborted: failed to create target dir path=' . $targetParent, 'delegate');
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'filesystem_error';
+                                $this->response = array('message' => '移譲先ディレクトリを作成できませんでした。');
+                                return;
+                        }
+                }
+
+                if (file_exists($targetPath)) {
+                        $this->writeLog('procContentDelegate aborted: conflict target exists path=' . $targetPath, 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'conflict';
+                        $this->response = array('message' => '移譲先に同名のコンテンツが存在します。');
+                        return;
+                }
+
+                if (@rename($sourcePath, $targetPath) === false) {
+                        $this->writeLog('procContentDelegate aborted: rename failed source=' . $sourcePath . ' target=' . $targetPath, 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'filesystem_error';
+                        $this->response = array('message' => 'コンテンツの移譲に失敗しました。');
+                        return;
+                }
+
+                $moved = true;
+
+                $pdo = $this->getPDOContents();
+                $pdo->beginTransaction();
+                try {
+                        $stmtUpdate = $pdo->prepare('UPDATE userContents SET userCode = ?, updatedAt = ? WHERE contentCode = ?');
+                        $now = (new DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+                        $stmtUpdate->execute(array($targetUserCode, $now, $contentCode));
+                        $pdo->commit();
+                        $this->writeLog('procContentDelegate completed: content=' . $contentCode . ' source=' . $sourceUserCode . ' target=' . $targetUserCode . ' path=' . $targetPath, 'delegate');
+                        $this->response = array(
+                                'contentCode' => $contentCode,
+                                'targetUserCode' => $targetUserCode,
+                                'updatedAt' => $now,
+                        );
+                } catch (Exception $exception) {
+                        if ($pdo->inTransaction()) {
+                                $pdo->rollBack();
+                        }
+                        if ($moved && (is_dir($targetPath) || is_file($targetPath))) {
+                                @rename($targetPath, $sourcePath);
+                        }
+                        $this->writeLog('procContentDelegate failed: database_error content=' . $contentCode . ' target=' . $targetUserCode . ' message=' . $exception->getMessage(), 'delegate');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'database_error';
+                        $this->response = array('message' => 'コンテンツの移譲に失敗しました。');
+                        return;
+                }
         }
 
         public function procContentVisibilityUpdate()
@@ -2035,7 +2201,7 @@ return array();
 
         $this->writeLog('makeProxy resolved jobId=' . ($resolvedJobId === null ? 'auto' : $resolvedJobId), 'queue');
 
-        $record = $this->fetchLowRateJobRecord($pdo, $resolvedJobId);
+        $record = $this->fetchQueueJobRecord($pdo, $resolvedJobId);
         if ($record === null) {
             $this->writeLog('makeProxy could not obtain a job record', 'queue');
             return;
@@ -2043,65 +2209,81 @@ return array();
 
         $this->writeLog('makeProxy fetched job record id=' . (isset($record['id']) ? $record['id'] : 'unknown') . ' status=' . (isset($record['status']) ? $record['status'] : '') . ' started_at=' . (isset($record['started_at']) ? $record['started_at'] : '') . ' finished_at=' . (isset($record['finished_at']) ? $record['finished_at'] : ''), 'queue');
 
-        $maxConcurrent = (int) self::MAX_CONCURRENT_LOW_RATE_TRANSCODES;
-        if ($maxConcurrent > 0) {
-            $this->writeLog(
-                'makeProxy starting concurrency check for jobId=' . (isset($record['id']) ? $record['id'] : 'unknown')
-                . ' recordStatus=' . (isset($record['status']) ? $record['status'] : '')
-                . ' max=' . $maxConcurrent,
-                'queue'
-            );
+        $jobType = isset($record['job_type']) ? (string) $record['job_type'] : '';
 
-            $runningStmt = $pdo->query("SELECT COUNT(1) FROM job_queue WHERE job_type = 'video_transcode' AND status = 'running'");
-            if ($runningStmt === false) {
-                $this->writeLog('makeProxy concurrency query failed; defaulting running count to 0', 'queue');
-                $runningCount = 0;
-            } else {
-                $rawRunningCount = $runningStmt->fetchColumn();
-                if ($rawRunningCount === false) {
-                    $this->writeLog('makeProxy concurrency fetchColumn returned false; treating as 0', 'queue');
+        if ($jobType === 'video_transcode') {
+            $maxConcurrent = (int) self::MAX_CONCURRENT_LOW_RATE_TRANSCODES;
+            if ($maxConcurrent > 0) {
+                $this->writeLog(
+                    'makeProxy starting concurrency check for jobId=' . (isset($record['id']) ? $record['id'] : 'unknown')
+                    . ' recordStatus=' . (isset($record['status']) ? $record['status'] : '')
+                    . ' max=' . $maxConcurrent,
+                    'queue'
+                );
+
+                $runningStmt = $pdo->query("SELECT COUNT(1) FROM job_queue WHERE job_type = 'video_transcode' AND status = 'running'");
+                if ($runningStmt === false) {
+                    $this->writeLog('makeProxy concurrency query failed; defaulting running count to 0', 'queue');
                     $runningCount = 0;
                 } else {
-                    $runningCount = (int) $rawRunningCount;
+                    $rawRunningCount = $runningStmt->fetchColumn();
+                    if ($rawRunningCount === false) {
+                        $this->writeLog('makeProxy concurrency fetchColumn returned false; treating as 0', 'queue');
+                        $runningCount = 0;
+                    } else {
+                        $runningCount = (int) $rawRunningCount;
+                        $this->writeLog(
+                            'makeProxy concurrency query result: running=' . $runningCount . ', max=' . $maxConcurrent,
+                            'queue'
+                        );
+                    }
+                }
+
+                if ($resolvedJobId !== null && isset($record['id']) && (int) $record['id'] === $resolvedJobId) {
+                    $runningCount = max(0, $runningCount - 1);
+
                     $this->writeLog(
-                        'makeProxy concurrency query result: running=' . $runningCount . ', max=' . $maxConcurrent,
+                        'makeProxy concurrency adjusted to exclude current job: running=' . $runningCount . ' (jobId=' . $resolvedJobId . ')',
                         'queue'
                     );
                 }
+
+                if ($runningCount >= $maxConcurrent) {
+                    $this->status = self::RESULT_SUCCESS;
+                    $this->response = array('message' => '同時実行数上限に達しています。');
+                    $this->writeLog('makeProxy aborting due to concurrency limit. running=' . $runningCount . ', max=' . $maxConcurrent, 'queue');
+                    return;
+                }
+
+                $this->writeLog('makeProxy concurrency check passed. running=' . $runningCount . ', max=' . $maxConcurrent, 'queue');
             }
 
-            if ($resolvedJobId !== null && isset($record['id']) && (int) $record['id'] === $resolvedJobId) {
-                $runningCount = max(0, $runningCount - 1);
+            $this->writeLog('makeProxy processing job id=' . (isset($record['id']) ? $record['id'] : 'unknown') . ' (source=' . (isset($record['source_path']) ? $record['source_path'] : '') . ', target=' . (isset($record['target_path']) ? $record['target_path'] : '') . ')', 'queue');
 
-                $this->writeLog(
-                    'makeProxy concurrency adjusted to exclude current job: running=' . $runningCount . ' (jobId=' . $resolvedJobId . ')',
-                    'queue'
-                );
-            }
-
-            if ($runningCount >= $maxConcurrent) {
-                $this->status = self::RESULT_SUCCESS;
-                $this->response = array('message' => '同時実行数上限に達しています。');
-                $this->writeLog('makeProxy aborting due to concurrency limit. running=' . $runningCount . ', max=' . $maxConcurrent, 'queue');
-                return;
-            }
-
-            $this->writeLog('makeProxy concurrency check passed. running=' . $runningCount . ', max=' . $maxConcurrent, 'queue');
+            $this->processLowRateJobRecord($pdo, $record);
+            return;
         }
 
-        $this->writeLog('makeProxy processing job id=' . (isset($record['id']) ? $record['id'] : 'unknown') . ' (source=' . (isset($record['source_path']) ? $record['source_path'] : '') . ', target=' . (isset($record['target_path']) ? $record['target_path'] : '') . ')', 'queue');
+        if ($jobType === 'hash_create') {
+            $this->writeLog('makeProxy processing hash_create job id=' . (isset($record['id']) ? $record['id'] : 'unknown') . ' (target=' . (isset($record['target_path']) ? $record['target_path'] : '') . ')', 'queue');
+            $this->processHashJobRecord($pdo, $record);
+            return;
+        }
 
-        $this->processLowRateJobRecord($pdo, $record);
+        $this->status = self::RESULT_ERROR;
+        $this->errorReason = 'unsupported_job_type';
+        $this->response = array('message' => '対応していないジョブタイプです。', 'jobType' => $jobType);
+        $this->writeLog('makeProxy encountered unsupported job type=' . $jobType, 'queue');
     }
 
-    private function fetchLowRateJobRecord(PDO $pdo, $jobId)
+    private function fetchQueueJobRecord(PDO $pdo, $jobId)
     {
         try {
             if ($jobId === null) {
-                $stmt = $pdo->prepare("SELECT * FROM job_queue WHERE job_type = 'video_transcode' AND status = 'queued' ORDER BY id ASC LIMIT 1");
+                $stmt = $pdo->prepare("SELECT * FROM job_queue WHERE status = 'queued' ORDER BY id ASC LIMIT 1");
                 $stmt->execute();
             } else {
-                $stmt = $pdo->prepare("SELECT * FROM job_queue WHERE job_type = 'video_transcode' AND id = :id LIMIT 1");
+                $stmt = $pdo->prepare("SELECT * FROM job_queue WHERE id = :id LIMIT 1");
                 $stmt->bindValue(':id', $jobId, PDO::PARAM_INT);
                 $stmt->execute();
             }
@@ -2117,12 +2299,12 @@ return array();
         if ($record === false || !is_array($record)) {
             $this->status = self::RESULT_SUCCESS;
             $this->response = array('message' => '待機中のジョブはありません。');
-            $this->writeLog('fetchLowRateJobRecord found no queued job for type=video_transcode', 'queue');
+            $this->writeLog('fetchQueueJobRecord found no queued job', 'queue');
             if ($jobId !== null) {
                 $this->status = self::RESULT_ERROR;
                 $this->errorReason = 'job_not_found';
                 $this->response = array('message' => '指定されたジョブが見つかりません。', 'jobId' => $jobId);
-                $this->writeLog('fetchLowRateJobRecord could not find specified job id=' . $jobId, 'queue');
+                $this->writeLog('fetchQueueJobRecord could not find specified job id=' . $jobId, 'queue');
             }
 
             return null;
@@ -2269,6 +2451,106 @@ return array();
         } else {
             $this->errorReason = 'transcode_failed';
             $this->response = array('message' => '低レート動画の作成に失敗しました。', 'jobId' => $jobId);
+        }
+    }
+
+    private function processHashJobRecord(PDO $pdo, array $record)
+    {
+        $jobId = isset($record['id']) ? (int) $record['id'] : 0;
+        $targetPath = isset($record['target_path']) ? (string) $record['target_path'] : '';
+        $sourcePath = isset($record['source_path']) ? (string) $record['source_path'] : '';
+        $hashTarget = $targetPath !== '' ? $targetPath : $sourcePath;
+        $this->writeLog('processHashJobRecord begin for job #' . $jobId . ' target=' . $hashTarget, 'queue');
+
+        if ($jobId <= 0) {
+            $this->status = self::RESULT_ERROR;
+            $this->errorReason = 'job_not_found';
+            $this->response = array('message' => 'ジョブIDが無効です。');
+            $this->writeLog('processHashJobRecord invalid job id detected jobId=' . $jobId, 'queue');
+            return;
+        }
+
+        if ($hashTarget === '' || !is_file($hashTarget)) {
+            $this->markQueueJobError($jobId, 'hash target file not found');
+            $this->status = self::RESULT_ERROR;
+            $this->errorReason = 'file_not_found';
+            $this->response = array('message' => 'ハッシュ対象のファイルが見つかりません。', 'jobId' => $jobId);
+            $this->writeLog('processHashJobRecord target missing for job #' . $jobId . ' path=' . $hashTarget, 'queue');
+            return;
+        }
+
+        $hashPath = $hashTarget . '.md5';
+
+        try {
+            $now = (new DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+            $update = $pdo->prepare(
+                'UPDATE job_queue SET status = :status, started_at = :started_at, finished_at = NULL, error_message = NULL WHERE id = :id'
+            );
+            $update->execute(array(
+                ':status' => 'running',
+                ':started_at' => $now,
+                ':id' => $jobId,
+            ));
+            $this->writeLog('processHashJobRecord marked job #' . $jobId . ' as running in queue DB', 'queue');
+        } catch (PDOException $exception) {
+            try {
+                $this->markQueueJobError(
+                    $jobId,
+                    'failed to mark running: ' . $exception->getMessage()
+                );
+            } catch (Throwable $t) {
+                $this->writeLog('markQueueJobError failed in processHashJobRecord catch: ' . $t->getMessage(), 'queue');
+            }
+
+            $this->status = self::RESULT_ERROR;
+            $this->errorReason = 'update_failed';
+            $this->response = array('message' => 'ジョブの状態更新に失敗しました。', 'details' => $exception->getMessage(), 'jobId' => $jobId);
+            $this->writeLog('processHashJobRecord failed to mark running for job #' . $jobId . ': ' . $exception->getMessage(), 'queue');
+            return;
+        }
+
+        $md5sum = $this->findExecutable('md5sum');
+        if ($md5sum === null) {
+            $this->markQueueJobError($jobId, 'md5sum not available');
+            $this->status = self::RESULT_ERROR;
+            $this->errorReason = 'missing_dependency';
+            $this->response = array('message' => 'md5sum を利用できません。', 'jobId' => $jobId);
+            $this->writeLog('processHashJobRecord md5sum not available for job #' . $jobId, 'queue');
+            return;
+        }
+
+        $command = sprintf(
+            '(%s %s > %s) > /dev/null 2>&1 & echo $!',
+            escapeshellcmd($md5sum),
+            escapeshellarg($hashTarget),
+            escapeshellarg($hashPath)
+        );
+
+        $output = array();
+        $status = 0;
+        @exec($command, $output, $status);
+
+        $success = $status === 0;
+        try {
+            $finish = $pdo->prepare(
+                'UPDATE job_queue SET status = :status, finished_at = :finished_at, error_message = :error WHERE id = :id'
+            );
+            $finish->execute(array(
+                ':status' => $success ? 'success' : 'error',
+                ':finished_at' => (new DateTimeImmutable('now'))->format('Y-m-d H:i:s'),
+                ':error' => $success ? null : 'md5sum failed to start',
+                ':id' => $jobId,
+            ));
+        } catch (PDOException $exception) {
+            $this->writeLog('Failed to finalize hash job #' . $jobId . ': ' . $exception->getMessage(), 'queue');
+        }
+
+        $this->status = $success ? self::RESULT_SUCCESS : self::RESULT_ERROR;
+        if ($success) {
+            $this->response = array('message' => 'ハッシュファイルの作成を開始しました。', 'jobId' => $jobId, 'hashFilePath' => $hashPath);
+        } else {
+            $this->errorReason = 'hash_creation_failed';
+            $this->response = array('message' => 'ハッシュファイルの作成に失敗しました。', 'jobId' => $jobId);
         }
     }
 
