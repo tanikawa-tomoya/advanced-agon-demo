@@ -599,15 +599,38 @@
     getAuthorCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = [];
-      if (target && Array.isArray(target.assignedUsers))
+      var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
+      var candidates = participants.concat(assignedUsers);
+      var creatorCount = 0;
+
+      var appendCreatorCandidate = function (label, displayName, userCode)
       {
-        candidates = candidates.concat(target.assignedUsers);
-      }
-      if (target && Array.isArray(target.participants))
-      {
-        candidates = candidates.concat(target.participants);
-      }
+        var name = displayName == null ? '' : String(displayName).trim();
+        var code = userCode == null ? '' : String(userCode).trim();
+        if (!name && !code)
+        {
+          return;
+        }
+        var identity = name || code;
+        candidates.push({
+          displayName: identity,
+          userCode: code || identity,
+          isOperator: true,
+          isActive: true,
+          role: { key: 'operator', name: label || 'operator' },
+          source: label || 'operator'
+        });
+        creatorCount += 1;
+      };
+
+      appendCreatorCandidate('creator', target && target.createdByDisplayName, target && target.createdByUserCode);
+      appendCreatorCandidate('owner', target && target.ownerDisplayName, target && target.ownerUserCode);
+
+      var stats = {
+        raw: candidates.length,
+        skipped: { noIdentity: 0, inactive: 0, nonOperator: 0, duplicate: 0 }
+      };
 
       var seen = Object.create(null);
       var normalizeFlag = function (value)
@@ -658,6 +681,36 @@
         }
         return '';
       };
+      var resolveRoleFlags = function (entry, user)
+      {
+        var flags = { isOperator: false, isSupervisor: false };
+        var sources = [];
+        if (entry && entry.roleFlags && typeof entry.roleFlags === 'object')
+        {
+          sources.push(entry.roleFlags);
+        }
+        if (user && user.roleFlags && typeof user.roleFlags === 'object')
+        {
+          sources.push(user.roleFlags);
+        }
+        for (var i = 0; i < sources.length; i += 1)
+        {
+          var source = sources[i];
+          if (!source)
+          {
+            continue;
+          }
+          if (!flags.isOperator && normalizeFlag(source.isOperator))
+          {
+            flags.isOperator = true;
+          }
+          if (!flags.isSupervisor && normalizeFlag(source.isSupervisor))
+          {
+            flags.isSupervisor = true;
+          }
+        }
+        return flags;
+      };
       var normalize = function (entry)
       {
         if (!entry)
@@ -681,6 +734,7 @@
         }
         if (!displayName && !userCode)
         {
+          stats.skipped.noIdentity += 1;
           return null;
         }
 
@@ -720,17 +774,19 @@
         }
         if (isActive === false)
         {
+          stats.skipped.inactive += 1;
           return null;
         }
 
         var role = resolveRole(entry, user);
-        var isOperator = normalizeFlag(entry.isOperator) || normalizeFlag(user && user.isOperator) || role === 'operator';
-        var isSupervisor = normalizeFlag(entry.isSupervisor)
-          || normalizeFlag(user && user.isSupervisor)
-          || role === 'supervisor'
-          || role === 'admin';
-        if (!isOperator && !isSupervisor)
+        var roleFlags = resolveRoleFlags(entry, user);
+        var isOperator = normalizeFlag(entry.isOperator)
+          || normalizeFlag(user && user.isOperator)
+          || normalizeFlag(roleFlags.isOperator)
+          || role === 'operator';
+        if (!isOperator)
         {
+          stats.skipped.nonOperator += 1;
           return null;
         }
 
@@ -753,6 +809,7 @@
         var key = (normalized.userCode || normalized.displayName || '').toLowerCase();
         if (key && seen[key])
         {
+          stats.skipped.duplicate += 1;
           return;
         }
         if (key)
@@ -760,6 +817,14 @@
           seen[key] = true;
         }
         normalizedList.push(normalized);
+      });
+
+      window.console.log('[target-reference] normalized author candidates', {
+        participants: participants.length,
+        assignedUsers: assignedUsers.length,
+        creators: creatorCount,
+        normalized: normalizedList.length,
+        details: stats
       });
 
       return normalizedList;
@@ -968,6 +1033,7 @@
         availableUsers: this.getAuthorCandidates(),
         onSelect: (user) =>
         {
+          window.console.log('[target-reference] author selected from user-select-modal', user);
           this.setAuthorSelection(modal, user);
         },
         onClose: () =>
@@ -983,6 +1049,12 @@
       {
         modalOptions.zIndex = zIndex;
       }
+      window.console.log('[target-reference] opening user-select-modal', {
+        selectedCodes: selectedCodes,
+        initialKeyword: initialKeyword,
+        availableUsersCount: modalOptions.availableUsers ? modalOptions.availableUsers.length : 0,
+        zIndex: modalOptions.zIndex
+      });
       try
       {
         service.open(modalOptions);
@@ -2469,14 +2541,6 @@
         '<p class="screen-modal__summary">リンクやファイル情報を入力して資料を登録します。</p>' +
         '</header>' +
         '<form class="screen-modal__body target-reference__form" novalidate>' +
-        '<div class="target-reference__form-field target-reference__form-row--full">' +
-        '<label class="target-reference__form-label" for="target-reference-title">タイトル</label>' +
-        '<input id="target-reference-title" class="user-management__input target-reference__input" name="title" required maxlength="256" />' +
-        '</div>' +
-        '<div class="target-reference__form-field target-reference__form-row--full">' +
-        '<label class="target-reference__form-label" for="target-reference-description">説明 (任意)</label>' +
-        '<textarea id="target-reference-description" class="user-management__input target-reference__textarea" name="description" rows="3" maxlength="2048"></textarea>' +
-        '</div>' +
         '<div class="target-reference__form-field">' +
         '<span class="target-reference__form-label">作成者</span>' +
         '<div class="target-reference__author" data-target-reference-author-picker>' +
@@ -2520,6 +2584,14 @@
         '<p class="target-reference__upload-note" data-target-reference-upload-counter>アップロードは任意です。ファイルを選択するとここに表示されます。</p>' +
         '</div>' +
         '</section>' +
+        '</div>' +
+        '<div class="target-reference__form-field target-reference__form-row--full">' +
+        '<label class="target-reference__form-label" for="target-reference-title">タイトル</label>' +
+        '<input id="target-reference-title" class="user-management__input target-reference__input" name="title" required maxlength="256" />' +
+        '</div>' +
+        '<div class="target-reference__form-field target-reference__form-row--full">' +
+        '<label class="target-reference__form-label" for="target-reference-description">説明 (任意)</label>' +
+        '<textarea id="target-reference-description" class="user-management__input target-reference__textarea" name="description" rows="3" maxlength="2048"></textarea>' +
         '</div>' +
         '<p class="user-management__feedback target-reference__form-feedback" aria-live="polite" hidden></p>' +
         '<div class="target-reference__form-actions target-reference__form-row--full">' +
@@ -2671,6 +2743,7 @@
       {
         authorSelectButton.addEventListener('click', () =>
         {
+          window.console.log('[target-reference] author select button clicked');
           this.openAuthorSelectModal(modal);
         });
       }
@@ -2792,7 +2865,7 @@
     getContentOwnerSelection(modal)
     {
       var selection = modal && modal.selectedUser ? modal.selectedUser : null;
-      if (!selection)
+      if (!selection && !this.shouldShowAuthorField())
       {
         selection = this.getSessionUserSelection();
       }
@@ -2874,28 +2947,48 @@
       {
         selectedItems = selectedItems.slice(0, 1);
       }
-      service.open({
-        title: 'コンテンツを選択',
-        owner: ownerKey,
-        ownerParams: ownerParams,
-        maxSelection: 1,
-        selectedItems: selectedItems
-      }).then((result) =>
+      var handleSelection = (items) =>
       {
-        if (!result || !Array.isArray(result.selection))
+        if (!items)
         {
           return;
         }
-        if (!result.selection.length)
+        var list = Array.isArray(items) ? items : [items];
+        if (!list.length)
         {
           this.resetContentSelection(modal);
           return;
         }
-        this.addContentSelection(modal, result.selection[0]);
-      }).catch(function (error)
+        var entry = list[0];
+        if (entry)
+        {
+          this.addContentSelection(modal, entry.raw || entry);
+        }
+      };
+
+      try
+      {
+        service.open({
+          title: 'コンテンツを選択',
+          owner: ownerKey,
+          ownerParams: ownerParams,
+          maxSelection: 1,
+          selectedItems: selectedItems,
+          onSelect: handleSelection,
+          onApply: handleSelection,
+          onClose: (reason, payload) =>
+          {
+            if (Array.isArray(payload) && !payload.length)
+            {
+              this.resetContentSelection(modal);
+            }
+          }
+        });
+      }
+      catch (error)
       {
         window.console.error('[target-detail] failed to open content select modal', error);
-      });
+      }
     }
 
     async ensureContentLibrary(modal)
@@ -3074,6 +3167,11 @@
       {
         return;
       }
+      if (this.shouldShowAuthorField() && !modal.selectedUser)
+      {
+        this.notifyAuthorSelectionRequired(modal, true, 'error');
+        return;
+      }
       var attachment = null;
       if (this.page && typeof this.page.buildAttachmentsFromContents === 'function')
       {
@@ -3094,6 +3192,15 @@
         modal.selectedContents = [];
       }
       modal.selectedContents = attachment && attachment.contentCode ? [attachment] : [];
+      var rawContent = attachment && attachment.raw ? attachment.raw : entry;
+      if (modal.titleInput && rawContent && typeof rawContent.title !== 'undefined')
+      {
+        modal.titleInput.value = rawContent.title || '';
+      }
+      if (modal.descriptionInput && rawContent && typeof rawContent.description !== 'undefined')
+      {
+        modal.descriptionInput.value = rawContent.description || '';
+      }
       this.renderSelectedContents(modal);
       this.setFieldErrorState(modal.uploadField, false);
       this.setModalFeedback('', null);

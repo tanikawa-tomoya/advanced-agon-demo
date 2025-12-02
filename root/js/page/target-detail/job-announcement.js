@@ -205,15 +205,7 @@
     getAuthorCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = [];
-      if (target && Array.isArray(target.assignedUsers))
-      {
-        candidates = candidates.concat(target.assignedUsers);
-      }
-      if (target && Array.isArray(target.participants))
-      {
-        candidates = candidates.concat(target.participants);
-      }
+      var candidates = target && Array.isArray(target.participants) ? target.participants.slice() : [];
 
       var seen = Object.create(null);
       var normalize = function (entry)
@@ -2453,20 +2445,8 @@
 
     getAudienceCandidates()
     {
-      var candidates = [];
       var target = this.page && this.page.state ? this.page.state.target : null;
-      if (target && Array.isArray(target.assignedUsers))
-      {
-        candidates = candidates.concat(target.assignedUsers);
-      }
-      if (target && Array.isArray(target.chatParticipants))
-      {
-        candidates = candidates.concat(target.chatParticipants);
-      }
-      if (target && Array.isArray(target.bbsParticipants))
-      {
-        candidates = candidates.concat(target.bbsParticipants);
-      }      
+      var candidates = target && Array.isArray(target.participants) ? target.participants.slice() : [];
       var seen = Object.create(null);
       var normalized = [];
       candidates.forEach(function (entry)
