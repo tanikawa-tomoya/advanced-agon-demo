@@ -608,6 +608,26 @@
       keywordWrap.appendChild(keywordTitle);
       keywordWrap.appendChild(keywordInput);
 
+      var createdWrap = createElement('div', 'contents-select-modal__field contents-select-modal__field--range');
+      var createdTitle = createElement('span', 'contents-select-modal__label');
+      createdTitle.textContent = text.createdAtLabel;
+      var createdRange = createElement('div', 'contents-select-modal__range');
+      var createdFromInput = document.createElement('input');
+      createdFromInput.type = 'date';
+      createdFromInput.className = 'contents-select-modal__input contents-select-modal__input--date';
+      createdFromInput.setAttribute('aria-label', text.createdFromLabel || text.createdAtLabel);
+      var createdSeparator = createElement('span', 'contents-select-modal__range-separator');
+      createdSeparator.textContent = text.createdRangeSeparator || '～';
+      var createdToInput = document.createElement('input');
+      createdToInput.type = 'date';
+      createdToInput.className = 'contents-select-modal__input contents-select-modal__input--date';
+      createdToInput.setAttribute('aria-label', text.createdToLabel || text.createdAtLabel);
+      createdRange.appendChild(createdFromInput);
+      createdRange.appendChild(createdSeparator);
+      createdRange.appendChild(createdToInput);
+      createdWrap.appendChild(createdTitle);
+      createdWrap.appendChild(createdRange);
+
       var kindWrap = createElement('label', 'contents-select-modal__field');
       var kindTitle = createElement('span', 'contents-select-modal__label');
       kindTitle.textContent = text.kindLabel;
@@ -618,6 +638,7 @@
       kindWrap.appendChild(kindSelect);
 
       form.appendChild(keywordWrap);
+      form.appendChild(createdWrap);
       form.appendChild(kindWrap);
 
       var feedback = createElement('div', 'contents-select-modal__feedback');
@@ -675,6 +696,8 @@
         listToggle: listToggle,
         panelToggle: panelToggle,
         keywordInput: keywordInput,
+        createdFromInput: createdFromInput,
+        createdToInput: createdToInput,
         kindSelect: kindSelect,
         feedback: feedback,
         listView: listView,
@@ -985,6 +1008,8 @@
       var modal = elements.modal;
       var dialog = elements.dialog;
       var keywordInput = elements.keywordInput;
+      var createdFromInput = elements.createdFromInput;
+      var createdToInput = elements.createdToInput;
       var kindSelect = elements.kindSelect;
       var feedback = elements.feedback;
       var listView = elements.listView;
@@ -1005,6 +1030,17 @@
       var active = true;
       var items = [];
       var filteredItems = [];
+      var ownerParams = options.ownerParams || {};
+      var ownerUserId = ownerParams.userId || options.userId || '';
+      var ownerUserCode = ownerParams.userCode || options.userCode || options.owner || '';
+      if (ownerUserId)
+      {
+        ownerUserId = String(ownerUserId).trim();
+      }
+      if (ownerUserCode)
+      {
+        ownerUserCode = String(ownerUserCode).trim();
+      }
 
       if (Array.isArray(options.selected))
       {
@@ -1110,9 +1146,13 @@
       {
         var keyword = keywordInput.value || '';
         var kind = kindSelect.value || '';
+        var createdFrom = createdFromInput.value || '';
+        var createdTo = createdToInput.value || '';
         filteredItems = this.service.jobs.data.filterList(items, {
           keyword: keyword,
-          kind: kind
+          kind: kind,
+          createdFrom: createdFrom,
+          createdTo: createdTo
         });
         var limited = typeof this.service.config.resultLimit === 'number'
           ? filteredItems.slice(0, this.service.config.resultLimit)
@@ -1230,6 +1270,8 @@
       var cleanup = () =>
       {
         keywordInput.removeEventListener('input', handleInput);
+        createdFromInput.removeEventListener('change', handleInput);
+        createdToInput.removeEventListener('change', handleInput);
         kindSelect.removeEventListener('change', handleInput);
         listToggle.removeEventListener('click', handleViewToggle);
         panelToggle.removeEventListener('click', handleViewToggle);
@@ -1293,6 +1335,8 @@
       });
       modal.addEventListener('keydown', handleKeydown);
       keywordInput.addEventListener('input', handleInput);
+      createdFromInput.addEventListener('change', handleInput);
+      createdToInput.addEventListener('change', handleInput);
       kindSelect.addEventListener('change', handleInput);
       listToggle.addEventListener('click', handleViewToggle);
       panelToggle.addEventListener('click', handleViewToggle);
@@ -1321,6 +1365,8 @@
       document.body.classList.add('is-modal-open');
       dialog.setAttribute('aria-busy', 'true');
       keywordInput.value = options.keyword || '';
+      createdFromInput.value = options.createdFrom || '';
+      createdToInput.value = options.createdTo || '';
       kindSelect.value = options.kind || '';
       this.setFeedback(feedback, text.loadingMessage, 'loading');
 
@@ -1399,8 +1445,8 @@
       {
         this.service.jobs.data.getContents({
           forceRefresh: options.forceRefresh,
-          userId: options.userId,
-          userCode: options.userCode
+          userId: ownerUserId,
+          userCode: ownerUserCode
         })
           .then((list) =>
           {

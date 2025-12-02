@@ -34,6 +34,30 @@
     return y + '/' + m + '/' + d + ' ' + hh + ':' + mm;
   }
 
+  function parseDateFilterValue(value, options)
+  {
+    var raw = String(value || '').trim();
+    if (!raw)
+    {
+      return null;
+    }
+    var normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw + 'T00:00:00' : raw;
+    var date = new Date(normalized);
+    if (isNaN(date.getTime()))
+    {
+      return null;
+    }
+    if (options && options.startOfDay)
+    {
+      date.setHours(0, 0, 0, 0);
+    }
+    else if (options && options.endOfDay)
+    {
+      date.setHours(23, 59, 59, 999);
+    }
+    return date.getTime();
+  }
+
   function extractExtension(record)
   {
     var source = resolveSource(record);
@@ -428,7 +452,8 @@
       var kind = this.resolveKind(source);
       var idBase = source.contentCode || source.id || source.uuid || source.code || normalizeText(source.fileName);
       var identifier = kind + '-' + (idBase || String(Date.now()));
-      var timestamp = this.parseTimestamp(source.updatedAt || source.createdAt || source.registeredAt);
+      var createdTimestamp = this.parseTimestamp(source.createdAt || source.registeredAt || source.uploadedAt);
+      var updatedTimestamp = this.parseTimestamp(source.updatedAt || source.createdAt || source.registeredAt);
       var fileName = normalizeText(source.fileName || source.name || '');
       var durationSeconds = this.resolveDurationSeconds(source);
       var durationLabel = durationSeconds > 0 ? this.formatDuration(durationSeconds) : this.resolveDurationLabel(source);
@@ -462,8 +487,10 @@
         fileName: fileName,
         isVisible: isVisible,
         visibilityLabel: isVisible ? '表示' : '非表示',
-        updatedAt: timestamp.value,
-        updatedAtLabel: timestamp.label,
+        updatedAt: updatedTimestamp.value,
+        updatedAtLabel: updatedTimestamp.label,
+        createdAt: createdTimestamp.value,
+        createdAtLabel: createdTimestamp.label,
         durationSeconds: durationSeconds,
         durationLabel: durationLabel,
         fileUrl: fileUrl,
@@ -495,12 +522,37 @@
     {
       var keyword = normalizeText(filters && filters.keyword).toLowerCase();
       var kind = normalizeText(filters && filters.kind).toLowerCase();
+      var createdFrom = filters && filters.createdFrom;
+      var createdTo = filters && filters.createdTo;
       var filtered = Array.isArray(list)
         ? list.filter(function (item)
         {
           return item && item.isVisible !== false;
         })
         : [];
+      var fromValue = parseDateFilterValue(createdFrom, { startOfDay: true });
+      var toValue = parseDateFilterValue(createdTo, { endOfDay: true });
+      var hasFrom = typeof fromValue === 'number' && !Number.isNaN(fromValue);
+      var hasTo = typeof toValue === 'number' && !Number.isNaN(toValue);
+      if (hasFrom || hasTo)
+      {
+        filtered = filtered.filter(function (item)
+        {
+          if (!item || typeof item.createdAt !== 'number' || item.createdAt <= 0)
+          {
+            return false;
+          }
+          if (hasFrom && item.createdAt < fromValue)
+          {
+            return false;
+          }
+          if (hasTo && item.createdAt > toValue)
+          {
+            return false;
+          }
+          return true;
+        });
+      }
       if (keyword)
       {
         filtered = filtered.filter(function (item)
