@@ -27,6 +27,7 @@
         uploadModalSnapshot: [],
         profile: null,
         activeEditItemId: null,
+        pwaDownloads: [],
       };
 
       // サービス（header, toast, loading-overlay, help-modal など）
@@ -45,13 +46,19 @@
       this.imageModalService = null;
       this.pdfModalService = null;
       this.downloadModalService = null;
+      this.pwaDownloaderService = null;
+      this.contentsSelectModalService = null;
       this.targetSelectModalService = null;
+      this.userSelectModalService = null;
       this.buttonService = null;
       this.breadcrumbService = null;
       this.infoModalService = null;
       this.contentUploaderService = null;
 
       this.contentsDataset = { usersContents: [], usersContentsProxy: [] };
+
+      this._pwaModalNode = null;
+      this._pwaDownloadsById = Object.create(null);
 
       this._uploadModalLastActive = null;
       this._uploadModalBodyClassManaged = false;
@@ -66,6 +73,7 @@
       this.uiConfig = {};
         this.selectorConfig = {};
         this.apiConfig = {};
+        this.fastDownloadConfig = {};
     }
 
     async boot()
@@ -87,6 +95,7 @@
         this.renderBreadcrumbs();
         await this.initContentUploader();
         this.renderUploaderButtons();
+        this.renderFastDownloadButton();
         this.renderRefreshButton();
         this.updateUploadModal([]);
         this.updateEvent();
@@ -133,6 +142,15 @@
         downloadUnavailable: 'ダウンロードできるファイルが見つかりません。',
         downloadModalTitle: 'ダウンロード',
         downloadModalSubtitle: 'ファイルの取得状況',
+        fastDownloadButtonLabel: '高速ダウンロード',
+        fastDownloadTitle: '高速ダウンロード',
+        fastDownloadSubtitle: 'コンテンツをまとめてダウンロードできます',
+        fastDownloadEmpty: 'ダウンロード可能なコンテンツが見つかりません。',
+        fastDownloadPreparing: '高速ダウンロードを開始します…',
+        fastDownloadComplete: '高速ダウンロードが完了しました',
+        fastDownloadQueued: '高速ダウンロードに追加しました',
+        fastDownloadPaused: 'ダウンロードを一時停止しました',
+        fastDownloadResume: 'ダウンロードを開始しました',
         editModalTitle: 'コンテンツ編集',
         editModalSummary: 'タイトル・説明・作成日を更新します。',
         editSaved: 'コンテンツを更新しました',
@@ -169,6 +187,14 @@
         proxyCompleted: '低レート動画は既に作成済みです。',
         proxySourceMissing: '元ファイルが見つからないため低レート動画を作成できません。',
         proxyEncoding: '低レート動画をエンコード中です…',
+        delegateActionLabel: '委譲',
+        delegateButtonLabel: 'コンテンツを他のユーザーに移譲',
+        delegateApplyLabel: '移譲',
+        delegateTitle: '移譲先を選択',
+        delegateDescription: 'コンテンツの移譲先となるユーザーを選択してください。',
+        delegateConfirm: 'コンテンツを委譲しますか？',
+        delegateSuccess: 'コンテンツの移譲が完了しました。',
+        delegateError: 'コンテンツの移譲に失敗しました。',
         proxyButtonLabel: '低レート',
         visibilityHideLabel: '非表示',
         visibilityShowLabel: '表示化',
@@ -202,6 +228,7 @@
 
         // 更新・再取得
         refreshButton: '[data-cp-refresh]',
+        fastDownloadButton: '[data-cp-fast-download]',
 
         // リスト領域
         listContainer: '[data-cp="list"]',
@@ -230,6 +257,7 @@
         bitrateButton: '[data-cp-bitrate]',
         visibilityToggleButton: '[data-cp-visibility-toggle]',
         deleteButton: '[data-cp-delete]',
+        delegateButton: '[data-cp-delegate]',
 
         // タブ
         tabsRoot: '[data-cp-tabs]',
@@ -309,6 +337,7 @@
           audio: 'ContentDelete',
           file: 'ContentDelete'
         },
+        delegateType: 'ContentDelegate',
         uploadTargets: {
           movie: { type: 'ContentUpload', field: 'file', label: '動画' },
           image: { type: 'ContentUpload', field: 'file', label: '画像' },
@@ -317,6 +346,15 @@
         },
         youtubePrefix: 'content-youtube-',
         youtubeSuffix: '.json'
+      });
+
+      var fastRequestType = dataset.fastDownloadRequestType || 'FastDownload';
+      var fastListType = dataset.fastDownloadListType || 'FastDownloadQueue';
+      var fastEnqueueType = dataset.fastDownloadEnqueueType || 'FastDownloadEnqueue';
+      this.fastDownloadConfig = Object.freeze({
+        requestType: fastRequestType,
+        listType: fastListType,
+        enqueueType: fastEnqueueType
       });
     }
 
@@ -339,6 +377,39 @@
       for (var i = 0; i < configs.length; i += 1) {
         this._renderUploaderButton(svc, configs[i]);
       }
+    }
+
+    renderFastDownloadButton()
+    {
+      var service = this.buttonService;
+      var selectors = this.selectorConfig || {};
+      var selector = selectors.fastDownloadButton;
+      if (!service || typeof service.createActionButton !== 'function' || !selector) {
+        return;
+      }
+      var placeholder = document.querySelector(selector);
+      if (!placeholder || !placeholder.parentNode) {
+        return;
+      }
+      var label = (this.textConfig && this.textConfig.fastDownloadButtonLabel) || '高速ダウンロード';
+      var button = service.createActionButton('download', {
+        label: label,
+        ariaLabel: label,
+        hoverLabel: label,
+        baseClass: 'target-management__icon-button target-management__icon-button--ghost',
+        attributes: { 'data-cp-fast-download': '' }
+      });
+      if (!button) {
+        return;
+      }
+      if (placeholder.id) {
+        button.id = placeholder.id;
+      }
+      if (placeholder.name) {
+        button.name = placeholder.name;
+      }
+      button.setAttribute('type', 'button');
+      placeholder.parentNode.replaceChild(button, placeholder);
     }
 
     renderRefreshButton()
@@ -478,22 +549,25 @@
 
     async initServices()
     {
-        const scripts = [
-          { src: '/js/service-app/header/main.js' },
-          { src: '/js/service-app/toast/main.js' },
-          { src: '/js/service-app/loading/main.js' },
-          { src: '/js/service-app/help-modal/main.js' },
-          { src: '/js/service-app/info-modal/main.js' },
-          { src: '/js/service-app/button/main.js' },
-          { src: '/js/service-app/confirm-dialog/main.js' },
-          { src: '/js/service-app/target-select-modal/main.js' },
-          { src: '/js/service-app/breadcrumb/main.js' },
-          { src: '/js/service-app/audio-modal/main.js' },
-          { src: '/js/service-app/video-modal/main.js' },
+      const scripts = [
+        { src: '/js/service-app/header/main.js' },
+        { src: '/js/service-app/toast/main.js' },
+        { src: '/js/service-app/loading/main.js' },
+        { src: '/js/service-app/help-modal/main.js' },
+        { src: '/js/service-app/info-modal/main.js' },
+        { src: '/js/service-app/button/main.js' },
+        { src: '/js/service-app/confirm-dialog/main.js' },
+        { src: '/js/service-app/target-select-modal/main.js' },
+        { src: '/js/service-app/breadcrumb/main.js' },
+        { src: '/js/service-app/audio-modal/main.js' },
+        { src: '/js/service-app/video-modal/main.js' },
         { src: '/js/service-app/youtube-video-modal/main.js' },
         { src: '/js/service-app/image-modal/main.js' },
         { src: '/js/service-app/pdf-modal/main.js' },
-        { src: '/js/service-app/download-modal/main.js' }
+        { src: '/js/service-app/download-modal/main.js' },
+        { src: '/js/service-app/pwa-downloader/main.js' },
+        { src: '/js/service-app/contents-select-modal/main.js' },
+        { src: '/js/service-app/user-select-modal/main.js' }
       ];
       await window.Utils.loadScriptsSync(scripts);
 
@@ -505,6 +579,19 @@
       this.buttonService = new window.Services.button();
       this.confirmDialogService = new window.Services.ConfirmDialog();
       this.targetSelectModalService = new window.Services.TargetSelectModal({ targetListType: 'TargetListParticipating' });
+      this.userSelectModalService = new window.Services.UserSelectModal({
+        endpoint: this.apiConfig.endpoint,
+        requestType: 'User',
+        token: this.apiConfig.token,
+        multiple: false,
+        resultLimit: 200,
+        text: {
+          modalTitle: this.textConfig.delegateTitle,
+          modalDescription: this.textConfig.delegateDescription,
+          actionLabel: this.textConfig.delegateApplyLabel,
+          applyLabel: this.textConfig.delegateApplyLabel
+        }
+      });
       const breadcrumbContainer = document.querySelector('.screen-page') || document.body;
       this.breadcrumbService = new window.Services.Breadcrumb({ container: breadcrumbContainer });
       this.audioModalService = new window.Services.AudioModal();
@@ -525,6 +612,24 @@
         title: this.textConfig.downloadModalTitle,
         subtitle: this.textConfig.downloadModalSubtitle
       });
+      this.pwaDownloaderService = new window.Services.PwaDownloader({
+        title: this.textConfig.fastDownloadTitle,
+        subtitle: this.textConfig.fastDownloadSubtitle,
+        onPlay: this.handlePwaPlay.bind(this),
+        onPause: this.handlePwaPause.bind(this),
+        onRemove: this.handlePwaRemove.bind(this)
+      });
+      this.contentsSelectModalService = new window.Services.ContentsSelectModal({
+        endpoint: this.apiConfig.endpoint,
+        requestType: this.apiConfig.requestType,
+        token: this.apiConfig.token,
+        multiple: false,
+        text: {
+          modalTitle: this.textConfig.submitSelectTitle,
+          modalDescription: this.textConfig.submitSelectDescription,
+          applyLabel: this.textConfig.submitButtonLabel
+        }
+      });
 
       this.services = {
         header: this.headerService,
@@ -535,6 +640,9 @@
         button: this.buttonService,
         confirmDialog: this.confirmDialogService,
         targetSelectModal: this.targetSelectModalService,
+        pwaDownloader: this.pwaDownloaderService,
+        contentsSelectModal: this.contentsSelectModalService,
+        userSelectModal: this.userSelectModalService,
         breadcrumb: this.breadcrumbService,
         audioModal: this.audioModalService,
         videoModal: this.videoModalService,
@@ -553,6 +661,9 @@
         this.buttonService.boot(),
         this.confirmDialogService.boot(),
         this.targetSelectModalService.boot(),
+        this.pwaDownloaderService.boot(),
+        this.contentsSelectModalService.boot(),
+        this.userSelectModalService.boot(),
         this.breadcrumbService.boot(breadcrumbContainer),
         this.audioModalService.boot(),
         this.videoModalService.boot(),
@@ -561,6 +672,22 @@
         this.pdfModalService.boot(),
         this.downloadModalService.boot()
       ]);
+    }
+
+    isSupervisor()
+    {
+      var profile = this.state && this.state.profile ? this.state.profile : null;
+      if (!profile)
+      {
+        return false;
+      }
+      var flag = profile.isSupervisor;
+      if (typeof flag === 'string')
+      {
+        var normalized = flag.toLowerCase();
+        return normalized === '1' || normalized === 'true';
+      }
+      return flag === true || flag === 1;
     }
 
     loading(on, options)
@@ -626,6 +753,15 @@
       else if (typeof service.hide === 'function')
       {
         service.hide();
+      }
+    }
+
+    dismissConfirmDialogs()
+    {
+      var service = this.confirmDialogService || (this.services && this.services.confirmDialog);
+      if (service && typeof service.dismissAll === 'function')
+      {
+        service.dismissAll();
       }
     }
 
@@ -962,6 +1098,18 @@
           }
         });
 
+      $(document)
+        .off('click.contents', selectors.fastDownloadButton)
+        .on('click.contents', selectors.fastDownloadButton, async function (e) {
+          e.preventDefault();
+          try {
+            var id = this && this.getAttribute ? this.getAttribute('data-id') : null;
+            await self.startFastDownload(id);
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
       // ダウンロード
       $(document)
         .off('click.contents', selectors.downloadButton)
@@ -1015,6 +1163,18 @@
           try {
             var id = $(this).attr('data-id');
             await runItemJob('delete', { ids: [id] });
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      $(document)
+        .off('click.contents', selectors.delegateButton)
+        .on('click.contents', selectors.delegateButton, async function (e) {
+          e.preventDefault();
+          try {
+            var id = $(this).attr('data-id');
+            await runItemJob('delegate', { id: id });
           } catch (err) {
             self.onError(err);
           }
@@ -1366,6 +1526,46 @@
       var status = statusRaw.toUpperCase();
       if (status && status !== 'OK')
       {
+        var messageSource = response.response || response.result || response.reason || response.message;
+        var message = '';
+        if (typeof messageSource === 'string')
+        {
+          message = messageSource;
+        }
+        else if (messageSource && typeof messageSource === 'object' && typeof messageSource.message === 'string')
+        {
+          message = messageSource.message;
+        }
+        if (!message)
+        {
+          message = this.textConfig.error;
+        }
+        throw new Error(message);
+      }
+      if (Object.prototype.hasOwnProperty.call(response, 'result'))
+      {
+        return response.result;
+      }
+      return response;
+    }
+
+    async callFastDownloadApi(type, payload, overrides)
+    {
+      if (!(window.Utils && typeof window.Utils.requestApi === 'function'))
+      {
+        throw new Error('APIクライアントが初期化されていません。');
+      }
+      var config = this.fastDownloadConfig || {};
+      var requestType = config.requestType || (this.apiConfig && this.apiConfig.requestType) || 'FastDownload';
+      var response = await window.Utils.requestApi(requestType, type, payload || {}, overrides);
+      if (!response)
+      {
+        throw new Error(this.textConfig.error);
+      }
+      var statusRaw = typeof response.status === 'string' ? response.status : '';
+      var status = statusRaw.toUpperCase();
+      if (status && status !== 'OK')
+      {
         var message = response.response || response.result || response.reason || this.textConfig.error;
         throw new Error(message);
       }
@@ -1566,7 +1766,7 @@
         : (titleFromRecord || fileName || this.resolveCategoryLabel(resolvedKind));
       var durationSeconds = this.resolveDurationSecondsFromRecord(record);
       var durationLabel = durationSeconds > 0 ? this.formatDuration(durationSeconds) : '';
-      var createdTimestamp = this.parseTimestamp(record.createdAt || record.registeredAt || record.uploadedAt);
+      var createdTimestamp = this.resolveCreatedTimestamp(record);
       var timestamp = this.parseTimestamp(record.updatedAt || record.createdAt || record.registeredAt);
       var proxyInfo = this.resolveProxyStatus(record);
       var isVisible = this.normalizeVisibilityFlag(record.isVisible);
@@ -2086,6 +2286,33 @@
         return { value: 0, label: '' };
       }
       return { value: date.getTime(), label: this.formatDateTime(date) };
+    }
+
+    resolveCreatedTimestamp(record)
+    {
+      if (!record)
+      {
+        return { value: 0, label: '' };
+      }
+      var candidates = [
+        this.parseTimestamp(record.createdAt),
+        this.parseTimestamp(record.registeredAt),
+        this.parseTimestamp(record.uploadedAt)
+      ];
+      var earliest = { value: 0, label: '' };
+      for (var i = 0; i < candidates.length; i += 1)
+      {
+        var candidate = candidates[i];
+        if (!candidate || !candidate.value)
+        {
+          continue;
+        }
+        if (!earliest.value || candidate.value < earliest.value)
+        {
+          earliest = candidate;
+        }
+      }
+      return earliest;
     }
 
     parseDateFilterValue(value, options)
@@ -2660,6 +2887,7 @@
         }
         finally
         {
+          this.dismissConfirmDialogs();
           this.loading(false);
         }
       }
@@ -2707,6 +2935,24 @@
       return { ok: true };
     }
 
+    async apiDelegateContent(id, targetUserCode)
+    {
+      if (!id || !targetUserCode)
+      {
+        return { ok: false };
+      }
+      var target = this.getItemById(id);
+      if (!target)
+      {
+        return { ok: false };
+      }
+      await this.callApi(this.apiConfig.delegateType, {
+        contentCode: target.recordId,
+        targetUserCode: targetUserCode
+      });
+      return { ok: true };
+    }
+
     async apiUpdateContent(id, payload)
     {
       if (!id)
@@ -2743,7 +2989,7 @@
       var parsed = this.parseTimestamp(raw.updatedAt || raw.createdAt || raw.registeredAt);
       target.updatedAtValue = parsed.value || 0;
       target.updatedAtLabel = parsed.label || '';
-      var createdParsed = this.parseTimestamp(raw.createdAt || raw.registeredAt || raw.updatedAt);
+      var createdParsed = this.resolveCreatedTimestamp(raw);
       target.createdAtValue = createdParsed.value || 0;
       target.createdAtLabel = createdParsed.label || '';
       return { ok: true, item: target };
@@ -3052,6 +3298,7 @@
       }
       finally
       {
+        this.dismissConfirmDialogs();
         this.loading(false);
       }
     }
@@ -3128,6 +3375,120 @@
       throw new Error(message);
     }
 
+    async openUserSelectModalForDelegation()
+    {
+      var service = this.userSelectModalService || (this.services && this.services.userSelectModal);
+      if (!service || typeof service.open !== 'function')
+      {
+        throw new Error('ユーザー選択モーダルサービスが初期化されていません。');
+      }
+      var confirmService = this.confirmDialogService || (this.services && this.services.confirmDialog);
+      if (!confirmService || typeof confirmService.open !== 'function')
+      {
+        throw new Error('確認ダイアログサービスが初期化されていません。');
+      }
+      var text = this.textConfig || {};
+      var confirmMessage = text.delegateConfirm || 'コンテンツを委譲しますか？';
+      return new Promise(function (resolve, reject)
+      {
+        var resolved = false;
+        var finalize = function (user)
+        {
+          if (resolved)
+          {
+            return;
+          }
+          resolved = true;
+          resolve(user || null);
+        };
+        var handleClose = function (reason)
+        {
+          if (reason === 'session-expired')
+          {
+            window.location.href = '/login.html';
+            return;
+          }
+          finalize(null);
+        };
+        try
+        {
+          service.open({
+            multiple: false,
+            text: {
+              modalTitle: text.delegateTitle,
+              modalDescription: text.delegateDescription,
+              actionLabel: text.delegateApplyLabel || text.delegateButtonLabel,
+              applyLabel: text.delegateApplyLabel || text.delegateButtonLabel
+            },
+            onSelect: async function (user)
+            {
+              var confirmed = await confirmService.open(confirmMessage, { type: 'warning' });
+              if (!confirmed)
+              {
+                return false;
+              }
+              finalize(user);
+              return true;
+            },
+            onClose: handleClose
+          });
+        }
+        catch (error)
+        {
+          reject(error);
+        }
+      });
+    }
+
+    async delegateContentToUser(id)
+    {
+      if (!id || !this.isSupervisor())
+      {
+        return;
+      }
+      var item = this.getItemById(id);
+      if (!item)
+      {
+        return;
+      }
+      var user = await this.openUserSelectModalForDelegation();
+      var targetUserCode = user && user.userCode ? String(user.userCode) : '';
+      if (!targetUserCode)
+      {
+        return;
+      }
+
+      this.loading(true, this.textConfig.loading || '処理中です…');
+      try
+      {
+        await this.apiDelegateContent(id, targetUserCode);
+        await window.Utils.loadScriptsSync([this.path + '/job-refresh.js'], { cache: true });
+        var RefreshJob = window.Contents && window.Contents.JobRefresh;
+        if (RefreshJob)
+        {
+          await new RefreshJob(this).run({ page: 1 });
+        }
+        this.toast(this.textConfig.delegateSuccess || this.textConfig.saved);
+      }
+      catch (err)
+      {
+        var delegateErrorMessage = (err && err.message)
+          ? err.message
+          : (this.textConfig.delegateError || this.textConfig.error);
+        var normalizedError = (err && typeof err === 'object') ? err : new Error(delegateErrorMessage);
+        if (normalizedError.message !== delegateErrorMessage)
+        {
+          normalizedError.message = delegateErrorMessage;
+        }
+        this.onError(normalizedError);
+      }
+      finally
+      {
+        this.dismissConfirmDialogs();
+        this.loading(false);
+      }
+    }
+
     async openUsageList(id)
     {
       if (!id)
@@ -3154,6 +3515,7 @@
       }
       finally
       {
+        this.dismissConfirmDialogs();
         this.loading(false);
       }
     }
@@ -3656,6 +4018,18 @@
         },
         disabled: !!(view.item && view.item.isProxyEncoding)
       });
+      var fastDownloadButtonHtml = this.buildActionButtonHtml('download', {
+        label: this.textConfig.fastDownloadButtonLabel,
+        hoverLabel: view.titleRaw + 'を高速ダウンロードに追加',
+        ariaLabel: view.titleRaw + 'を高速ダウンロードに追加',
+        baseClass: 'content-item__action table-action-button',
+        fallbackClass: 'content-item__action btn btn--ghost',
+        type: 'button',
+        dataset: {
+          cpFastDownload: 'true',
+          id: view.id
+        }
+      });
       var visibilityToggleHtml = this.buildVisibilityToggle(view);
       var downloadButtonHtml = this.buildActionButtonHtml('download', {
         label: 'DL',
@@ -3687,6 +4061,7 @@
         + submitButtonHtml
         + usageButtonHtml
         + proxyButtonHtml
+        + fastDownloadButtonHtml
         + visibilityToggleHtml
         + downloadButtonHtml
         + deleteButtonHtml
@@ -4142,6 +4517,18 @@
         },
         disabled: !!(view.item && view.item.isProxyEncoding)
       });
+      var fastDownloadButtonHtml = this.buildActionButtonHtml('download', {
+        label: this.textConfig.fastDownloadButtonLabel,
+        hoverLabel: view.titleRaw + 'を高速ダウンロードに追加',
+        ariaLabel: view.titleRaw + 'を高速ダウンロードに追加',
+        baseClass: 'content-item__action table-action-button',
+        fallbackClass: 'content-item__action btn btn--ghost',
+        type: 'button',
+        dataset: {
+          cpFastDownload: 'true',
+          id: view.id
+        }
+      });
       var visibilityToggleHtml = this.buildVisibilityToggle(view);
       var downloadButtonHtml = this.buildActionButtonHtml('download', {
         label: 'DL',
@@ -4167,6 +4554,22 @@
           id: view.id
         }
       });
+      var delegateButtonHtml = '';
+      if (this.isSupervisor()) {
+        var delegateActionLabel = this.textConfig.delegateActionLabel || this.textConfig.delegateButtonLabel;
+        delegateButtonHtml = this.buildActionButtonHtml('execute', {
+          label: delegateActionLabel,
+          hoverLabel: this.textConfig.delegateButtonLabel,
+          ariaLabel: this.textConfig.delegateButtonLabel,
+          baseClass: 'content-item__action table-action-button',
+          fallbackClass: 'content-item__action btn btn--ghost',
+          type: 'button',
+          dataset: {
+            cpDelegate: 'true',
+            id: view.id
+          }
+        });
+      }
       var rowClass = 'content-item';
       if (view.item && view.item.isVisible === false) {
         rowClass += ' content-item--hidden';
@@ -4196,7 +4599,9 @@
               submitButtonHtml +
               usageButtonHtml +
               proxyButtonHtml +
+              fastDownloadButtonHtml +
               downloadButtonHtml +
+              delegateButtonHtml +
               deleteButtonHtml +
             '</div>' +
           '</td>' +
@@ -5293,6 +5698,366 @@
       };
     }
 
+    buildPwaDownloaderFiles(entries)
+    {
+      var list = Array.isArray(entries) ? entries : [];
+      var files = [];
+      for (var i = 0; i < list.length; i += 1)
+      {
+        var entry = list[i] || {};
+        var item = entry.item || entry;
+        if (!item)
+        {
+          continue;
+        }
+        var spec = entry.spec || null;
+        var id = item.id || ('content-' + i);
+        var totalBytes = (spec && typeof spec.totalBytes === 'number') ? spec.totalBytes : 0;
+        if (!totalBytes && typeof item.size === 'number')
+        {
+          totalBytes = item.size;
+        }
+        files.push({
+          id: String(id),
+          name: this.resolveDownloadFileName(item),
+          downloadedBytes: 0,
+          totalBytes: totalBytes,
+          status: 'pending',
+          progressPercent: 0
+        });
+      }
+      return files;
+    }
+
+    ensurePwaDownloaderModal()
+    {
+      var service = this.pwaDownloaderService || (this.services && this.services.pwaDownloader);
+      if (!service)
+      {
+        return null;
+      }
+      if (this._pwaModalNode)
+      {
+        service.updateFiles(this._pwaModalNode, this.mapPwaDownloadsToFiles());
+        return this._pwaModalNode;
+      }
+      this._pwaModalNode = service.show({
+        title: this.textConfig.fastDownloadTitle,
+        subtitle: this.textConfig.fastDownloadSubtitle,
+        files: this.mapPwaDownloadsToFiles()
+      });
+      return this._pwaModalNode;
+    }
+
+    updatePwaDownloaderFiles()
+    {
+      var service = this.pwaDownloaderService || (this.services && this.services.pwaDownloader);
+      if (!service || !this.state.pwaDownloads)
+      {
+        return;
+      }
+      var modal = this.ensurePwaDownloaderModal();
+      if (!modal)
+      {
+        return;
+      }
+      service.updateFiles(modal, this.mapPwaDownloadsToFiles());
+    }
+
+    rebuildPwaDownloadIndex()
+    {
+      this._pwaDownloadsById = Object.create(null);
+      var list = Array.isArray(this.state.pwaDownloads) ? this.state.pwaDownloads : [];
+      for (var i = 0; i < list.length; i += 1)
+      {
+        var entry = list[i];
+        if (!entry || !entry.id)
+        {
+          continue;
+        }
+        this._pwaDownloadsById[String(entry.id)] = entry;
+      }
+    }
+
+    mapPwaDownloadsToFiles()
+    {
+      var list = Array.isArray(this.state.pwaDownloads) ? this.state.pwaDownloads : [];
+      var mapped = [];
+      for (var i = 0; i < list.length; i += 1)
+      {
+        var item = list[i];
+        mapped.push({
+          id: item.id,
+          name: item.name,
+          downloadedBytes: Number(item.downloadedBytes) || 0,
+          totalBytes: Number(item.totalBytes) || 0,
+          status: item.status || '待機中',
+          progressPercent: (typeof item.progressPercent === 'number') ? item.progressPercent : 0
+        });
+      }
+      return mapped;
+    }
+
+    enqueuePwaDownloads(entries)
+    {
+      var list = Array.isArray(this.state.pwaDownloads) ? this.state.pwaDownloads.slice() : [];
+      var added = 0;
+      for (var i = 0; i < entries.length; i += 1)
+      {
+        var entry = entries[i] || {};
+        var item = entry.item || {};
+        var spec = entry.spec || null;
+        var id = item.id || ('content-' + i);
+        if (this._pwaDownloadsById[String(id)])
+        {
+          continue;
+        }
+        var totalBytes = (spec && typeof spec.totalBytes === 'number') ? spec.totalBytes : 0;
+        if (!totalBytes && typeof item.size === 'number')
+        {
+          totalBytes = item.size;
+        }
+        var queueEntry = {
+          id: String(id),
+          name: this.resolveDownloadFileName(item),
+          downloadedBytes: 0,
+          totalBytes: totalBytes,
+          status: '待機中',
+          progressPercent: 0,
+          spec: spec,
+          xhr: null
+        };
+        list.push(queueEntry);
+        this._pwaDownloadsById[String(queueEntry.id)] = queueEntry;
+        added += 1;
+      }
+      this.state.pwaDownloads = list;
+      return added;
+    }
+
+    handlePwaPlay(file)
+    {
+      if (!file || !file.id)
+      {
+        return;
+      }
+      var entry = this._pwaDownloadsById[String(file.id)];
+      if (!entry)
+      {
+        return;
+      }
+      if (this.textConfig.fastDownloadResume)
+      {
+        this.toast(this.textConfig.fastDownloadResume);
+      }
+      this.startPwaDownload(entry);
+    }
+
+    handlePwaPause(file)
+    {
+      if (!file || !file.id)
+      {
+        return;
+      }
+      var entry = this._pwaDownloadsById[String(file.id)];
+      if (!entry)
+      {
+        return;
+      }
+      if (entry.xhr && typeof entry.xhr.abort === 'function')
+      {
+        entry.xhr.abort();
+      }
+      entry.xhr = null;
+      entry.downloadedBytes = 0;
+      entry.progressPercent = 0;
+      entry.status = '一時停止中';
+      this.updatePwaDownloaderFiles();
+      if (this.textConfig.fastDownloadPaused)
+      {
+        this.toast(this.textConfig.fastDownloadPaused);
+      }
+    }
+
+    handlePwaRemove(fileId)
+    {
+      var id = fileId != null ? String(fileId) : '';
+      if (!id)
+      {
+        return;
+      }
+      var entry = this._pwaDownloadsById[id];
+      if (entry && entry.xhr && typeof entry.xhr.abort === 'function')
+      {
+        entry.xhr.abort();
+      }
+      var list = Array.isArray(this.state.pwaDownloads) ? this.state.pwaDownloads.slice() : [];
+      this.state.pwaDownloads = list.filter(function (item) { return item && String(item.id) !== id; });
+      this.rebuildPwaDownloadIndex();
+      this.updatePwaDownloaderFiles();
+    }
+
+    startPwaDownload(entry)
+    {
+      if (!entry || !entry.spec)
+      {
+        return;
+      }
+      var service = this.pwaDownloaderService || (this.services && this.services.pwaDownloader);
+      var modal = this.ensurePwaDownloaderModal();
+      if (!service || !modal)
+      {
+        return;
+      }
+
+      if (entry.xhr && typeof entry.xhr.abort === 'function')
+      {
+        entry.xhr.abort();
+      }
+
+      entry.status = 'ダウンロード中';
+      entry.downloadedBytes = 0;
+      entry.progressPercent = 0;
+      service.updateFile(modal, entry.id, {
+        status: entry.status,
+        downloadedBytes: 0,
+        totalBytes: entry.totalBytes || 0,
+        progressPercent: 0
+      });
+
+      var xhr = new XMLHttpRequest();
+      entry.xhr = xhr;
+      xhr.open(entry.spec.request.method || 'GET', entry.spec.request.url, true);
+      xhr.withCredentials = true;
+      xhr.responseType = 'blob';
+      var headers = (entry.spec.request && entry.spec.request.headers) || {};
+      var headerKeys = Object.keys(headers);
+      for (var i = 0; i < headerKeys.length; i += 1)
+      {
+        var key = headerKeys[i];
+        xhr.setRequestHeader(key, headers[key]);
+      }
+      var self = this;
+      xhr.onprogress = function (event)
+      {
+        var total = event && event.lengthComputable ? event.total : (entry.spec.totalBytes || 0);
+        var percent = total > 0 ? (event.loaded / total) * 100 : null;
+        entry.downloadedBytes = event && typeof event.loaded === 'number' ? event.loaded : 0;
+        entry.totalBytes = total;
+        entry.progressPercent = percent === null ? 0 : percent;
+        service.updateFile(modal, entry.id, {
+          downloadedBytes: entry.downloadedBytes,
+          totalBytes: entry.totalBytes,
+          progressPercent: entry.progressPercent,
+          status: entry.status
+        });
+      };
+      xhr.onerror = function ()
+      {
+        entry.status = 'エラー';
+        service.updateFile(modal, entry.id, { status: entry.status, progressPercent: 100 });
+        self.toast(self.textConfig.downloadFailed);
+      };
+      xhr.onabort = function ()
+      {
+        entry.status = '一時停止中';
+        entry.downloadedBytes = 0;
+        entry.progressPercent = 0;
+        service.updateFile(modal, entry.id, {
+          status: entry.status,
+          downloadedBytes: 0,
+          totalBytes: entry.totalBytes || 0,
+          progressPercent: 0
+        });
+      };
+      xhr.onload = function ()
+      {
+        if (xhr.status >= 200 && xhr.status < 300)
+        {
+          var blob = xhr.response;
+          var finalSize = blob && blob.size ? blob.size : (entry.totalBytes || entry.spec.totalBytes || 0);
+          entry.status = '完了';
+          entry.downloadedBytes = finalSize;
+          entry.totalBytes = finalSize;
+          entry.progressPercent = 100;
+          service.updateFile(modal, entry.id, {
+            status: entry.status,
+            downloadedBytes: finalSize,
+            totalBytes: finalSize,
+            progressPercent: 100
+          });
+          self.startBlobDownload(blob, entry.spec.fileName);
+          self.toast(self.textConfig.downloadReady);
+          return;
+        }
+        entry.status = 'エラー';
+        service.updateFile(modal, entry.id, { status: entry.status, progressPercent: 100 });
+        self.toast(self.textConfig.downloadFailed);
+      };
+      xhr.send(entry.spec.request.body || null);
+    }
+
+    async startFastDownload(targetId)
+    {
+      var ids = this.collectFastDownloadIds(targetId);
+      if (!ids.length)
+      {
+        this.toast(this.textConfig.fastDownloadEmpty || this.textConfig.downloadUnavailable);
+        return;
+      }
+
+      await this.enqueueFastDownload(ids);
+
+      if (this.textConfig.fastDownloadQueued)
+      {
+        this.toast(this.textConfig.fastDownloadQueued);
+      }
+
+      this.openPwaDownloaderApp();
+    }
+
+    collectFastDownloadIds(targetId)
+    {
+      var items = Array.isArray(this.state.items) ? this.state.items : [];
+      var ids = [];
+      for (var i = 0; i < items.length; i += 1)
+      {
+        var entryItem = items[i];
+        if (targetId && String(entryItem.id) !== String(targetId))
+        {
+          continue;
+        }
+        var spec = this.resolveDownloadSpec(entryItem);
+        if (!entryItem || !spec || entryItem.kind === 'youtube')
+        {
+          continue;
+        }
+        ids.push(entryItem.id);
+      }
+      return ids;
+    }
+
+    async enqueueFastDownload(ids)
+    {
+      var payload;
+      if (ids.length === 1)
+      {
+        payload = { content_id: ids[0] };
+      }
+      else
+      {
+        payload = { content_ids: ids };
+      }
+      var config = this.fastDownloadConfig || {};
+      var enqueueType = config.enqueueType || 'FastDownloadEnqueue';
+      await this.callFastDownloadApi(enqueueType, payload);
+    }
+
+    openPwaDownloaderApp()
+    {
+      window.open('/html/pwa-downloader.html', 'pwa-downloader');
+    }
+
     async proxyItem(id)
     {
       if (!id)
@@ -5342,6 +6107,7 @@
       }
       finally
       {
+        this.dismissConfirmDialogs();
         this.loading(false);
       }
     }
