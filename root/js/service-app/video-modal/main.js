@@ -14,6 +14,11 @@
       this.CSS = null;
       this.ALLOWED_IFRAME_HOSTS = null;
       this.buttonService = null;
+      this.confirmDialogService = null;
+      this.toastService = null;
+      this.onThumbnailUpdated = (options && typeof options.onThumbnailUpdated === 'function')
+        ? options.onThumbnailUpdated
+        : null;
     }
 
     initConfig(options)
@@ -27,7 +32,8 @@
         autoplay: true,
         // iframe の allow 属性
         iframeAllow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
-        api: apiDefaults
+        api: apiDefaults,
+        showThumbnailButton: false
       };
       var CSS = {
         region: 'c-video-modal-region',
@@ -111,20 +117,33 @@
         'js/service-app/video-modal/job-modal.js',
         'js/service-app/video-modal/job-content.js',
         'js/service-app/video-modal/job-bitrate.js',
-        'js/service-app/button/main.js'
+        'js/service-app/button/main.js',
+        'js/service-app/confirm-dialog/main.js',
+        'js/service-app/toast/main.js'
       ]);
 
       // 設定初期化（旧 config.js をここに移行）
       this.initConfig(this.options);
 
       this.buttonService = new window.Services.button();
-      await this.buttonService.boot();
+      this.confirmDialogService = new window.Services.ConfirmDialog({
+        titleText: 'サムネイル登録',
+        confirmText: '登録',
+        cancelText: 'キャンセル',
+        type: 'warning'
+      });
+      this.toastService = new window.Services.Toast({ position: 'top-right', duration: 3600 });
+      await Promise.all([
+        this.buttonService.boot(),
+        this.confirmDialogService.boot(),
+        this.toastService.boot()
+      ]);
 
       this.jobs = {
         embed: new window.Services.VideoModal.JobEmbed(this),
         modal: new window.Services.VideoModal.JobModal(this),
         content: new window.Services.VideoModal.JobContent(this),
-        bitrate: new window.Services.VideoModal.JobBitrate(this, this.buttonService)
+        bitrate: new window.Services.VideoModal.JobBitrate(this, this.buttonService, this.confirmDialogService, this.toastService)
       };
       return this;
     }
@@ -175,6 +194,19 @@
         return this.jobs.embed.buildHtml5Video(safe, !!opts.autoplay, opts.poster);
       }
       throw new Error('video-modal: unsupported provider: ' + provider);
+    }
+
+    async handleThumbnailUpdated(detail)
+    {
+      if (typeof this.onThumbnailUpdated === 'function')
+      {
+        try
+        {
+          return await this.onThumbnailUpdated(detail || {});
+        }
+        catch (_err) {}
+      }
+      return null;
     }
 
     // ========== Public API ==========
@@ -299,11 +331,11 @@
       var playerNode = document.createElement('div');
       playerNode.className = this.CSS.player;
       playerNode.appendChild(videoEl);
-      var actionsNode = this.jobs.bitrate.createActions(variants, initialVariant.key);
+      var actionsNode = this.jobs.bitrate.createActions(variants, initialVariant.key, baseSpec, opts);
       var disposeHandlers = [];
       if (actionsNode)
       {
-        disposeHandlers.push(this.jobs.bitrate.bindActions(actionsNode, videoEl, variants, initialVariant.key, !!opts.autoplay));
+        disposeHandlers.push(this.jobs.bitrate.bindActions(actionsNode, videoEl, variants, initialVariant.key, !!opts.autoplay, baseSpec));
       }
 
       var modalEl = this.jobs.modal.createModal({

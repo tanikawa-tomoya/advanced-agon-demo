@@ -4,10 +4,12 @@
 
   class JobBitrate
   {
-    constructor(service, buttonService)
+    constructor(service, buttonService, confirmDialogService, toastService)
     {
       this.service = service;
       this.buttonService = buttonService;
+      this.confirmDialogService = confirmDialogService;
+      this.toastService = toastService;
     }
 
     normalizeNumber(value)
@@ -309,7 +311,7 @@
       return this.buildVariantList(spec, record, fallbackSrc);
     }
 
-    createActions(variants, activeKey)
+    createActions(variants, activeKey, contentSpec, options)
     {
       if (!Array.isArray(variants) || variants.length === 0)
       {
@@ -345,10 +347,14 @@
         }
         container.appendChild(btn);
       }
+      if (options && options.showThumbnailButton)
+      {
+        this.createThumbnailButton(container, contentSpec);
+      }
       return container;
     }
 
-    bindActions(container, videoEl, variants, initialKey, autoplay)
+    bindActions(container, videoEl, variants, initialKey, autoplay, contentSpec)
     {
       if (!container || !videoEl)
       {
@@ -361,7 +367,7 @@
         var target = event.target;
         while (target && target !== container)
         {
-          if (target.hasAttribute('data-bitrate-key'))
+          if (target.hasAttribute('data-bitrate-key') || target.hasAttribute('data-thumbnail-action'))
           {
             break;
           }
@@ -369,6 +375,18 @@
         }
         if (!target || target === container)
         {
+          return;
+        }
+        if (target.getAttribute('data-thumbnail-action') === 'capture')
+        {
+          var wasPlaying = false;
+          try
+          {
+            wasPlaying = !videoEl.paused && !videoEl.ended;
+            videoEl.pause();
+          }
+          catch (_errPause) {}
+          self.handleThumbnailAction(target, videoEl, contentSpec, wasPlaying);
           return;
         }
         var key = target.getAttribute('data-bitrate-key');
@@ -388,6 +406,166 @@
       };
       container.addEventListener('click', handler, true);
       return function () { container.removeEventListener('click', handler, true); };
+    }
+
+    createThumbnailButton(container, contentSpec)
+    {
+      if (!container)
+      {
+        return null;
+      }
+      var btn = this.buttonService.createActionButton('content-thumbnail', {
+        label: 'サムネイル生成',
+        ariaLabel: '現在のフレームをサムネイルに登録',
+        elementTag: 'button',
+        type: 'button'
+      });
+      btn.setAttribute('data-thumbnail-action', 'capture');
+      if (!contentSpec || !contentSpec.contentCode)
+      {
+        btn.setAttribute('aria-disabled', 'true');
+        btn.disabled = true;
+        btn.classList.add('is-disabled');
+      }
+      container.appendChild(btn);
+      return btn;
+    }
+
+    markThumbnailBusy(button, busy)
+    {
+      if (!button)
+      {
+        return;
+      }
+      if (busy)
+      {
+        button.setAttribute('data-busy', '1');
+        button.setAttribute('aria-busy', 'true');
+        button.disabled = true;
+        button.classList.add('is-loading');
+      }
+      else
+      {
+        button.removeAttribute('data-busy');
+        button.removeAttribute('aria-busy');
+        button.disabled = false;
+        button.classList.remove('is-loading');
+      }
+    }
+
+    async handleThumbnailAction(target, videoEl, contentSpec, wasPlaying)
+    {
+      if (!target || !videoEl)
+      {
+        return;
+      }
+      if (target.getAttribute('data-busy') === '1')
+      {
+        return;
+      }
+      this.markThumbnailBusy(target, true);
+      try
+      {
+        await this.captureThumbnail(videoEl, contentSpec, wasPlaying);
+      }
+      finally
+      {
+        this.markThumbnailBusy(target, false);
+      }
+    }
+
+    async captureThumbnail(videoEl, contentSpec, wasPlaying)
+    {
+      var contentCode = contentSpec && contentSpec.contentCode ? String(contentSpec.contentCode) : '';
+      var contentRecord = contentSpec && contentSpec.contentRecord ? contentSpec.contentRecord : null;
+      if (!contentCode)
+      {
+        this.showToastError('コンテンツ情報が取得できませんでした。');
+        this.resumePlayback(videoEl, wasPlaying);
+        return;
+      }
+
+      var confirmed = await this.confirmDialogService.open('現在のフレームをサムネイルとして登録しますか？', {
+        titleText: 'サムネイル登録',
+        confirmText: '登録',
+        cancelText: 'キャンセル',
+        type: 'warning'
+      });
+      if (!confirmed)
+      {
+        this.resumePlayback(videoEl, wasPlaying);
+        return;
+      }
+
+      var currentTime = typeof videoEl.currentTime === 'number' ? videoEl.currentTime : null;
+      if (currentTime === null || isNaN(currentTime))
+      {
+        this.showToastError('再生位置を取得できませんでした。');
+        this.resumePlayback(videoEl, wasPlaying);
+        return;
+      }
+
+      if (currentTime < 0)
+      {
+        currentTime = 0;
+      }
+
+      var formData = new FormData();
+      formData.append('contentCode', contentCode);
+      formData.append('position', currentTime.toFixed(3));
+
+      try
+      {
+        await window.Utils.requestApi(
+          this.service.config.api.requestType || 'Contents',
+          'ContentThumbnailUpdate',
+          formData,
+          { url: this.service.config.api.apiEndpoint }
+        );
+        this.showToastSuccess('サムネイルを更新しました。');
+        await this.service.handleThumbnailUpdated({
+          contentCode: contentCode,
+          contentRecord: contentRecord
+        });
+      }
+      catch (_errRequest)
+      {
+        this.showToastError('サムネイルの更新に失敗しました。');
+      }
+      this.resumePlayback(videoEl, wasPlaying);
+    }
+
+    resumePlayback(videoEl, shouldResume)
+    {
+      if (!videoEl || !shouldResume)
+      {
+        return;
+      }
+      try
+      {
+        var playPromise = videoEl.play();
+        if (playPromise && typeof playPromise.catch === 'function')
+        {
+          playPromise.catch(function () {});
+        }
+      }
+      catch (_errPlay) {}
+    }
+
+    showToastSuccess(message)
+    {
+      if (this.toastService && typeof this.toastService.success === 'function')
+      {
+        this.toastService.success(message);
+      }
+    }
+
+    showToastError(message)
+    {
+      if (this.toastService && typeof this.toastService.error === 'function')
+      {
+        this.toastService.error(message);
+      }
     }
 
     updateActive(container, key)

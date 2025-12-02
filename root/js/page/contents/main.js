@@ -600,7 +600,8 @@
           requestType: this.apiConfig.requestType,
           apiEndpoint: this.apiConfig.endpoint,
           apiToken: this.apiConfig.token
-        }
+        },
+        onThumbnailUpdated: this.handleContentThumbnailUpdated.bind(this)
       });
       this.youtubeVideoModalService = new window.Services.YoutubeVideoModal({ autoplay: false });
       this.imageModalService = new window.Services.ImageModal();
@@ -2524,6 +2525,26 @@
       return null;
     }
 
+    findItemByRecordId(recordId)
+    {
+      var list = this.state.items || [];
+      var normalized = recordId === undefined || recordId === null ? '' : String(recordId);
+      if (!normalized)
+      {
+        return null;
+      }
+      for (var i = 0; i < list.length; i += 1)
+      {
+        var item = list[i];
+        var itemRecordId = item && item.recordId !== undefined && item.recordId !== null ? String(item.recordId) : '';
+        if (itemRecordId && itemRecordId === normalized)
+        {
+          return item;
+        }
+      }
+      return null;
+    }
+
     resolveDeleteType(kind)
     {
       if (!kind)
@@ -3866,9 +3887,9 @@
           metaParts.push(sizeLabel);
         }
       }
-      if (item.updatedAtLabel)
+      if (item.createdAtLabel)
       {
-        metaParts.push(this.escapeHtml(item.updatedAtLabel));
+        metaParts.push(this.escapeHtml(item.createdAtLabel));
       }
       var visibilityStateLabel = isVisible ? '表示' : '非表示';
       var visibilityToggleLabel = isVisible
@@ -5157,12 +5178,59 @@
           quality: quality,
           title: item && item.title ? item.title : '',
           contentRecord: item && item.raw ? item.raw : null
-        }, { autoplay: false, contentDataset: this.contentsDataset });
+        }, { autoplay: false, contentDataset: this.contentsDataset, showThumbnailButton: true });
       }
       catch (err)
       {
         this.onError(err);
         this.toast(this.textConfig.previewUnavailable);
+      }
+    }
+
+    async handleContentThumbnailUpdated(detail)
+    {
+      var contentCode = detail && detail.contentCode ? String(detail.contentCode) : '';
+      if (!contentCode)
+      {
+        return;
+      }
+      var preservedItem = this.findItemByRecordId(contentCode);
+      var preservedRecord = detail && detail.contentRecord ? detail.contentRecord : null;
+      if (!preservedRecord && preservedItem && preservedItem.raw)
+      {
+        preservedRecord = preservedItem.raw;
+      }
+      var preservedCreated = preservedRecord ? this.resolveCreatedTimestamp(preservedRecord) : { value: 0, label: '' };
+      var preservedCreatedAt = preservedRecord && preservedRecord.createdAt ? preservedRecord.createdAt : '';
+      try
+      {
+        await window.Utils.loadScriptsSync([this.path + '/job-refresh.js'], { cache: true });
+        var RefreshJob = window.Contents && window.Contents.JobRefresh;
+        if (RefreshJob)
+        {
+          await new RefreshJob(this).run({ page: this.state.page });
+        }
+      }
+      catch (err)
+      {
+        this.onError(err);
+        return;
+      }
+
+      var refreshedItem = this.findItemByRecordId(contentCode);
+      if (!refreshedItem)
+      {
+        return;
+      }
+      if (refreshedItem.raw && preservedCreatedAt)
+      {
+        refreshedItem.raw.createdAt = preservedCreatedAt;
+      }
+      if (preservedCreated && preservedCreated.value)
+      {
+        refreshedItem.createdAtValue = preservedCreated.value;
+        refreshedItem.createdAtLabel = preservedCreated.label;
+        this.renderList(this.state.items);
       }
     }
 
@@ -5193,7 +5261,7 @@
       {
         if (playback.spec)
         {
-          service.openContentVideo(playback.spec, { autoplay: false, contentDataset: this.contentsDataset });
+          service.openContentVideo(playback.spec, { autoplay: false, contentDataset: this.contentsDataset, showThumbnailButton: true });
         }
         else if (playback.src)
         {

@@ -110,6 +110,12 @@ class Contents extends Base
                 if (isset($this->params['contentCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
         }
 
+        protected function validationContentThumbnailUpdate()
+        {
+                if (isset($this->params['contentCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+                if (isset($this->params['position']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+        }
+
         protected function validationContentFileGet()
         {
                 if (isset($this->params['contentCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
@@ -1770,6 +1776,137 @@ class Contents extends Base
                 streamVideoFile($sourcePath, $mimeType !== '' ? $mimeType : null);
         }
 
+        public function procContentThumbnailUpdate()
+        {
+                self::writeLog('ContentThumbnailUpdate start', 'thumbnail');
+
+                $loginUserCode = $this->getLoginUserCode();
+                if ($loginUserCode === null) {
+                        self::writeLog('ContentThumbnailUpdate: login required', 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'login_required';
+                        return;
+                }
+
+                $contentCode = isset($this->params['contentCode']) ? trim((string) $this->params['contentCode']) : '';
+                if ($contentCode === '') {
+                        self::writeLog('ContentThumbnailUpdate: invalid content code', 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid_content';
+                        return;
+                }
+
+                $stmt = $this->getPDOContents()->prepare('SELECT contentCode, userCode, contentType, filePath FROM userContents WHERE contentCode = ? LIMIT 1');
+                $stmt->execute(array($contentCode));
+                $contentRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($contentRow === false) {
+                        self::writeLog('ContentThumbnailUpdate: content not found contentCode=' . $contentCode, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                $ownerUserCode = isset($contentRow['userCode']) ? trim((string) $contentRow['userCode']) : '';
+                if ($ownerUserCode === '' || ($ownerUserCode !== $loginUserCode && !$this->isSupervisor())) {
+                        self::writeLog('ContentThumbnailUpdate: forbidden owner=' . $ownerUserCode . ' login=' . $loginUserCode, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'forbidden';
+                        return;
+                }
+
+                $contentType = isset($contentRow['contentType']) ? strtolower((string) $contentRow['contentType']) : '';
+                if ($contentType !== 'video') {
+                        self::writeLog('ContentThumbnailUpdate: unsupported type contentType=' . $contentType, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'unsupported_type';
+                        $this->response = array('message' => '動画コンテンツのみサムネイルを変更できます。');
+                        return;
+                }
+
+                $positionRaw = isset($this->params['position']) ? $this->params['position'] : null;
+                if (!is_numeric($positionRaw)) {
+                        self::writeLog('ContentThumbnailUpdate: invalid position value', 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid_position';
+                        $this->response = array('message' => '再生位置が正しく指定されていません。');
+                        return;
+                }
+
+                $positionSeconds = (float) $positionRaw;
+                if ($positionSeconds < 0) {
+                        $positionSeconds = 0.0;
+                }
+
+                $userInfo = $this->getUserInfo($ownerUserCode);
+                if (!is_array($userInfo) || !array_key_exists('id', $userInfo)) {
+                        self::writeLog('ContentThumbnailUpdate: user not found userCode=' . $ownerUserCode, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'user_notfound';
+                        return;
+                }
+
+                $relativePath = isset($contentRow['filePath']) ? trim((string) $contentRow['filePath']) : '';
+                if ($relativePath === '') {
+                        self::writeLog('ContentThumbnailUpdate: missing filePath for contentCode=' . $contentCode, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'file_notfound';
+                        return;
+                }
+
+                $thumbnailPath = $this->dataBasePath . '/userdata/' . $userInfo['id'] . '/' . ltrim($relativePath . '_thumbnail', '/');
+                $thumbnailDir = dirname($thumbnailPath);
+                if (is_dir($thumbnailDir) === false && mkdir($thumbnailDir, 0775, true) === false && is_dir($thumbnailDir) === false) {
+                        self::writeLog('ContentThumbnailUpdate: failed to create directory ' . $thumbnailDir, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'upload';
+                        $this->response = array('message' => 'サムネイル画像を保存できませんでした。');
+                        return;
+                }
+
+                $sourcePath = $this->dataBasePath . '/userdata/' . $userInfo['id'] . '/' . ltrim($relativePath, '/');
+                if (is_file($sourcePath) === false) {
+                        self::writeLog('ContentThumbnailUpdate: source file missing path=' . $sourcePath, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'file_notfound';
+                        $this->response = array('message' => '動画ファイルが見つかりませんでした。');
+                        return;
+                }
+
+                self::writeLog(
+                        'ContentThumbnailUpdate: start video create target=' . $thumbnailPath . ' position=' . $positionSeconds,
+                        'thumbnail'
+                );
+                $created = $this->createVideoThumbnail($sourcePath, $thumbnailPath, $positionSeconds);
+                if ($created === false) {
+                        self::writeLog('ContentThumbnailUpdate: createVideoThumbnail failed for target=' . $thumbnailPath, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'upload';
+                        $this->response = array('message' => 'サムネイル画像を保存できませんでした。');
+                        return;
+                }
+
+                $now = (new DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+                try {
+                        $stmtUpdate = $this->getPDOContents()->prepare('UPDATE userContents SET updatedAt = ? WHERE contentCode = ?');
+                        $stmtUpdate->execute(array($now, $contentCode));
+                } catch (Exception $exception) {
+                        self::writeLog('ContentThumbnailUpdate: failed to update database for contentCode=' . $contentCode, 'thumbnail');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'database_error';
+                        $this->response = array('message' => 'サムネイル画像を更新できませんでした。');
+                        return;
+                }
+
+                $this->response = array(
+                        'contentCode' => $contentCode,
+                        'thumbnailPath' => $relativePath . '_thumbnail',
+                        'updatedAt' => $now,
+                );
+
+                self::writeLog('ContentThumbnailUpdate: success contentCode=' . $contentCode, 'thumbnail');
+        }
+
         protected function streamInlineFile(string $filePath, ?string $forcedMime = null): void
         {
                 $this->streamImageFile($filePath, $forcedMime);
@@ -2018,7 +2155,7 @@ class Contents extends Base
         private function createContentThumbnail($contentType, $sourcePath, $targetPath)
         {
                 if ($contentType === 'video') {
-                        return $this->createVideoThumbnail($sourcePath, $targetPath);
+                        return $this->createVideoThumbnail($sourcePath, $targetPath, null);
                 }
 
                 if ($contentType === 'image') {
@@ -2028,7 +2165,7 @@ class Contents extends Base
                 return false;
         }
 
-        private function createVideoThumbnail($sourcePath, $targetPath)
+        private function createVideoThumbnail($sourcePath, $targetPath, ?float $positionSeconds = null)
         {
                 $ffmpeg = $this->findExecutable('ffmpeg');
                 if ($ffmpeg === null) {
@@ -2036,9 +2173,27 @@ class Contents extends Base
                         return false;
                 }
 
+                $targetDir = dirname($targetPath);
+                if (is_dir($targetDir) === false && mkdir($targetDir, 0775, true) === false && is_dir($targetDir) === false) {
+                        self::writeLog('createVideoThumbnail: failed to create directory ' . $targetDir, 'thumbnail');
+                        return false;
+                }
+
+                if (is_dir($targetPath)) {
+                        self::writeLog('createVideoThumbnail: target path is directory path=' . $targetPath, 'thumbnail');
+                        return false;
+                }
+
+                $positionArg = '';
+                if ($positionSeconds !== null && $positionSeconds >= 0) {
+                        $positionValue = number_format($positionSeconds, 3, '.', '');
+                        $positionArg = '-ss ' . escapeshellarg($positionValue);
+                }
+
                 $command = sprintf(
-                        '%s -y -i %s -vframes 1 -vf "thumbnail,scale=min(320\\,iw):-2" -f image2 -vcodec mjpeg %s',
+                        '%s -y %s -i %s -vframes 1 -vf "thumbnail,scale=min(320\\,iw):-2" -f image2 -vcodec mjpeg %s 2>&1',
                         escapeshellcmd($ffmpeg),
+                        $positionArg,
                         escapeshellarg($sourcePath),
                         escapeshellarg($targetPath)
                 );
@@ -2079,7 +2234,7 @@ class Contents extends Base
                                         escapeshellcmd($convert),
                                         escapeshellarg($geometry),
                                         escapeshellarg($sourcePath),
-                                        escapeshellarg($targetPath)
+                                        escapeshellarg('jpg:' . $targetPath)
                                         );
 
                 self::writeLog('createImageThumbnail command=' . $command, 'thumbnail');
