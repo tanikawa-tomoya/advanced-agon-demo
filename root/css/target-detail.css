@@ -4583,6 +4583,17 @@
   width: min(720px, 96vw);
 }
 
+.target-detail__guidance-modal-container .screen-modal__content,
+.target-detail__guidance-modal-container .screen-modal__body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.target-detail__guidance-modal-container .screen-modal__content::-webkit-scrollbar,
+.target-detail__guidance-modal-container .screen-modal__body::-webkit-scrollbar {
+  display: none;
+}
+
 .target-detail__guidance-body {
   padding: 28px 32px 36px;
   display: grid;

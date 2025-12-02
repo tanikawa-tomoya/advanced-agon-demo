@@ -1846,11 +1846,14 @@ body.is-modal-open {
     position: relative;
     width: min(960px, 94vw);
     max-width: 100%;
+    max-height: 92vh;
     background: var(--modal-surface);
     border-radius: var(--radius-md);
     border: 1px solid var(--modal-border);
     box-shadow: var(--modal-shadow);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
     pointer-events: auto;
 }
 
@@ -1866,14 +1869,29 @@ body.is-modal-open {
 
 .c-video-modal__title-wrap {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
 }
 
 .c-video-modal__title {
     margin: 0;
     font-size: 1rem;
     letter-spacing: 0.02em;
+}
+
+.c-video-modal__title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.c-video-modal__description {
+    margin: 0;
+    color: var(--modal-muted);
+    line-height: 1.5;
+    font-size: 0.9rem;
 }
 
 .c-video-modal__close {
@@ -1901,13 +1919,19 @@ body.is-modal-open {
 .c-video-modal__body {
     padding: 0;
     background: #020915;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 .c-video-modal__body iframe,
 .c-video-modal__body video,
 .c-video-modal__body .c-video-modal__canvas-player {
     width: 100%;
-    height: min(72vh, 560px);
+    height: min(65vh, 520px);
+    max-height: calc(92vh - 148px);
     display: block;
     background: #000;
 }
@@ -1941,6 +1965,7 @@ body.is-modal-open {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    margin-left: auto;
 }
 
 .c-video-modal__bitrate-button {
