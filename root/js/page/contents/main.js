@@ -16,6 +16,8 @@
         searchQuery: '',
         filterKind: '',
         filterVisibility: 'visible',
+        filterCreatedFrom: '',
+        filterCreatedTo: '',
         viewMode: 'list',
         page: 1,
         pageSize: 20,
@@ -193,6 +195,8 @@
 
         // 検索
         searchInput: '[data-cp-search]',
+        filterDateFromInput: '[data-cp-filter-date-from]',
+        filterDateToInput: '[data-cp-filter-date-to]',
         filterSelect: '[data-cp-filter-kind]',
         visibilityFilterSelect: '[data-cp-filter-visibility]',
 
@@ -665,6 +669,39 @@
 
       this.applySavedFiltersToUI();
       $(selectors.visibilityFilterSelect).val(this.state.filterVisibility);
+
+      var bindDateFilterChange = async function ()
+      {
+        try
+        {
+          self.state.filterCreatedFrom = selectors.filterDateFromInput ? ($(selectors.filterDateFromInput).val() || '') : '';
+          self.state.filterCreatedTo = selectors.filterDateToInput ? ($(selectors.filterDateToInput).val() || '') : '';
+          self.saveFilterState();
+          await window.Utils.loadScriptsSync([self.path + '/job-refresh.js'], { cache: true });
+          var RefreshJobDate = window.Contents && window.Contents.JobRefresh;
+          if (RefreshJobDate)
+          {
+            await new RefreshJobDate(self).run({ page: 1 });
+          }
+        }
+        catch (err)
+        {
+          self.onError(err);
+        }
+      };
+
+      if (selectors.filterDateFromInput)
+      {
+        $(document)
+          .off('change.contents', selectors.filterDateFromInput)
+          .on('change.contents', selectors.filterDateFromInput, bindDateFilterChange);
+      }
+      if (selectors.filterDateToInput)
+      {
+        $(document)
+          .off('change.contents', selectors.filterDateToInput)
+          .on('change.contents', selectors.filterDateToInput, bindDateFilterChange);
+      }
 
       // 検索（入力）
       (function () {
@@ -1158,6 +1195,14 @@
           {
             this.state.filterVisibility = parsed.filterVisibility;
           }
+          if (typeof parsed.filterCreatedFrom === 'string')
+          {
+            this.state.filterCreatedFrom = parsed.filterCreatedFrom;
+          }
+          if (typeof parsed.filterCreatedTo === 'string')
+          {
+            this.state.filterCreatedTo = parsed.filterCreatedTo;
+          }
         }
       }
       catch (err)
@@ -1173,6 +1218,14 @@
       {
         $(selectors.searchInput).val(this.state.searchQuery);
       }
+      if (selectors.filterDateFromInput)
+      {
+        $(selectors.filterDateFromInput).val(this.state.filterCreatedFrom);
+      }
+      if (selectors.filterDateToInput)
+      {
+        $(selectors.filterDateToInput).val(this.state.filterCreatedTo);
+      }
       if (selectors.filterSelect)
       {
         $(selectors.filterSelect).val(this.state.filterKind);
@@ -1184,7 +1237,9 @@
       var payload = {
         searchQuery: this.state.searchQuery,
         filterKind: this.state.filterKind,
-        filterVisibility: this.state.filterVisibility
+        filterVisibility: this.state.filterVisibility,
+        filterCreatedFrom: this.state.filterCreatedFrom,
+        filterCreatedTo: this.state.filterCreatedTo
       };
       window.localStorage.setItem(this.filterStorageKey, JSON.stringify(payload));
     }
@@ -1511,10 +1566,18 @@
         : (titleFromRecord || fileName || this.resolveCategoryLabel(resolvedKind));
       var durationSeconds = this.resolveDurationSecondsFromRecord(record);
       var durationLabel = durationSeconds > 0 ? this.formatDuration(durationSeconds) : '';
+      var createdTimestamp = this.parseTimestamp(record.createdAt || record.registeredAt || record.uploadedAt);
       var timestamp = this.parseTimestamp(record.updatedAt || record.createdAt || record.registeredAt);
       var proxyInfo = this.resolveProxyStatus(record);
       var isVisible = this.normalizeVisibilityFlag(record.isVisible);
       var visibilityLabel = isVisible ? '表示' : '非表示';
+      var description = typeof record.description === 'string'
+        ? record.description
+        : (record.caption || '');
+      if (description && typeof description !== 'string')
+      {
+        description = String(description);
+      }
       return {
         id: resolvedKind + '-' + idBase,
         kind: resolvedKind,
@@ -1527,6 +1590,9 @@
         durationLabel: durationLabel,
         updatedAtValue: timestamp.value,
         updatedAtLabel: timestamp.label,
+        createdAtValue: createdTimestamp.value,
+        createdAtLabel: createdTimestamp.label,
+        description: description,
         categoryLabel: this.resolveCategoryLabel(resolvedKind),
         proxyList: proxyInfo.list,
         proxyStatus: proxyInfo.status,
@@ -2022,6 +2088,30 @@
       return { value: date.getTime(), label: this.formatDateTime(date) };
     }
 
+    parseDateFilterValue(value, options)
+    {
+      var raw = String(value || '').trim();
+      if (!raw)
+      {
+        return null;
+      }
+      var normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw + 'T00:00:00' : raw;
+      var date = new Date(normalized);
+      if (isNaN(date.getTime()))
+      {
+        return null;
+      }
+      if (options && options.startOfDay)
+      {
+        date.setHours(0, 0, 0, 0);
+      }
+      else if (options && options.endOfDay)
+      {
+        date.setHours(23, 59, 59, 999);
+      }
+      return date.getTime();
+    }
+
     formatDateTime(date)
     {
       if (!(date instanceof Date) || isNaN(date.getTime()))
@@ -2042,9 +2132,12 @@
       var query = params && params.query;
       var kind = params && params.kind;
       var visibility = params && params.visibility;
+      var createdFrom = params && params.createdFrom;
+      var createdTo = params && params.createdTo;
       var afterQuery = this.filterItemsByQuery(list, query);
       var afterKind = this.filterItemsByKind(afterQuery, kind);
-      return this.filterItemsByVisibility(afterKind, visibility);
+      var afterCreated = this.filterItemsByCreatedAt(afterKind, createdFrom, createdTo);
+      return this.filterItemsByVisibility(afterCreated, visibility);
     }
 
     filterItemsByQuery(items, query)
@@ -2063,10 +2156,42 @@
           continue;
         }
         var title = (item.title || '').toLowerCase();
-        if (title.indexOf(normalized) !== -1)
+        var description = (item.description || '').toLowerCase();
+        if (title.indexOf(normalized) !== -1 || description.indexOf(normalized) !== -1)
         {
           filtered.push(item);
         }
+      }
+      return filtered;
+    }
+
+    filterItemsByCreatedAt(items, createdFrom, createdTo)
+    {
+      var fromValue = this.parseDateFilterValue(createdFrom, { startOfDay: true });
+      var toValue = this.parseDateFilterValue(createdTo, { endOfDay: true });
+      var hasFrom = typeof fromValue === 'number' && !isNaN(fromValue);
+      var hasTo = typeof toValue === 'number' && !isNaN(toValue);
+      if (!hasFrom && !hasTo)
+      {
+        return Array.isArray(items) ? items.slice(0) : [];
+      }
+      var filtered = [];
+      for (var i = 0; i < items.length; i += 1)
+      {
+        var item = items[i];
+        if (!item || typeof item.createdAtValue !== 'number' || item.createdAtValue <= 0)
+        {
+          continue;
+        }
+        if (hasFrom && item.createdAtValue < fromValue)
+        {
+          continue;
+        }
+        if (hasTo && item.createdAtValue > toValue)
+        {
+          continue;
+        }
+        filtered.push(item);
       }
       return filtered;
     }
@@ -2613,10 +2738,14 @@
       }
       target.raw = raw;
       target.title = requestPayload.title || target.title;
+      target.description = requestPayload.description || target.description || '';
       target.visibilityLabel = target.visibilityLabel || (target.isVisible ? '表示' : '非表示');
       var parsed = this.parseTimestamp(raw.updatedAt || raw.createdAt || raw.registeredAt);
       target.updatedAtValue = parsed.value || 0;
       target.updatedAtLabel = parsed.label || '';
+      var createdParsed = this.parseTimestamp(raw.createdAt || raw.registeredAt || raw.updatedAt);
+      target.createdAtValue = createdParsed.value || 0;
+      target.createdAtLabel = createdParsed.label || '';
       return { ok: true, item: target };
     }
 
@@ -3335,6 +3464,12 @@
       var id = (item.id != null) ? String(item.id) : String(index);
       var titleRaw = item.title || (item.raw && item.raw.title) || item.name || item.fileName || ('#' + (index + 1));
       var title = this.escapeHtml(titleRaw);
+      var descriptionRaw = item.description || (item.raw && item.raw.description) || '';
+      if (descriptionRaw && typeof descriptionRaw !== 'string')
+      {
+        descriptionRaw = String(descriptionRaw);
+      }
+      var description = descriptionRaw ? this.escapeHtml(descriptionRaw) : '';
       var categoryRaw = item.categoryLabel || this.resolveCategoryLabel(item.kind) || 'コンテンツ';
       var categoryLabel = this.escapeHtml(categoryRaw);
       var sizeLabel = this.formatBytes(item.size);
@@ -3400,6 +3535,8 @@
         bitrateHtml: this.buildBitrateBadges(item, id),
         fileName: fileName,
         fileNameRaw: fileNameRaw,
+        description: descriptionRaw,
+        descriptionHtml: description ? '<p class="content-item__description content-item__description--sub content-item__summary">' + description + '</p>' : '',
         fileNameHtml: fileName ? '<p class="content-item__description content-item__description--sub content-item__filename">' + fileName + '</p>' : ''
       };
     }
@@ -3422,12 +3559,13 @@
           '<article class="' + panelClass + '" data-id="' + view.id + '">' +
             this.buildPanelPreview(item, view) +
             '<div class="content-item__meta content-library__panel-meta">' +
-              '<div class="content-library__panel-meta-body">' +
-                view.bitrateHtml +
-                (view.meta ? '<p class="content-item__description content-library__panel-description">' + view.meta + '</p>' : '') +
-                (view.fileNameHtml || '') +
-                view.proxyStatusHtml +
-              '</div>' +
+            '<div class="content-library__panel-meta-body">' +
+              view.bitrateHtml +
+              (view.descriptionHtml || '') +
+              (view.meta ? '<p class="content-item__description content-library__panel-description">' + view.meta + '</p>' : '') +
+              (view.fileNameHtml || '') +
+              view.proxyStatusHtml +
+            '</div>' +
               actionsHtml +
             '</div>' +
           '</article>' +
@@ -4041,6 +4179,7 @@
           '<td class="content-item__cell content-item__cell--meta">' +
             '<div class="content-item__meta">' +
               '<button type="button" class="content-item__title-button" data-cp-open data-id="' + view.id + '">' + view.title + '</button>' +
+              (view.descriptionHtml || '') +
               view.bitrateHtml +
               (view.meta ? '<p class="content-item__description">' + view.meta + '</p>' : '') +
               (view.fileNameHtml || '') +

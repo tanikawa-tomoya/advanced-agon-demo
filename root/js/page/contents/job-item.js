@@ -132,7 +132,7 @@
           await this.pageInstance.apiBulkDelete(ids);
         }
         // 再取得
-        var res = await this.pageInstance.apiFetchList({ query: this.pageInstance.state.searchQuery, kind: this.pageInstance.state.filterKind, visibility: this.pageInstance.state.filterVisibility, page: 1, pageSize: this.pageInstance.uiConfig.defaultPageSize });
+        var res = await this.pageInstance.apiFetchList({ query: this.pageInstance.state.searchQuery, kind: this.pageInstance.state.filterKind, visibility: this.pageInstance.state.filterVisibility, createdFrom: this.pageInstance.state.filterCreatedFrom, createdTo: this.pageInstance.state.filterCreatedTo, page: 1, pageSize: this.pageInstance.uiConfig.defaultPageSize });
         var items = (res && res.items) || [];
         this.pageInstance.state.items = items;
         this.pageInstance.state.page = res && res.page || 1;
@@ -191,6 +191,8 @@
           query: this.pageInstance.state.searchQuery,
           kind: this.pageInstance.state.filterKind,
           visibility: this.pageInstance.state.filterVisibility,
+          createdFrom: this.pageInstance.state.filterCreatedFrom,
+          createdTo: this.pageInstance.state.filterCreatedTo,
           page: 1,
           pageSize: this.pageInstance.uiConfig.defaultPageSize
         });

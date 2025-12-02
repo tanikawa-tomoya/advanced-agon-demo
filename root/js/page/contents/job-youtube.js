@@ -18,7 +18,7 @@
         this.pageInstance.loading(true);
         await this.pageInstance.apiRegisterYouTube(url, title);
         // 成功後、必要に応じて再取得
-        var res = await this.pageInstance.apiFetchList({ query: this.pageInstance.state.searchQuery, page: 1, pageSize: this.pageInstance.uiConfig.defaultPageSize });
+        var res = await this.pageInstance.apiFetchList({ query: this.pageInstance.state.searchQuery, createdFrom: this.pageInstance.state.filterCreatedFrom, createdTo: this.pageInstance.state.filterCreatedTo, page: 1, pageSize: this.pageInstance.uiConfig.defaultPageSize });
         var items = (res && res.items) || [];
         this.pageInstance.state.items = items;
         this.pageInstance.state.page = res && res.page || 1;
