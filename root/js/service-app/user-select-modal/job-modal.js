@@ -601,9 +601,43 @@
         },
         onSelect: function (item)
         {
+          var handleResult = function (result)
+          {
+            if (result === false)
+            {
+              return;
+            }
+            close('select');
+          };
           if (typeof options.onSelect === 'function')
           {
-            options.onSelect(item);
+            try
+            {
+              var callbackResult = options.onSelect(item, { close: close });
+              if (callbackResult && typeof callbackResult.then === 'function')
+              {
+                callbackResult.then(handleResult).catch(function (error)
+                {
+                  if (USER_SELECT_MODAL_DEBUG)
+                  {
+                    window.console.error('[user-select-modal] onSelect handler rejected', error);
+                  }
+                  handleResult(true);
+                });
+                return;
+              }
+              handleResult(callbackResult);
+              return;
+            }
+            catch (error)
+            {
+              if (USER_SELECT_MODAL_DEBUG)
+              {
+                window.console.error('[user-select-modal] onSelect handler error', error);
+              }
+              handleResult(true);
+              return;
+            }
           }
           close('select');
         }

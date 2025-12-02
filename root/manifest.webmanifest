@@ -1,0 +1,15 @@
+{
+  "name": "CASTORY Downloader",
+  "short_name": "Downloader",
+  "start_url": "/contents.html",
+  "display": "fullscreen",
+  "background_color": "#0f1b2e",
+  "theme_color": "#0f1b2e",
+  "icons": [
+    {
+      "src": "/image/user-avatar.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
