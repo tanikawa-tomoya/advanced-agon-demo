@@ -110,8 +110,25 @@
                       type="search"
                       class="content-library__search"
                       data-cp-search
-                      placeholder="コンテンツを検索"
+                      placeholder="タイトル・概要を検索"
                       aria-label="検索"
+                    />
+                    <label class="visually-hidden" for="content-library-filter-date-from">作成日（開始）</label>
+                    <input
+                      type="date"
+                      id="content-library-filter-date-from"
+                      class="content-library__filter content-library__filter--date"
+                      data-cp-filter-date-from
+                      aria-label="作成日 (開始)"
+                    />
+                    <span class="content-library__filter-separator" aria-hidden="true">～</span>
+                    <label class="visually-hidden" for="content-library-filter-date-to">作成日（終了）</label>
+                    <input
+                      type="date"
+                      id="content-library-filter-date-to"
+                      class="content-library__filter content-library__filter--date"
+                      data-cp-filter-date-to
+                      aria-label="作成日 (終了)"
                     />
                     <select class="content-library__filter" data-cp-filter-kind aria-label="種別で絞り込み">
                       <option value="">すべての種別</option>
