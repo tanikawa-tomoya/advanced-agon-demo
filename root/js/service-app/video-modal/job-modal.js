@@ -100,6 +100,10 @@
       title.id = titleId;
       title.textContent = String(opts.title || '');
 
+      var titleRow = document.createElement('div');
+      titleRow.className = CSS.titleRow;
+      titleRow.appendChild(title);
+
       var closeBtn = document.createElement('button');
       closeBtn.className = CSS.close;
       closeBtn.type = 'button';
@@ -108,10 +112,17 @@
 
       var titleWrap = document.createElement('div');
       titleWrap.className = CSS.titleWrap;
-      titleWrap.appendChild(title);
       if (opts.actionsNode)
       {
-        titleWrap.appendChild(opts.actionsNode);
+        titleRow.appendChild(opts.actionsNode);
+      }
+      titleWrap.appendChild(titleRow);
+      if (opts.description)
+      {
+        var description = document.createElement('p');
+        description.className = CSS.description;
+        description.textContent = String(opts.description || '');
+        titleWrap.appendChild(description);
       }
 
       header.appendChild(titleWrap);

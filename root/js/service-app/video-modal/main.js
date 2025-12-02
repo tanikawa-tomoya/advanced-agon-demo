@@ -36,7 +36,9 @@
         dialog: 'c-video-modal__dialog',
         header: 'c-video-modal__header',
         title: 'c-video-modal__title',
+        titleRow: 'c-video-modal__title-row',
         titleWrap: 'c-video-modal__title-wrap',
+        description: 'c-video-modal__description',
         body: 'c-video-modal__body',
         actions: 'c-video-modal__actions',
         bitrateButton: 'c-video-modal__bitrate-button',
@@ -187,9 +189,19 @@
       if (!spec) throw new Error('video-modal: spec required');
       var opts = Object.assign({}, this.config, options || {});
       var contentNode = this._createContentNode(spec, opts);
+      var description = '';
+      if (spec && spec.description)
+      {
+        description = spec.description;
+      }
+      else if (opts && opts.description)
+      {
+        description = opts.description;
+      }
       var modalEl = this.jobs.modal.createModal({
         CSS: this.CSS,
         title: (spec && spec.title) || '',
+        description: description,
         contentNode: contentNode,
         closeOnBackdrop: !!opts.closeOnBackdrop,
         closeOnEsc: !!opts.closeOnEsc
@@ -254,6 +266,16 @@
       }
       var opts = Object.assign({}, this.config, modalOptions);
 
+      var description = '';
+      if (requestedSpec && requestedSpec.description)
+      {
+        description = requestedSpec.description;
+      }
+      else if (providedRecord && providedRecord.description)
+      {
+        description = providedRecord.description;
+      }
+
       var variants = [];
       try
       {
@@ -287,6 +309,7 @@
       var modalEl = this.jobs.modal.createModal({
         CSS: this.CSS,
         title: title,
+        description: description,
         contentNode: playerNode,
         actionsNode: actionsNode,
         closeOnBackdrop: !!opts.closeOnBackdrop,
