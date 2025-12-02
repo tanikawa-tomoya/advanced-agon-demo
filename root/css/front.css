@@ -1969,12 +1969,32 @@ body.is-modal-open {
 }
 
 .c-video-modal__bitrate-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     background: rgba(255, 255, 255, 0.08);
     color: var(--modal-text);
     border: 1px solid var(--modal-border);
     border-radius: var(--radius-sm);
     padding: 0.5rem 0.75rem;
     cursor: pointer;
+}
+
+.c-video-modal__bitrate-button svg {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.c-video-modal__bitrate-button[data-thumbnail-action="capture"] {
+    background: linear-gradient(135deg, #f97316, #fbbf24);
+    color: #0f172a;
+    border-color: transparent;
+    box-shadow: 0 0 0 0.14rem rgba(249, 115, 22, 0.3);
+}
+
+.c-video-modal__bitrate-button[data-thumbnail-action="capture"]:hover,
+.c-video-modal__bitrate-button[data-thumbnail-action="capture"]:focus-visible {
+    box-shadow: 0 0 0 0.18rem rgba(249, 115, 22, 0.45);
 }
 
 .c-video-modal__bitrate-button.is-active {

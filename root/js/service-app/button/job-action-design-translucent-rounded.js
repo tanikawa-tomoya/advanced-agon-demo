@@ -5,6 +5,15 @@
   const DESIGN_KEY = 'translucent-rounded';
   const BASE_CLASS = 'mock-avatar__upload-btn';
 
+  const CAMERA_ICON_HTML = [
+    '<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">',
+    '<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"',
+    '  d="M4.75 8.5a1.5 1.5 0 0 1 1.5-1.5H8l1.15-1.82A1.5 1.5 0 0 1 10.43 4.5h3.14a1.5 1.5 0 0 1 1.28.68L16 7h1.75a1.5 1.5 0 0 1 1.5 1.5v7.25a1.5 1.5 0 0 1-1.5 1.5h-11.5a1.5 1.5 0 0 1-1.5-1.5z"></path>',
+    '<circle cx="12" cy="12" r="3.25" fill="none" stroke="currentColor" stroke-width="1.5"></circle>',
+    '<circle cx="17.25" cy="9.25" r="0.75" fill="currentColor"></circle>',
+    '</svg>'
+  ].join('');
+
   function normalizeVariantPrefix(value)
   {
     if (!value) {
@@ -73,6 +82,13 @@
     }),
     createDefinition('content-bitrate', 'content-item__bitrate-badge', {
       elementTag: 'span'
+    }),
+    createDefinition('content-thumbnail', null, {
+      baseClass: 'btn c-video-modal__bitrate-button',
+      iconHtml: CAMERA_ICON_HTML,
+      hoverLabel: 'サムネイル生成',
+      fallbackLabel: 'サムネイル生成',
+      srLabelClass: 'visually-hidden'
     }),
     createDefinition('target-detail-status', 'target-detail__status-button target-detail__badge', {
       elementTag: 'span',
