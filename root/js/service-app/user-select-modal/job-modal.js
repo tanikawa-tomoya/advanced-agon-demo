@@ -2,6 +2,8 @@
 {
   'use strict';
 
+  var USER_SELECT_MODAL_DEBUG = false;
+
   function createElement(tag, className)
   {
     var el = document.createElement(tag);
@@ -433,6 +435,20 @@
       var loadOptions = options.loadOptions || {};
       var initialKeyword = options.initialKeyword || '';
 
+      if (USER_SELECT_MODAL_DEBUG)
+      {
+        window.console.log('[user-select-modal] open called', {
+          fromOptions: {
+            availableUsers: availableUsers ? availableUsers.length : 0,
+            selectedIds: selectedIds.length,
+            excludedIds: excludedIds.length,
+            initialKeyword: initialKeyword,
+            multiple: multiple,
+            resultLimit: resultLimit
+          }
+        });
+      }
+
       var selectedIdSet = new window.Set();
       selectedIds.forEach(function (value)
       {
@@ -820,10 +836,24 @@
         {
           return;
         }
+        if (USER_SELECT_MODAL_DEBUG)
+        {
+          window.console.log('[user-select-modal] handleLoaded raw list', {
+            rawLength: Array.isArray(list) ? list.length : 'n/a',
+            hasAvailableUsers: !!availableUsers
+          });
+        }
         items = this.service.jobs.data.normalizeList(list).filter(function (entry)
         {
           return entry && entry.isActive !== false;
         });
+        if (USER_SELECT_MODAL_DEBUG)
+        {
+          window.console.log('[user-select-modal] normalized available items', {
+            total: items.length,
+            excluded: excludedIdSet.size
+          });
+        }
         if (excludedIdSet.size)
         {
           items = items.filter(function (entry)
@@ -831,6 +861,10 @@
             var id = normalizeId(entry);
             return !(id && excludedIdSet.has(id));
           });
+        }
+        if (USER_SELECT_MODAL_DEBUG)
+        {
+          window.console.log('[user-select-modal] items after exclusion', items.length);
         }
         hydrateSelection(items);
         dialog.removeAttribute('aria-busy');
@@ -843,6 +877,10 @@
         if (!active)
         {
           return;
+        }
+        if (USER_SELECT_MODAL_DEBUG)
+        {
+          window.console.log('[user-select-modal] handleError', error);
         }
         dialog.removeAttribute('aria-busy');
         if (error && this.service.isSessionExpiredReason(error.code))
