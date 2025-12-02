@@ -2653,7 +2653,7 @@
       {
         return [];
       }
-      return this.normalizeAudienceUsers(this.page.state.target.assignedUsers);
+      return this.normalizeAudienceUsers(this.page.state.target.participants);
     }
 
     shouldFilterAudienceUser(modal, user)
@@ -4616,7 +4616,31 @@
     getGuidanceOwnerCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = [];
+      var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
+      var candidates = participants.concat(assignedUsers);
+
+      var appendCreatorCandidate = function (label, displayName, userCode)
+      {
+        var name = displayName == null ? '' : String(displayName).trim();
+        var code = userCode == null ? '' : String(userCode).trim();
+        if (!name && !code)
+        {
+          return;
+        }
+        var identity = name || code;
+        candidates.push({
+          displayName: identity,
+          userCode: code || identity,
+          isOperator: true,
+          isActive: true,
+          role: { key: 'operator', name: label || 'operator' },
+          source: label || 'operator'
+        });
+      };
+
+      appendCreatorCandidate('creator', target && target.createdByDisplayName, target && target.createdByUserCode);
+      appendCreatorCandidate('owner', target && target.ownerDisplayName, target && target.ownerUserCode);
       var normalizeFlag = function (value)
       {
         if (typeof value === 'string')
@@ -4644,10 +4668,6 @@
         }
         return '';
       };
-      if (target && Array.isArray(target.assignedUsers))
-      {
-        candidates = candidates.concat(target.assignedUsers);
-      }
       var seen = Object.create(null);
       var filtered = [];
       candidates.forEach(function (entry)
@@ -4658,8 +4678,7 @@
         }
         var role = resolveRole(entry);
         var isOperator = normalizeFlag(entry.isOperator) || role === 'operator';
-        var isSupervisor = normalizeFlag(entry.isSupervisor) || role === 'supervisor' || role === 'admin';
-        if (!isOperator && !isSupervisor)
+        if (!isOperator)
         {
           return;
         }
@@ -5155,9 +5174,25 @@
       {
         return;
       }
-      modal.selectedContent = this.normalizeGuidanceContentSelection(entry) || null;
+      var normalized = this.normalizeGuidanceContentSelection(entry);
+      modal.selectedContent = normalized || null;
       this.renderGuidanceSelectedContent(modal);
       this.setGuidanceFieldErrorState(modal.contentField, false);
+      if (normalized && normalized.raw)
+      {
+        var userContents = normalized.raw.userContents || null;
+        if (userContents)
+        {
+          if (modal.titleInput && userContents.title !== undefined && userContents.title !== null)
+          {
+            modal.titleInput.value = String(userContents.title);
+          }
+          if (modal.descriptionInput && userContents.description !== undefined && userContents.description !== null)
+          {
+            modal.descriptionInput.value = String(userContents.description);
+          }
+        }
+      }
     }
 
     resetGuidanceContentSelection(modal)
@@ -5378,28 +5413,6 @@
       form.noValidate = true;
       shell.body.appendChild(form);
 
-      var titleRow = document.createElement('div');
-      titleRow.className = 'target-agreements__form-row';
-      var titleInput = document.createElement('input');
-      titleInput.type = 'text';
-      titleInput.required = true;
-      titleInput.maxLength = 256;
-      titleInput.className = 'user-management__input';
-      titleInput.placeholder = 'タイトルを入力';
-      var titleField = createAgreementField('タイトル', titleInput);
-      titleRow.appendChild(titleField);
-      form.appendChild(titleRow);
-      var descriptionRow = document.createElement('div');
-      descriptionRow.className = 'target-agreements__form-row';
-      var descriptionInput = document.createElement('textarea');
-      descriptionInput.className = 'user-management__input target-agreements__textarea';
-      descriptionInput.rows = 3;
-      descriptionInput.maxLength = 2000;
-      descriptionInput.placeholder = '概要や説明を入力 (任意)';
-      descriptionRow.appendChild(createAgreementField('概要 (任意)', descriptionInput));
-      form.appendChild(descriptionRow);
-
-
       var metaRow = document.createElement('div');
       metaRow.className = 'target-agreements__form-row';
       var ownerControl = document.createElement('div');
@@ -5501,6 +5514,27 @@
       uploadPanel.appendChild(uploadField);
       contentGrid.appendChild(uploadPanel);
       form.appendChild(contentGrid);
+
+      var titleRow = document.createElement('div');
+      titleRow.className = 'target-agreements__form-row';
+      var titleInput = document.createElement('input');
+      titleInput.type = 'text';
+      titleInput.required = true;
+      titleInput.maxLength = 256;
+      titleInput.className = 'user-management__input';
+      titleInput.placeholder = 'タイトルを入力';
+      var titleField = createAgreementField('タイトル', titleInput);
+      titleRow.appendChild(titleField);
+      form.appendChild(titleRow);
+      var descriptionRow = document.createElement('div');
+      descriptionRow.className = 'target-agreements__form-row';
+      var descriptionInput = document.createElement('textarea');
+      descriptionInput.className = 'user-management__input target-agreements__textarea';
+      descriptionInput.rows = 3;
+      descriptionInput.maxLength = 2000;
+      descriptionInput.placeholder = '概要や説明を入力 (任意)';
+      descriptionRow.appendChild(createAgreementField('概要 (任意)', descriptionInput));
+      form.appendChild(descriptionRow);
 
       var feedback = document.createElement('p');
       feedback.className = 'user-management__feedback target-agreements__form-feedback';
@@ -7425,6 +7459,10 @@
         {
           return user && !user.deleted;
         });
+        if (typeof this.page.rebuildTargetParticipants === 'function')
+        {
+          this.page.rebuildTargetParticipants();
+        }
         this.page.showToast('success', '概要と対象ユーザーを更新しました。');
         this.refreshBasicPanel();
         this.closeOverviewModal();

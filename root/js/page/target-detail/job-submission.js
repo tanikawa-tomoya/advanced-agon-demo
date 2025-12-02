@@ -1675,16 +1675,31 @@
 
     getSubmitterCandidates()
     {
-      var candidates = [];
       var target = this.page && this.page.state ? this.page.state.target : null;
-      if (target && Array.isArray(target.assignedUsers))
+      var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
+      var candidates = participants.concat(assignedUsers);
+
+      var appendCreatorCandidate = function (label, displayName, userCode)
       {
-        candidates = candidates.concat(target.assignedUsers);
-      }
-      if (target && Array.isArray(target.participants))
-      {
-        candidates = candidates.concat(target.participants);
-      }
+        var name = displayName == null ? '' : String(displayName).trim();
+        var code = userCode == null ? '' : String(userCode).trim();
+        if (!name && !code)
+        {
+          return;
+        }
+        var identity = name || code;
+        candidates.push({
+          displayName: identity,
+          userCode: code || identity,
+          isActive: true,
+          role: { key: 'operator', name: label || 'operator' },
+          source: label || 'operator'
+        });
+      };
+
+      appendCreatorCandidate('creator', target && target.createdByDisplayName, target && target.createdByUserCode);
+      appendCreatorCandidate('owner', target && target.ownerDisplayName, target && target.ownerUserCode);
       var seen = Object.create(null);
       var normalized = [];
       candidates.forEach(function (entry)
@@ -2069,14 +2084,6 @@
         '</div>' +
         '</div>' +
         '</div>' +
-        '<div class="target-reference__form-field target-reference__form-row--full">' +
-        '<label class="target-reference__form-label" for="target-submission-content">提出内容</label>' +
-        '<input id="target-submission-content" class="user-management__input target-reference__input" name="content" required maxlength="512" placeholder="例: オンボーディング動画 初稿" />' +
-        '</div>' +
-        '<div class="target-reference__form-field target-reference__form-row--full">' +
-        '<label class="target-reference__form-label" for="target-submission-comment">コメント (任意)</label>' +
-        '<textarea id="target-submission-comment" class="user-management__input target-reference__textarea" name="comment" rows="3" maxlength="1024" placeholder="補足事項やレビュー依頼内容を入力"></textarea>' +
-        '</div>' +
         '<div class="target-submission__panel-grid">' +
         '<section class="target-submission__panel" aria-labelledby="target-submission-panel-library">' +
         '<div class="target-reference__form-field target-reference__form-row--full">' +
@@ -2109,6 +2116,14 @@
         '<p class="target-reference__upload-note" data-target-submission-upload-counter>アップロードは任意です。ファイルを選択するとここに表示されます。</p>' +
         '</div>' +
         '</section>' +
+        '</div>' +
+        '<div class="target-reference__form-field target-reference__form-row--full">' +
+        '<label class="target-reference__form-label" for="target-submission-content">提出内容</label>' +
+        '<input id="target-submission-content" class="user-management__input target-reference__input" name="content" required maxlength="512" placeholder="例: オンボーディング動画 初稿" />' +
+        '</div>' +
+        '<div class="target-reference__form-field target-reference__form-row--full">' +
+        '<label class="target-reference__form-label" for="target-submission-comment">コメント (任意)</label>' +
+        '<textarea id="target-submission-comment" class="user-management__input target-reference__textarea" name="comment" rows="3" maxlength="1024" placeholder="補足事項やレビュー依頼内容を入力"></textarea>' +
         '</div>' +
         '<p class="target-reference__form-feedback" aria-live="polite" hidden></p>' +
         '<div class="target-reference__form-actions">' +
@@ -2598,6 +2613,7 @@
           return;
         }
         modal.selectedContents = this.buildAttachmentsFromModalContents([chosen]);
+        this.applySelectedContentFormValues(modal, chosen);
         this.renderSelectedContents(modal);
       };
       var zIndex = this.resolveNestedModalZIndex(modal);
@@ -2626,6 +2642,28 @@
         userId: ownerParams.userId,
         userCode: ownerParams.userCode
       });
+    }
+
+    applySelectedContentFormValues(modal, entry)
+    {
+      if (!modal || !entry)
+      {
+        return;
+      }
+      var source = entry.raw || entry;
+      var userContents = source && source.userContents ? source.userContents : null;
+      if (!userContents)
+      {
+        return;
+      }
+      if (modal.contentInput && userContents.title !== undefined && userContents.title !== null)
+      {
+        modal.contentInput.value = String(userContents.title);
+      }
+      if (modal.commentInput && userContents.description !== undefined && userContents.description !== null)
+      {
+        modal.commentInput.value = String(userContents.description);
+      }
     }
 
     getContentOwnerSelection(modal)
@@ -2848,6 +2886,7 @@
       {
         modal.selectedContents = [];
       }
+      this.applySelectedContentFormValues(modal, entry);
       var exists = modal.selectedContents.some(function (item)
       {
         return item && item.contentCode === attachment.contentCode;

@@ -605,15 +605,7 @@
     getAuthorCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = [];
-      if (target && Array.isArray(target.assignedUsers))
-      {
-        candidates = candidates.concat(target.assignedUsers);
-      }
-      if (target && Array.isArray(target.participants))
-      {
-        candidates = candidates.concat(target.participants);
-      }
+      var candidates = target && Array.isArray(target.participants) ? target.participants.slice() : [];
 
       var seen = Object.create(null);
       var normalizeFlag = function (value)
@@ -2978,28 +2970,48 @@
       {
         selectedItems = selectedItems.slice(0, 1);
       }
-      service.open({
-        title: 'コンテンツを選択',
-        owner: ownerKey,
-        ownerParams: ownerParams,
-        maxSelection: 1,
-        selectedItems: selectedItems
-      }).then((result) =>
+      var handleSelection = (items) =>
       {
-        if (!result || !Array.isArray(result.selection))
+        if (!items)
         {
           return;
         }
-        if (!result.selection.length)
+        var list = Array.isArray(items) ? items : [items];
+        if (!list.length)
         {
           this.resetContentSelection(modal);
           return;
         }
-        this.addContentSelection(modal, result.selection[0]);
-      }).catch(function (error)
+        var entry = list[0];
+        if (entry)
+        {
+          this.addContentSelection(modal, entry.raw || entry);
+        }
+      };
+
+      try
+      {
+        service.open({
+          title: 'コンテンツを選択',
+          owner: ownerKey,
+          ownerParams: ownerParams,
+          maxSelection: 1,
+          selectedItems: selectedItems,
+          onSelect: handleSelection,
+          onApply: handleSelection,
+          onClose: (reason, payload) =>
+          {
+            if (Array.isArray(payload) && !payload.length)
+            {
+              this.resetContentSelection(modal);
+            }
+          }
+        });
+      }
+      catch (error)
       {
         window.console.error('[target-detail] failed to open content select modal', error);
-      });
+      }
     }
 
     async ensureContentLibrary(modal)

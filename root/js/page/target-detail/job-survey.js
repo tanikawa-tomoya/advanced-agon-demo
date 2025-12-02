@@ -2370,15 +2370,7 @@
     buildTargetParticipantLookup()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var sources = [];
-      if (target && Array.isArray(target.participants))
-      {
-        sources = sources.concat(target.participants);
-      }
-      if (target && Array.isArray(target.assignedUsers))
-      {
-        sources = sources.concat(target.assignedUsers);
-      }
+      var sources = target && Array.isArray(target.participants) ? target.participants.slice() : [];
       var lookup = Object.create(null);
       sources.forEach(function (entry)
       {
@@ -5535,15 +5527,7 @@
     getAudienceCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = [];
-      if (target && Array.isArray(target.assignedUsers))
-      {
-        candidates = candidates.concat(target.assignedUsers);
-      }
-      if (target && Array.isArray(target.participants))
-      {
-        candidates = candidates.concat(target.participants);
-      }
+      var candidates = target && Array.isArray(target.participants) ? target.participants.slice() : [];
 
       var seen = Object.create(null);
       var normalized = [];

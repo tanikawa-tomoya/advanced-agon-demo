@@ -672,6 +672,7 @@
           return;
         }
         modal.selectedContents = this.buildAttachmentsFromModalContents([chosen]);
+        this.applySelectedContentFormValues(modal, chosen);
         this.renderSelectedContents(modal);
       };
       var zIndex = this.resolveNestedModalZIndex(modal);
@@ -872,6 +873,28 @@
       });
     }
 
+    applySelectedContentFormValues(modal, entry)
+    {
+      if (!modal || !entry)
+      {
+        return;
+      }
+      var source = entry.raw || entry;
+      var userContents = source && source.userContents ? source.userContents : null;
+      if (!userContents)
+      {
+        return;
+      }
+      if (modal.contentInput && userContents.title !== undefined && userContents.title !== null)
+      {
+        modal.contentInput.value = String(userContents.title);
+      }
+      if (modal.noteInput && userContents.description !== undefined && userContents.description !== null)
+      {
+        modal.noteInput.value = String(userContents.description);
+      }
+    }
+
     buildAttachmentsFromModalContents(contents)
     {
       if (!Array.isArray(contents))
@@ -920,6 +943,7 @@
       {
         modal.selectedContents = [];
       }
+      this.applySelectedContentFormValues(modal, entry);
       var exists = modal.selectedContents.some(function (item)
       {
         return item && item.contentCode === attachment.contentCode;
@@ -1025,25 +1049,38 @@
     getReviewerCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = [];
-      if (target)
+      var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
+      var candidates = participants.concat(assignedUsers);
+      var creatorCount = 0;
+
+      var appendCreatorCandidate = function (label, displayName, userCode)
       {
-        if (Array.isArray(target.participants))
+        var name = displayName == null ? '' : String(displayName).trim();
+        var code = userCode == null ? '' : String(userCode).trim();
+        if (!name && !code)
         {
-          candidates = candidates.concat(target.participants);
+          return;
         }
-        if (Array.isArray(target.assignedUsers))
-        {
-          if (!candidates.length)
-          {
-            candidates = target.assignedUsers.slice();
-          }
-          else
-          {
-            candidates = candidates.concat(target.assignedUsers);
-          }
-        }
-      }
+        var identity = name || code;
+        candidates.push({
+          displayName: identity,
+          userCode: code || identity,
+          isOperator: true,
+          isActive: true,
+          role: { key: 'operator', name: label || 'operator' },
+          source: label || 'operator'
+        });
+        creatorCount += 1;
+      };
+
+      appendCreatorCandidate('creator', target && target.createdByDisplayName, target && target.createdByUserCode);
+      appendCreatorCandidate('owner', target && target.ownerDisplayName, target && target.ownerUserCode);
+
+      var stats = {
+        raw: candidates.length,
+        skipped: { noIdentity: 0, inactive: 0, nonOperator: 0, duplicate: 0 }
+      };
       var seen = Object.create(null);
       var normalizeFlag = function (value)
       {
@@ -1053,6 +1090,36 @@
           return normalized === '1' || normalized === 'true';
         }
         return value === true || value === 1;
+      };
+      var resolveRoleFlags = function (entry, user)
+      {
+        var flags = { isOperator: false, isSupervisor: false };
+        var sources = [];
+        if (entry && entry.roleFlags && typeof entry.roleFlags === 'object')
+        {
+          sources.push(entry.roleFlags);
+        }
+        if (user && user.roleFlags && typeof user.roleFlags === 'object')
+        {
+          sources.push(user.roleFlags);
+        }
+        for (var i = 0; i < sources.length; i += 1)
+        {
+          var source = sources[i];
+          if (!source)
+          {
+            continue;
+          }
+          if (!flags.isOperator && normalizeFlag(source.isOperator))
+          {
+            flags.isOperator = true;
+          }
+          if (!flags.isSupervisor && normalizeFlag(source.isSupervisor))
+          {
+            flags.isSupervisor = true;
+          }
+        }
+        return flags;
       };
       var resolveRole = function (entry, user)
       {
@@ -1114,8 +1181,13 @@
         {
           displayName = userCode;
         }
+        if (!userCode && displayName)
+        {
+          userCode = displayName;
+        }
         if (!displayName && !userCode)
         {
+          stats.skipped.noIdentity += 1;
           return null;
         }
 
@@ -1155,17 +1227,19 @@
         }
         if (isActive === false)
         {
+          stats.skipped.inactive += 1;
           return null;
         }
 
         var role = resolveRole(entry, user);
-        var isOperator = normalizeFlag(entry.isOperator) || normalizeFlag(user && user.isOperator) || role === 'operator';
-        var isSupervisor = normalizeFlag(entry.isSupervisor)
-          || normalizeFlag(user && user.isSupervisor)
-          || role === 'supervisor'
-          || role === 'admin';
-        if (!isOperator && !isSupervisor)
+        var roleFlags = resolveRoleFlags(entry, user);
+        var isOperator = normalizeFlag(entry.isOperator)
+          || normalizeFlag(user && user.isOperator)
+          || normalizeFlag(roleFlags.isOperator)
+          || role === 'operator';
+        if (!isOperator)
         {
+          stats.skipped.nonOperator += 1;
           return null;
         }
 
@@ -1188,6 +1262,7 @@
         var key = (normalized.userCode || normalized.displayName || '').toLowerCase();
         if (key && seen[key])
         {
+          stats.skipped.duplicate += 1;
           return;
         }
         if (key)
@@ -1195,6 +1270,14 @@
           seen[key] = true;
         }
         normalizedList.push(normalized);
+      });
+
+      window.console.log('[target-review] normalized reviewer candidates', {
+        participants: participants.length,
+        assignedUsers: assignedUsers.length,
+        creators: creatorCount,
+        normalized: normalizedList.length,
+        details: stats
       });
 
       return normalizedList;

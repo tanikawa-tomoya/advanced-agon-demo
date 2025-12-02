@@ -1489,6 +1489,117 @@
       return !!(flags && (flags.isSupervisor || flags.isOperator));
     }
 
+    normalizeTargetParticipantList(list)
+    {
+      var normalized = [];
+      var values = Array.isArray(list) ? list : [];
+      values.forEach(function (entry)
+      {
+        if (!entry)
+        {
+          return;
+        }
+        if (typeof entry === 'string')
+        {
+          var labels = splitDelimitedValues(entry);
+          if (!labels.length)
+          {
+            var normalizedLabel = normalizeText(entry);
+            if (normalizedLabel)
+            {
+              labels = [normalizedLabel];
+            }
+          }
+          labels.forEach(function (label)
+          {
+            normalized.push({ displayName: label, userCode: label, isActive: true, endedAt: null });
+          });
+          return;
+        }
+        if (typeof entry === 'object')
+        {
+          normalized.push(Object.assign({ isActive: true, endedAt: null }, entry));
+        }
+      });
+      return normalized;
+    }
+
+    mergeTargetParticipantDirectory()
+    {
+      var lists = Array.prototype.slice.call(arguments);
+      var normalizedLists = [];
+      var self = this;
+      lists.forEach(function (list)
+      {
+        if (Array.isArray(list))
+        {
+          normalizedLists.push(self.normalizeTargetParticipantList(list));
+        }
+      });
+
+      var map = Object.create(null);
+      var merged = [];
+      var register = function (entry)
+      {
+        if (!entry)
+        {
+          return;
+        }
+        var user = entry && entry.user && typeof entry.user === 'object' ? entry.user : null;
+        var userCode = normalizeText(entry.userCode || entry.code || (user && (user.userCode || user.code || user.loginId)) || '');
+        var displayName = normalizeText(
+          entry.displayName
+          || entry.userDisplayName
+          || entry.name
+          || entry.fullName
+          || (user && (user.displayName || user.name || user.fullName))
+          || ''
+        );
+        var key = (userCode || displayName).toLowerCase();
+        if (!key)
+        {
+          return;
+        }
+        var current = map[key];
+        if (!current)
+        {
+          current = Object.assign({ isActive: true, endedAt: null }, entry, {
+            userCode: userCode || displayName || entry.userCode || entry.displayName || '',
+            displayName: displayName || userCode || entry.displayName || entry.userCode || ''
+          });
+          map[key] = current;
+          merged.push(current);
+          return;
+        }
+        map[key] = Object.assign(current, entry);
+        if (!current.userCode && userCode)
+        {
+          current.userCode = userCode;
+        }
+        if (!current.displayName && displayName)
+        {
+          current.displayName = displayName;
+        }
+      };
+      normalizedLists.forEach(function (entries)
+      {
+        entries.forEach(register);
+      });
+      return merged;
+    }
+
+    rebuildTargetParticipants()
+    {
+      if (!this.state || !this.state.target)
+      {
+        return [];
+      }
+      var target = this.state.target;
+      var participants = Array.isArray(target.participants) ? target.participants : [];
+      target.participants = participants;
+      return participants;
+    }
+
     cacheElements()
     {
       var selectors = this.config.selectors;
@@ -1835,6 +1946,7 @@
 
       if (this.state.target && this.state.chats && Array.isArray(this.state.chats.participants) ){
         this.state.target.chatParticipants = this.state.chats.participants.slice();
+        this.rebuildTargetParticipants();
       }
       return this.state.chats;
     }
@@ -2016,6 +2128,7 @@
 
       if (this.state.target && this.state.bbss && Array.isArray(this.state.bbss.participants) ){
         this.state.target.bbsParticipants = this.state.bbss.participants.slice();
+        this.rebuildTargetParticipants();
       }
       return this.state.bbss;
     }
@@ -2381,15 +2494,15 @@
       }
       var priorityLabel = normalizeText(raw.priorityLabel);
       var priorityKeyRaw = normalizeText(raw.priority || raw.priorityKey || '');
-      var priorityKey = priorityKeyRaw ? priorityKeyRaw.toLowerCase() : '';
-      if (!priorityLabel && priorityKeyRaw) {
-        priorityLabel = priorityKeyRaw;
-      }
-      var createdByDisplayName = normalizeText(raw.createdByDisplayName || raw.ownerDisplayName || '');
-      var createdByUserCode = normalizeText(raw.createdByUserCode || raw.ownerUserCode || '');
-      var creatorAvatar = resolveCreatorAvatarData(raw, createdByUserCode);
-      var creatorInitialSource = createdByDisplayName || createdByUserCode || raw.ownerDisplayName || raw.ownerUserCode || '';
-      var assignedUsersRaw = [];
+        var priorityKey = priorityKeyRaw ? priorityKeyRaw.toLowerCase() : '';
+        if (!priorityLabel && priorityKeyRaw) {
+          priorityLabel = priorityKeyRaw;
+        }
+        var createdByDisplayName = normalizeText(raw.createdByDisplayName || raw.ownerDisplayName || '');
+        var createdByUserCode = normalizeText(raw.createdByUserCode || raw.ownerUserCode || '');
+        var creatorAvatar = resolveCreatorAvatarData(raw, createdByUserCode);
+        var creatorInitialSource = createdByDisplayName || createdByUserCode || raw.ownerDisplayName || raw.ownerUserCode || '';
+        var assignedUsersRaw = [];
       if (Array.isArray(raw.assignedUsers))
       {
         assignedUsersRaw = raw.assignedUsers.slice();
@@ -2414,51 +2527,16 @@
       {
         participantsRaw = raw.participants.slice();
       }
-      else if (typeof raw.participants === 'string')
-      {
-        participantsRaw = splitDelimitedValues(raw.participants);
-      }
-
-      var normalizeUserList = function (list)
-      {
-        var normalized = [];
-        list.forEach(function (entry)
+        else if (typeof raw.participants === 'string')
         {
-          if (!entry)
-          {
-            return;
-          }
-          if (typeof entry === 'string')
-          {
-            var labels = splitDelimitedValues(entry);
-            if (!labels.length)
-            {
-              var normalizedLabel = normalizeText(entry);
-              if (normalizedLabel)
-              {
-                labels = [normalizedLabel];
-              }
-            }
-            labels.forEach(function (label)
-            {
-              normalized.push({ displayName: label, userCode: label, isActive: true, endedAt: null });
-            });
-            return;
-          }
-          if (typeof entry === 'object')
-          {
-            normalized.push(Object.assign({ isActive: true, endedAt: null }, entry));
-          }
-        });
-        return normalized;
-      };
-
-      var participants = normalizeUserList(participantsRaw);
-      var assignedUsers = normalizeUserList(assignedUsersRaw);
-      if (!assignedUsers.length && participants.length)
-      {
-        assignedUsers = participants.slice();
-      }
+          participantsRaw = splitDelimitedValues(raw.participants);
+        }
+        var participants = this.normalizeTargetParticipantList(participantsRaw);
+        var assignedUsers = this.normalizeTargetParticipantList(assignedUsersRaw);
+        if (!assignedUsers.length && participants.length)
+        {
+          assignedUsers = participants.slice();
+        }
 
       var imageUrl = normalizeText(
         raw.imageUrl
@@ -2475,10 +2553,10 @@
 
       var displayFlags = this.normalizeDisplayFlags(raw);
 
-      return {
-        targetCode: raw.targetCode || raw.code || 'target-unknown',
-        title: raw.title || raw.name || 'ターゲット詳細',
-        description: raw.description || raw.summary || '',
+        var target = {
+          targetCode: raw.targetCode || raw.code || 'target-unknown',
+          title: raw.title || raw.name || 'ターゲット詳細',
+          description: raw.description || raw.summary || '',
         imageUrl: imageUrl,
         status: statusKey || 'unknown',
         statusLabel: statusLabel || '—',
@@ -2501,24 +2579,32 @@
         timeline: Array.isArray(raw.timeline) ? raw.timeline : (Array.isArray(raw.activity) ? raw.activity : []),
         guidanceContents: Array.isArray(raw.guidanceContents) ? raw.guidanceContents : [],
         goals: this.normalizeGoals(raw.goals),
-        chatParticipants: Array.isArray(raw.chatParticipants)
-          ? dedupeChatParticipants(
-            raw.chatParticipants.map(function (participant) { return normalizeChatParticipantData(participant); }).filter(Boolean)
-          )
-        : [],
-        bbsParticipants: Array.isArray(raw.bbsParticipants)
-          ? dedupeBbsParticipants(
-            raw.bbsParticipants.map(function (participant) { return normalizeBbsParticipantData(participant); }).filter(Boolean)
-          )
-          : [],        
         agreements: this.normalizeAgreements(raw.agreements),
         basicInfoConfirmation: this.normalizeBasicInfoConfirmation(raw.basicInfoConfirmation),
         basicInfoConfirmations: this.normalizeBasicInfoConfirmations(
-          raw.targetBasicInfoConfirmations || raw.basicInfoConfirmations
+          raw.basicInfoConfirmations,
+          raw.basicInfoConfirmation,
+          raw.basicInfoConfirmationStatus
         ),
         displayFlags: displayFlags
       };
-    }
+
+        var chatParticipants = Array.isArray(raw.chatParticipants)
+          ? dedupeChatParticipants(
+            raw.chatParticipants.map(function (participant) { return normalizeChatParticipantData(participant); }).filter(Boolean)
+          )
+          : [];
+        var bbsParticipants = Array.isArray(raw.bbsParticipants)
+          ? dedupeBbsParticipants(
+            raw.bbsParticipants.map(function (participant) { return normalizeBbsParticipantData(participant); }).filter(Boolean)
+          )
+          : [];
+
+        target.chatParticipants = chatParticipants;
+        target.bbsParticipants = bbsParticipants;
+        target.participants = participants;
+        return target;
+      }
 
     normalizeBooleanFlag(value, defaultValue)
     {
