@@ -4,6 +4,8 @@ Base::requireFromShm('class/class.TargetManagementUtil.php');
 
 class TargetManagementSurvey extends Base
 {
+        private $targetSurveySchemaEnsured = false;
+
         public function __construct($context)
         {
                 parent::__construct($context);
@@ -216,25 +218,37 @@ class TargetManagementSurvey extends Base
 
 
 
-	public function procTargetSurveyCreate()
-	{
-		$targetCode = htmlspecialchars($this->params['targetCode'], ENT_QUOTES, "UTF-8");
-		if ($targetCode === '') {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'invalid';
-			return;
-		}
+        public function procTargetSurveyCreate()
+        {
+                $this->logSurveyEvent('procTargetSurveyCreate start', array(
+                        'targetCodeParam' => isset($this->params['targetCode']) ? $this->params['targetCode'] : null,
+                        'titleParam' => isset($this->params['title']) ? $this->params['title'] : null,
+                        'startAtParam' => isset($this->params['startAt']) ? $this->params['startAt'] : null,
+                        'endAtParam' => isset($this->params['endAt']) ? $this->params['endAt'] : null,
+                        'recipientCountParam' => isset($this->params['recipients']) && is_array($this->params['recipients'])
+                                ? count($this->params['recipients'])
+                                : 0,
+                ));
 
-		$targetRow = TargetManagementUtil::fetchActiveTargetByCode($targetCode, $this->getLoginUserCode(), $this->getPDOTarget(), $this->getUserInfo($this->getLoginUserCode()), $this->getPDOCommon());
-		if ($targetRow == null) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'notfound';
-			return;
-		}
+                $targetCode = htmlspecialchars($this->params['targetCode'], ENT_QUOTES, "UTF-8");
+                if ($targetCode === '') {
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: empty targetCode');
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid';
+                        return;
+                }
+
+                $targetRow = TargetManagementUtil::fetchActiveTargetByCode($targetCode, $this->getLoginUserCode(), $this->getPDOTarget(), $this->getUserInfo($this->getLoginUserCode()), $this->getPDOCommon());
+                if ($targetRow == null) {
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: target not found', array('targetCode' => $targetCode));
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
 
                 $title = Util::normalizeRequiredString($this->params['title'], 256);
                 if ($title === false) {
-                        $this->logSurveyEvent('procTargetSurveyUpdate abort: invalid title', array('surveyId' => $surveyId));
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: invalid title', array('targetCode' => $targetCode));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'invalid';
                         return;
@@ -242,7 +256,7 @@ class TargetManagementSurvey extends Base
 
                 $content = Util::normalizeRequiredString($this->params['content'], 4000);
                 if ($content === false) {
-                        $this->logSurveyEvent('procTargetSurveyUpdate abort: invalid content', array('surveyId' => $surveyId));
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: invalid content', array('targetCode' => $targetCode));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'invalid';
                         return;
@@ -250,7 +264,7 @@ class TargetManagementSurvey extends Base
 
                 $startAt = Util::normalizeOptionalDateTime($this->params['startAt']);
                 if ($startAt === false || $startAt === null) {
-                        $this->logSurveyEvent('procTargetSurveyUpdate abort: invalid startAt', array('surveyId' => $surveyId));
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: invalid startAt', array('targetCode' => $targetCode, 'startAtParam' => $this->params['startAt']));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'invalid';
                         return;
@@ -258,7 +272,7 @@ class TargetManagementSurvey extends Base
 
                 $endAt = Util::normalizeOptionalDateTime($this->params['endAt']);
                 if ($endAt === false || $endAt === null) {
-                        $this->logSurveyEvent('procTargetSurveyUpdate abort: invalid endAt', array('surveyId' => $surveyId));
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: invalid endAt', array('targetCode' => $targetCode, 'endAtParam' => $this->params['endAt']));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'invalid';
                         return;
@@ -267,30 +281,44 @@ class TargetManagementSurvey extends Base
                 $startTimestamp = strtotime($startAt);
                 $endTimestamp = strtotime($endAt);
                 if ($startTimestamp === false || $endTimestamp === false || $startTimestamp > $endTimestamp) {
-                        $this->logSurveyEvent('procTargetSurveyUpdate abort: inconsistent datetime', array('surveyId' => $surveyId, 'startAt' => $startAt, 'endAt' => $endAt));
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: inconsistent datetime', array('targetCode' => $targetCode, 'startAt' => $startAt, 'endAt' => $endAt));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'invalid';
                         return;
                 }
 
+                $isGuestMode = $this->normalizeBooleanParam($this->params['isGuestMode'] ?? null, false);
+
                 $creatorUserCode = $this->getLoginUserCode();
                 if ($creatorUserCode === null || $creatorUserCode === '') {
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: missing creator', array('targetCode' => $targetCode));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'permission';
-			return;
-		}
+                        return;
+                }
 
-		if ($this->canManageTargetSurvey($targetRow, $creatorUserCode) == false) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'permission';
-			return;
-		}
+                if ($this->canManageTargetSurvey($targetRow, $creatorUserCode) == false) {
+                        $this->logSurveyEvent('procTargetSurveyCreate abort: permission denied', array('targetCode' => $targetCode, 'creatorUserCode' => $creatorUserCode));
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'permission';
+                        return;
+                }
 
-		
-		$pdo = $this->getPDOTarget();
-		$now = date('Y-m-d H:i:s');
+
+                $pdo = $this->getPDOTarget();
+                $this->ensureTargetSurveySchema($pdo);
+                $now = date('Y-m-d H:i:s');
+
+                $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
+                $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
+                $recipientCodes = $this->normalizeRecipientCodes(
+                        isset($this->params['recipients']) ? $this->params['recipients'] : array(),
+                        $assignedUsers
+                );
 
                 $hasOuterTransaction = $pdo->inTransaction();
+
+                $this->logSurveyEvent('procTargetSurveyCreate begin transaction', array('targetCode' => $targetCode, 'creatorUserCode' => $creatorUserCode, 'hasOuterTransaction' => $hasOuterTransaction));
 
                 try {
                         if ($hasOuterTransaction == false) {
@@ -303,8 +331,8 @@ class TargetManagementSurvey extends Base
 
                         $surveyCode = $this->generateUniqid();
                         $insertStmt = $pdo->prepare(
-                                                                                'INSERT INTO targetSurvey (surveyCode, targetCode, title, content, startAt, endAt, createdByUserCode, createdAt, updatedAt, displayOrder, isDeleted) '
-                                                                                . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
+                                                                                'INSERT INTO targetSurvey (surveyCode, targetCode, title, content, startAt, endAt, isGuestMode, recipientsJson, createdByUserCode, createdAt, updatedAt, displayOrder, isDeleted) '
+                                                                                . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
                                                                                 );
                         $insertStmt->execute(array(
                                                                            $surveyCode,
@@ -313,6 +341,8 @@ class TargetManagementSurvey extends Base
                                                                            $content,
                                                                            $startAt,
                                                                            $endAt,
+                                                                           $isGuestMode ? 1 : 0,
+                                                                           json_encode($recipientCodes),
                                                                            $creatorUserCode,
                                                                            $now,
                                                                            $now,
@@ -328,10 +358,11 @@ class TargetManagementSurvey extends Base
                         if ($pdo->inTransaction()) {
                                 $pdo->rollBack();
                         }
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'failed';
-			return;
-		}
+                        $this->logSurveyEvent('procTargetSurveyCreate failed during insert', array('targetCode' => $targetCode, 'exception' => $exception->getMessage()));
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'failed';
+                        return;
+                }
 
 		$surveyRow = $this->fetchTargetSurveyById($surveyId);
 		if ($surveyRow == null) {
@@ -357,6 +388,9 @@ class TargetManagementSurvey extends Base
                         'idParam' => isset($this->params['id']) ? $this->params['id'] : null,
                         'surveyCodeParam' => isset($this->params['surveyCode']) ? $this->params['surveyCode'] : null,
                         'targetCodeParam' => isset($this->params['targetCode']) ? $this->params['targetCode'] : null,
+                        'recipientCountParam' => isset($this->params['recipients']) && is_array($this->params['recipients'])
+                                ? count($this->params['recipients'])
+                                : 0,
                 ));
 
                 $surveyId = null;
@@ -448,6 +482,8 @@ class TargetManagementSurvey extends Base
                         return;
                 }
 
+                $isGuestMode = $this->normalizeBooleanParam($this->params['isGuestMode'] ?? null, isset($surveyRow['isGuestMode']) ? ((int)$surveyRow['isGuestMode'] !== 0) : false);
+
                 $updaterUserCode = $this->getLoginUserCode();
                 if ($updaterUserCode === null || $updaterUserCode === '') {
                         $this->logSurveyEvent('procTargetSurveyUpdate abort: missing updater', array('surveyId' => $surveyId));
@@ -467,11 +503,18 @@ class TargetManagementSurvey extends Base
                 $pdo = $this->getPDOTarget();
                 $now = date('Y-m-d H:i:s');
 
+                $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
+                $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
+                $recipientCodes = $this->normalizeRecipientCodes(
+                        isset($this->params['recipients']) ? $this->params['recipients'] : array(),
+                        $assignedUsers
+                );
+
                 $this->logSurveyEvent('procTargetSurveyUpdate begin transaction', array('surveyId' => $surveyId, 'targetCode' => $targetCode, 'updaterUserCode' => $updaterUserCode));
 
                 try {
-                        $stmt = $pdo->prepare('UPDATE targetSurvey SET title = ?, content = ?, startAt = ?, endAt = ?, updatedAt = ? WHERE id = ?');
-                        $stmt->execute(array($title, $content, $startAt, $endAt, $now, $surveyId));
+                        $stmt = $pdo->prepare('UPDATE targetSurvey SET title = ?, content = ?, startAt = ?, endAt = ?, isGuestMode = ?, recipientsJson = ?, updatedAt = ? WHERE id = ?');
+                        $stmt->execute(array($title, $content, $startAt, $endAt, $isGuestMode ? 1 : 0, json_encode($recipientCodes), $now, $surveyId));
                         if (array_key_exists('items', $this->params)) {
                                 $this->replaceTargetSurveyItems($surveyId, $this->params['items']);
                         }
@@ -1391,9 +1434,16 @@ public function procTargetSurveyItemList()
                         return;
                 }
 
+                $isGuestMode = isset($surveyRow['isGuestMode']) ? ((int)$surveyRow['isGuestMode'] !== 0) : false;
+
                 $loginUserCode = $this->getLoginUserCode();
                 $userCodeRaw = isset($this->params['userCode']) ? trim((string)$this->params['userCode']) : '';
                 $userCode = $userCodeRaw !== '' ? $userCodeRaw : $loginUserCode;
+                $guestResponse = false;
+                if ($isGuestMode && $userCode === '') {
+                        $userCode = 'guest-' . $this->generateUniqid();
+                        $guestResponse = true;
+                }
                 if ($userCode === null || $userCode === '') {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'permission';
@@ -1405,12 +1455,17 @@ public function procTargetSurveyItemList()
                 $canManage = $this->canManageTargetSurvey($targetRow, $loginUserCode);
 
                 if ($canManage == false) {
-                        if ($normalizedLogin === '' || $normalizedLogin !== $normalizedUser) {
+                        if ($normalizedLogin === '') {
                                 $this->status = parent::RESULT_ERROR;
                                 $this->errorReason = 'permission';
                                 return;
                         }
-                        if ($this->userCanAccessTarget($targetRow, $targetCode, $userCode) == false) {
+                        if ($guestResponse === false && $normalizedLogin !== $normalizedUser) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'permission';
+                                return;
+                        }
+                        if ($this->userCanAccessTarget($targetRow, $targetCode, $loginUserCode) == false) {
                                 $this->status = parent::RESULT_ERROR;
                                 $this->errorReason = 'permission';
                                 return;
@@ -1477,17 +1532,23 @@ public function procTargetSurveyItemList()
                         $pdo->beginTransaction();
 
                         $responseId = null;
-                        $existingStmt = $pdo->prepare('SELECT id FROM targetSurveyResponses WHERE targetSurveyId = ? AND userCode = ? LIMIT 1');
-                        $existingStmt->execute(array($surveyId, $userCode));
-                        $existingId = $existingStmt->fetchColumn();
-                        if ($existingId !== false && $existingId !== null) {
-                                $responseId = (int)$existingId;
-                                $updateStmt = $pdo->prepare('UPDATE targetSurveyResponses SET respondedAt = ?, updatedAt = ? WHERE id = ?');
-                                $updateStmt->execute(array($respondedAt, $now, $responseId));
-                        } else {
+                        if ($guestResponse) {
                                 $insertResponse = $pdo->prepare('INSERT INTO targetSurveyResponses (targetSurveyId, userCode, respondedAt, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)');
                                 $insertResponse->execute(array($surveyId, $userCode, $respondedAt, $now, $now));
                                 $responseId = (int)$pdo->lastInsertId();
+                        } else {
+                                $existingStmt = $pdo->prepare('SELECT id FROM targetSurveyResponses WHERE targetSurveyId = ? AND userCode = ? LIMIT 1');
+                                $existingStmt->execute(array($surveyId, $userCode));
+                                $existingId = $existingStmt->fetchColumn();
+                                if ($existingId !== false && $existingId !== null) {
+                                        $responseId = (int)$existingId;
+                                        $updateStmt = $pdo->prepare('UPDATE targetSurveyResponses SET respondedAt = ?, updatedAt = ? WHERE id = ?');
+                                        $updateStmt->execute(array($respondedAt, $now, $responseId));
+                                } else {
+                                        $insertResponse = $pdo->prepare('INSERT INTO targetSurveyResponses (targetSurveyId, userCode, respondedAt, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)');
+                                        $insertResponse->execute(array($surveyId, $userCode, $respondedAt, $now, $now));
+                                        $responseId = (int)$pdo->lastInsertId();
+                                }
                         }
 
                         $deleteStmt = $pdo->prepare('DELETE FROM targetSurveyResponseItems WHERE responseId = ?');
@@ -1505,7 +1566,16 @@ public function procTargetSurveyItemList()
                                 }
                                 $key = (string)$itemId;
                                 $normalizedAnswer = isset($answerMap[$key]) ? $this->normalizeTargetSurveyAnswerForStorage($item, $answerMap[$key]) : null;
+                                $isRequired = isset($item['isRequired']) ? ((int)$item['isRequired'] !== 0) : false;
                                 if ($normalizedAnswer === false) {
+                                        if ($pdo->inTransaction()) {
+                                                $pdo->rollBack();
+                                        }
+                                        $this->status = parent::RESULT_ERROR;
+                                        $this->errorReason = 'invalid';
+                                        return;
+                                }
+                                if ($normalizedAnswer === null && $isRequired) {
                                         if ($pdo->inTransaction()) {
                                                 $pdo->rollBack();
                                         }
@@ -1528,18 +1598,21 @@ public function procTargetSurveyItemList()
                                 ));
                         }
 
-                        $ackStmt = $pdo->prepare(
+                        if ($guestResponse == false) {
+                                $ackStmt = $pdo->prepare(
                                                                 'INSERT INTO targetSurveyAcknowledgements (targetSurveyId, userCode, acknowledgedAt) '
                                                                 . 'VALUES (?, ?, ?) '
                                                                 . 'ON CONFLICT(targetSurveyId, userCode) DO UPDATE SET acknowledgedAt = excluded.acknowledgedAt'
                                                                 );
-                        $ackStmt->execute(array($surveyId, $userCode, $respondedAt));
+                                $ackStmt->execute(array($surveyId, $userCode, $respondedAt));
+                        }
 
                         $pdo->commit();
                 } catch (Exception $exception) {
                         if ($pdo->inTransaction()) {
                                 $pdo->rollBack();
                         }
+                        $this->logSurveyEvent('procTargetSurveyCreate failed during insert', array('targetCode' => $targetCode, 'exception' => $exception->getMessage()));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'failed';
                         return;
@@ -1661,6 +1734,7 @@ public function procTargetSurveyItemList()
                         if ($pdo->inTransaction()) {
                                 $pdo->rollBack();
                         }
+                        $this->logSurveyEvent('procTargetSurveyCreate failed during insert', array('targetCode' => $targetCode, 'exception' => $exception->getMessage()));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'failed';
                         return;
@@ -1712,6 +1786,8 @@ public function procTargetSurveyItemList()
                 if ($descriptionValue === false) {
                         $descriptionValue = '';
                 }
+
+                $isRequired = $this->normalizeBooleanParam($this->params['isRequired'] ?? ($this->params['required'] ?? null), false);
 
                 $position = null;
                 if (isset($this->params['position'])) {
@@ -1772,8 +1848,8 @@ public function procTargetSurveyItemList()
                                 $position = ((int)$posStmt->fetchColumn()) + 1;
                         }
 
-                        $stmt = $pdo->prepare('INSERT INTO targetSurveyItem (targetSurveyId, title, description, kind, position, createdAt, updatedAt, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)');
-                        $stmt->execute(array($surveyId, $titleValue, $descriptionValue, $kindValue, $position, $now, $now));
+                        $stmt = $pdo->prepare('INSERT INTO targetSurveyItem (targetSurveyId, title, description, kind, position, isRequired, createdAt, updatedAt, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)');
+                        $stmt->execute(array($surveyId, $titleValue, $descriptionValue, $kindValue, $position, $isRequired ? 1 : 0, $now, $now));
 
                         $itemId = (int)$pdo->lastInsertId();
                         $pdo->commit();
@@ -1781,6 +1857,7 @@ public function procTargetSurveyItemList()
                         if ($pdo->inTransaction()) {
                                 $pdo->rollBack();
                         }
+                        $this->logSurveyEvent('procTargetSurveyCreate failed during insert', array('targetCode' => $targetCode, 'exception' => $exception->getMessage()));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'failed';
                         return;
@@ -1881,6 +1958,14 @@ public function procTargetSurveyItemList()
                         }
                 }
 
+                $isRequired = null;
+                if (array_key_exists('isRequired', $this->params) || array_key_exists('required', $this->params)) {
+                        $isRequired = $this->normalizeBooleanParam(
+                                $this->params['isRequired'] ?? $this->params['required'],
+                                isset($itemRow['isRequired']) ? ((int)$itemRow['isRequired'] !== 0) : false
+                        );
+                }
+
                 $updaterUserCode = $this->getLoginUserCode();
                 if ($updaterUserCode === null || $updaterUserCode === '') {
                         $this->logSurveyEvent('procTargetSurveyUpdate abort: missing updater', array('surveyId' => $surveyId));
@@ -1906,13 +1991,14 @@ public function procTargetSurveyItemList()
                 $resolvedTitle = $titleValue !== null ? $titleValue : (isset($itemRow['title']) ? $itemRow['title'] : '');
                 $resolvedDescription = $descriptionValue !== null ? $descriptionValue : (isset($itemRow['description']) ? $itemRow['description'] : '');
                 $resolvedPosition = $position !== null ? $position : (isset($itemRow['position']) ? (int)$itemRow['position'] : 0);
+                $resolvedRequired = $isRequired !== null ? $isRequired : (isset($itemRow['isRequired']) ? ((int)$itemRow['isRequired'] !== 0) : false);
 
                 $pdo = $this->getPDOTarget();
                 $now = date('Y-m-d H:i:s');
 
                 try {
-                        $stmt = $pdo->prepare('UPDATE targetSurveyItem SET title = ?, description = ?, kind = ?, position = ?, updatedAt = ? WHERE id = ?');
-                        $stmt->execute(array($resolvedTitle, $resolvedDescription, $resolvedKind, $resolvedPosition, $now, $itemId));
+                        $stmt = $pdo->prepare('UPDATE targetSurveyItem SET title = ?, description = ?, kind = ?, position = ?, isRequired = ?, updatedAt = ? WHERE id = ?');
+                        $stmt->execute(array($resolvedTitle, $resolvedDescription, $resolvedKind, $resolvedPosition, $resolvedRequired ? 1 : 0, $now, $itemId));
                 } catch (Exception $exception) {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'failed';
@@ -2463,43 +2549,89 @@ public function procTargetSurveyItemList()
 		$this->injectTokenIntoResponse($token);
 	}
 
-	private function logTargetSurveyTokenError($message, array $context = array()): void
-	{
-		$requestType = $this->type !== null ? $this->type : '(none)';
-		$payload = array(
-						 'handler' => static::class,
-						 'requestType' => $requestType,
-						 'message' => $message,
-						 );
+        private function logTargetSurveyTokenError($message, array $context = array()): void
+        {
+                $requestType = $this->type !== null ? $this->type : '(none)';
+                $payload = array(
+                                                                 'handler' => static::class,
+                                                                 'requestType' => $requestType,
+                                                                 'message' => $message,
+                                                                 );
 
-		if (isset($context['exception']) && $context['exception'] instanceof \Throwable) {
-			/** @var \Throwable $exception */
-			$exception = $context['exception'];
-			$payload['exception'] = array(
-										  'class' => get_class($exception),
-										  'message' => $exception->getMessage(),
-										  'file' => $exception->getFile(),
-										  'line' => $exception->getLine(),
-										  );
-			unset($context['exception']);
-		}
+                if (isset($context['exception']) && $context['exception'] instanceof \Throwable) {
+                        /** @var \Throwable $exception */
+                        $exception = $context['exception'];
+                        $payload['exception'] = array(
+                                                                                  'class' => get_class($exception),
+                                                                                  'message' => $exception->getMessage(),
+                                                                                  'file' => $exception->getFile(),
+                                                                                  'line' => $exception->getLine(),
+                                                                                  );
+                        unset($context['exception']);
+                }
 
-		if (!empty($context)) {
-			$payload['context'] = $context;
-		}
+                if (!empty($context)) {
+                        $payload['context'] = $context;
+                }
 
-		$encoded = json_encode($payload);
-		if ($encoded === false) {
-			$encoded = '[TargetManagement-Survey] ' . $message;
-		}
+                $encoded = json_encode($payload);
+                if ($encoded === false) {
+                        $encoded = '[TargetManagement-Survey] ' . $message;
+                }
 
-		Base::writeLog($encoded, 'target-management');
-	}
+                Base::writeLog($encoded, 'target-management');
+        }
 
-	private function loadTargetSurveyCollections($targetRow)
-	{
-		if ($targetRow == null || !is_array($targetRow)) {
-			return array('survey' => array(), 'acknowledgements' => array());
+        private function ensureTargetSurveySchema(PDO $pdo)
+        {
+                if ($this->targetSurveySchemaEnsured) {
+                        return;
+                }
+
+                $this->targetSurveySchemaEnsured = true;
+
+                try {
+                        $stmt = $pdo->query('PRAGMA table_info(targetSurvey)');
+                        $hasIsGuestMode = false;
+                        $hasRecipientsJson = false;
+                        if ($stmt !== false) {
+                                while ($column = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                        if (isset($column['name']) && $column['name'] === 'isGuestMode') {
+                                                $hasIsGuestMode = true;
+                                        }
+                                        if (isset($column['name']) && $column['name'] === 'recipientsJson') {
+                                                $hasRecipientsJson = true;
+                                        }
+                                }
+                        }
+
+                        if ($hasIsGuestMode === false) {
+                                try {
+                                        $pdo->exec('ALTER TABLE targetSurvey ADD COLUMN isGuestMode INTEGER NOT NULL DEFAULT 0');
+                                } catch (Exception $exception) {
+                                        // 別プロセスで追加された場合は無視する
+                                }
+                        }
+
+                        if ($hasRecipientsJson === false) {
+                                try {
+                                        $pdo->exec('ALTER TABLE targetSurvey ADD COLUMN recipientsJson TEXT DEFAULT "[]"');
+                                } catch (Exception $exception) {
+                                        // 別プロセスで追加された場合は無視する
+                                }
+                        }
+
+                        $pdo->exec('UPDATE targetSurvey SET isGuestMode = 0 WHERE isGuestMode IS NULL');
+                        $pdo->exec("UPDATE targetSurvey SET recipientsJson = '[]' WHERE recipientsJson IS NULL OR recipientsJson = ''");
+                } catch (Exception $exception) {
+                        throw $exception;
+                }
+        }
+
+        private function loadTargetSurveyCollections($targetRow)
+        {
+                if ($targetRow == null || !is_array($targetRow)) {
+                        return array('survey' => array(), 'acknowledgements' => array());
 		}
 
 		$targetCode = isset($targetRow['targetCode']) ? trim((string)$targetRow['targetCode']) : '';
@@ -2507,14 +2639,15 @@ public function procTargetSurveyItemList()
 			return array('survey' => array(), 'acknowledgements' => array());
 		}
 
-		
-		$pdo = $this->getPDOTarget();
+
+                $pdo = $this->getPDOTarget();
+                $this->ensureTargetSurveySchema($pdo);
 
                 $stmt = $pdo->prepare(
-                                                          'SELECT id, surveyCode, targetCode, title, content, startAt, endAt, createdByUserCode, createdAt, updatedAt, displayOrder '
-                                                          . 'FROM targetSurvey WHERE targetCode = ? AND (isDeleted IS NULL OR isDeleted = 0) '
-                                                          . 'ORDER BY displayOrder ASC, datetime(createdAt) DESC, id DESC'
-                                                          );
+                                                           'SELECT id, surveyCode, targetCode, title, content, startAt, endAt, isGuestMode, recipientsJson, createdByUserCode, createdAt, updatedAt, displayOrder '
+                                                            . 'FROM targetSurvey WHERE targetCode = ? AND (isDeleted IS NULL OR isDeleted = 0) '
+                                                            . 'ORDER BY displayOrder ASC, datetime(createdAt) DESC, id DESC'
+                                                            );
 		$stmt->execute(array($targetCode));
 		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -2554,25 +2687,26 @@ public function procTargetSurveyItemList()
 
 
 
-	private function fetchTargetSurveyById($surveyId)
-	{
-		if ($surveyId === null) {
-			return null;
-		}
+        private function fetchTargetSurveyById($surveyId)
+        {
+                if ($surveyId === null) {
+                        return null;
+                }
 
 		$id = (int)$surveyId;
-		if ($id <= 0) {
-			return null;
-		}
+                if ($id <= 0) {
+                        return null;
+                }
 
-		
-		$pdo = $this->getPDOTarget();
+
+                $pdo = $this->getPDOTarget();
+                $this->ensureTargetSurveySchema($pdo);
                 $stmt = $pdo->prepare(
-                                                          'SELECT id, surveyCode, targetCode, title, content, startAt, endAt, createdByUserCode, createdAt, updatedAt, displayOrder, isDeleted '
-                                                          . 'FROM targetSurvey WHERE id = ? LIMIT 1'
+                                                            'SELECT id, surveyCode, targetCode, title, content, startAt, endAt, isGuestMode, recipientsJson, createdByUserCode, createdAt, updatedAt, displayOrder, isDeleted '
+                                                            . 'FROM targetSurvey WHERE id = ? LIMIT 1'
                                                           );
-		$stmt->execute(array($id));
-		$row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->execute(array($id));
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 		if ($row == false) {
 			return null;
@@ -2729,8 +2863,10 @@ public function procTargetSurveyItemList()
 
                 $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $stmt = $this->getPDOTarget()->prepare(
-                                                                                   'SELECT id, targetSurveyId, userCode, respondedAt, createdAt, updatedAt '
-                                                                                   . 'FROM targetSurveyResponses WHERE targetSurveyId IN (' . $placeholders . ')'
+                                                                                   'SELECT r.id, r.targetSurveyId, r.userCode, r.respondedAt, r.createdAt, r.updatedAt, s.isGuestMode '
+                                                                                   . 'FROM targetSurveyResponses r '
+                                                                                   . 'LEFT JOIN targetSurvey s ON s.id = r.targetSurveyId '
+                                                                                   . 'WHERE r.targetSurveyId IN (' . $placeholders . ')'
                                                                                    );
                 $stmt->execute($ids);
 
@@ -2739,8 +2875,18 @@ public function procTargetSurveyItemList()
                                 continue;
                         }
                         $surveyId = isset($row['targetSurveyId']) ? (int)$row['targetSurveyId'] : 0;
+                        $isGuestMode = isset($row['isGuestMode']) ? ((int)$row['isGuestMode'] !== 0) : false;
                         $userCode = isset($row['userCode']) ? trim((string)$row['userCode']) : '';
-                        if ($surveyId <= 0 || $userCode === '') {
+                        $responseId = isset($row['id']) ? (int)$row['id'] : 0;
+                        if ($surveyId <= 0) {
+                                continue;
+                        }
+                        if ($userCode === '' && $isGuestMode) {
+                                $userCode = 'guest:' . ($responseId > 0 ? $responseId : $this->generateUniqid());
+                                $row['isGuestResponse'] = true;
+                                $row['guestDisplayName'] = $responseId > 0 ? ('ゲスト回答 #' . $responseId) : 'ゲスト回答';
+                        }
+                        if ($userCode === '') {
                                 continue;
                         }
                         $row['respondedAt'] = isset($row['respondedAt']) ? Util::normalizeTimestampValue($row['respondedAt']) : null;
@@ -3037,6 +3183,8 @@ public function procTargetSurveyItemList()
                                 'userCode' => $userCode,
                                 'respondedAt' => isset($response['respondedAt']) ? $response['respondedAt'] : null,
                                 'answers' => $answers,
+                                'isGuestResponse' => isset($response['isGuestResponse']) ? ((bool)$response['isGuestResponse']) : false,
+                                'guestDisplayName' => isset($response['guestDisplayName']) ? $response['guestDisplayName'] : null,
                         );
                 }
 
@@ -3068,9 +3216,9 @@ public function procTargetSurveyItemList()
 
                 try {
                         $stmt = $this->getPDOTarget()->prepare(
-                                                                                           'SELECT id, targetSurveyId, title, description, kind, position, createdAt, updatedAt, isDeleted '
-                                                                                           . 'FROM targetSurveyItem WHERE targetSurveyId IN (' . $placeholders . ')'
-                                                                                           );
+                                                                                          'SELECT id, targetSurveyId, title, description, kind, position, isRequired, createdAt, updatedAt, isDeleted '
+                                                                                          . 'FROM targetSurveyItem WHERE targetSurveyId IN (' . $placeholders . ')'
+                                                                                          );
                         $stmt->execute($ids);
 
                         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -3144,9 +3292,10 @@ public function procTargetSurveyItemList()
                                 $position = isset($item['position']) ? (int)$item['position'] : 0;
                                 $title = isset($item['title']) ? $item['title'] : '';
                                 $description = isset($item['description']) ? $item['description'] : '';
+                                $isRequired = isset($item['isRequired']) ? ((bool)$item['isRequired']) : false;
 
-                                $insert = $pdo->prepare('INSERT INTO targetSurveyItem (targetSurveyId, title, description, kind, position, createdAt, updatedAt, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)');
-                                $insert->execute(array($surveyId, $title, $description, $kind, $position, $now, $now));
+                                $insert = $pdo->prepare('INSERT INTO targetSurveyItem (targetSurveyId, title, description, kind, position, isRequired, createdAt, updatedAt, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)');
+                                $insert->execute(array($surveyId, $title, $description, $kind, $position, $isRequired ? 1 : 0, $now, $now));
 
                                 $itemId = (int)$pdo->lastInsertId();
 
@@ -3208,6 +3357,11 @@ public function procTargetSurveyItemList()
                                 $description = '';
                         }
 
+                        $isRequired = $this->normalizeBooleanParam(
+                                isset($item['isRequired']) ? $item['isRequired'] : (isset($item['required']) ? $item['required'] : false),
+                                false
+                        );
+
                         $position = null;
                         if (isset($item['position'])) {
                                 $position = $this->normalizeTargetSurveyItemPosition($item['position']);
@@ -3237,6 +3391,7 @@ public function procTargetSurveyItemList()
                                 'description' => $description,
                                 'kind' => $kind,
                                 'position' => $position,
+                                'isRequired' => $isRequired,
                                 'choices' => $choices,
                         );
                         $index += 1;
@@ -3255,9 +3410,9 @@ public function procTargetSurveyItemList()
                 }
 
                 $stmt = $this->getPDOTarget()->prepare(
-                                                                                   'SELECT id, targetSurveyId, title, description, kind, position, createdAt, updatedAt, isDeleted '
-                                                                                   . 'FROM targetSurveyItem WHERE id = ? LIMIT 1'
-                                                                                   );
+                                                                                  'SELECT id, targetSurveyId, title, description, kind, position, isRequired, createdAt, updatedAt, isDeleted '
+                                                                                  . 'FROM targetSurveyItem WHERE id = ? LIMIT 1'
+                                                                                  );
                 $stmt->execute(array($id));
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -3270,6 +3425,35 @@ public function procTargetSurveyItemList()
                 }
 
                 return $row;
+        }
+
+        private function normalizeRecipientCodes($recipients, $fallback)
+        {
+                $input = is_array($recipients) ? $recipients : null;
+                if ($input === null) {
+                        $input = is_array($fallback) ? $fallback : array();
+                }
+
+                $normalized = array();
+                foreach ($input as $entry) {
+                        $resolved = $this->resolveAssignedUserCode($entry);
+                        if ($resolved === null) {
+                                continue;
+                        }
+                        $trimmed = trim((string)$resolved);
+                        if ($trimmed === '') {
+                                continue;
+                        }
+                        $code = $this->normalizeUserCodeValue($trimmed);
+                        if ($code === '') {
+                                continue;
+                        }
+                        if (in_array($code, $normalized, true) == false) {
+                                $normalized[] = $code;
+                        }
+                }
+
+                return $normalized;
         }
 
 
@@ -3431,6 +3615,7 @@ public function procTargetSurveyItemList()
                                                  'description' => $description,
                                                  'kind' => $kind,
                                                  'position' => $position,
+                                                 'isRequired' => isset($row['isRequired']) ? ((int)$row['isRequired'] !== 0) : false,
                                                  'kinds' => isset($kindLookup[$itemKey]) ? $kindLookup[$itemKey] : array(),
                                                  );
 
@@ -3680,7 +3865,8 @@ public function procTargetSurveyItemList()
 
                 $ackEntries = isset($ackLookup[$surveyKey]) ? $ackLookup[$surveyKey] : array();
                 $responses = isset($responseLookup[$surveyKey]) ? $responseLookup[$surveyKey] : array();
-                $recipients = $this->buildTargetSurveyRecipients($targetRow, $assignedUserCodes, $ackEntries, $responses);
+                $recipientCodes = $this->extractRecipientCodesFromRow($row, $assignedUserCodes);
+                $recipients = $this->buildTargetSurveyRecipients($targetRow, $recipientCodes, $ackEntries, $responses);
 
                 $items = array();
                 if (isset($itemLookup[$surveyKey]) && is_array($itemLookup[$surveyKey])) {
@@ -3700,6 +3886,7 @@ public function procTargetSurveyItemList()
                                          'content' => $content,
                                          'startAt' => $startAt,
                                          'endAt' => $endAt,
+                                         'isGuestMode' => isset($row['isGuestMode']) ? ((int)$row['isGuestMode'] !== 0) : false,
                                          'createdAt' => $createdAt,
                                          'updatedAt' => $updatedAt,
                                          'displayOrder' => $displayOrder,
@@ -3711,6 +3898,18 @@ public function procTargetSurveyItemList()
                                          'recipients' => $recipients,
                                          'recipientCount' => count($recipients),
                                          );
+        }
+
+        private function extractRecipientCodesFromRow($row, $fallbackCodes)
+        {
+                $codes = $fallbackCodes;
+                if (isset($row['recipientsJson'])) {
+                        $decoded = json_decode($row['recipientsJson'], true);
+                        if (is_array($decoded)) {
+                                $codes = $decoded;
+                        }
+                }
+                return $this->normalizeRecipientCodes($codes, $fallbackCodes);
         }
 
 
@@ -3736,27 +3935,6 @@ public function procTargetSurveyItemList()
 			}
 			if (isset($recipientMap[$normalized]) == false) {
 				$recipientMap[$normalized] = $trimmed;
-			}
-		}
-
-		if (is_array($targetRow)) {
-			if (isset($targetRow['assignedUserCode'])) {
-				$assignedCode = trim((string)$targetRow['assignedUserCode']);
-				if ($assignedCode !== '') {
-					$normalized = $this->normalizeUserCodeValue($assignedCode);
-					if ($normalized !== '' && isset($recipientMap[$normalized]) == false) {
-						$recipientMap[$normalized] = $assignedCode;
-					}
-				}
-			}
-			if (isset($targetRow['createdByUserCode'])) {
-				$creatorCode = trim((string)$targetRow['createdByUserCode']);
-				if ($creatorCode !== '') {
-					$normalized = $this->normalizeUserCodeValue($creatorCode);
-					if ($normalized !== '' && isset($recipientMap[$normalized]) == false) {
-						$recipientMap[$normalized] = $creatorCode;
-					}
-				}
 			}
 		}
 
@@ -3836,6 +4014,11 @@ public function procTargetSurveyItemList()
                 $displayName = ($userInfo != null && isset($userInfo['displayName']) && $userInfo['displayName'] !== '')
                         ? $userInfo['displayName']
                         : $resolvedCode;
+                $guestDisplayName = (is_array($response) && isset($response['guestDisplayName'])) ? trim((string)$response['guestDisplayName']) : '';
+                $isGuestResponse = is_array($response) && isset($response['isGuestResponse']) ? ((bool)$response['isGuestResponse']) : false;
+                if ($guestDisplayName !== '') {
+                        $displayName = $guestDisplayName;
+                }
 
                 $role = $this->resolveTargetSurveyRecipientRole($targetRow, $resolvedCode);
 
@@ -3875,6 +4058,10 @@ public function procTargetSurveyItemList()
                                                  'hasAcknowledgement' => $hasAcknowledgement,
                                                  'isActive' => $isActive,
                                                  );
+
+                if ($isGuestResponse) {
+                        $payload['isGuest'] = true;
+                }
 
                 if ($acknowledgedAt !== null && $acknowledgedAt !== '') {
                         $payload['acknowledgedAtDisplay'] = $acknowledgedAt;
@@ -3935,6 +4122,29 @@ public function procTargetSurveyItemList()
                 return array($resolvedCode, $resolvedName);
         }
 
+
+
+        private function normalizeBooleanParam($value, $default = false)
+        {
+                if ($value === null) {
+                        return (bool)$default;
+                }
+
+                if (is_bool($value)) {
+                        return $value;
+                }
+
+                if (is_int($value)) {
+                        return $value !== 0;
+                }
+
+                $text = strtolower(trim((string)$value));
+                if ($text === '') {
+                        return (bool)$default;
+                }
+
+                return in_array($text, array('1', 'true', 'on', 'yes'), true);
+        }
 
 
         private function normalizeUserCodeValue($value)
