@@ -3365,6 +3365,8 @@
         var label = item && item.label ? item.label : (code || 'コンテンツ');
         var row = document.createElement('li');
         row.className = 'target-submission__content-item';
+        var header = document.createElement('div');
+        header.className = 'target-submission__content-item-header';
         var text = document.createElement('div');
         text.className = 'target-submission__content-item-body';
         var title = document.createElement('span');
@@ -3378,7 +3380,18 @@
           codeNode.textContent = code;
           text.appendChild(codeNode);
         }
-        row.appendChild(text);
+        header.appendChild(text);
+        var remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'target-submission__content-remove';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', 'このコンテンツを一覧から削除');
+        remove.addEventListener('click', function ()
+        {
+          self.removeSelectedContent(modal, code);
+        });
+        header.appendChild(remove);
+        row.appendChild(header);
         if (usePerContentForm)
         {
           var fieldWrap = document.createElement('div');
@@ -3397,6 +3410,10 @@
           {
             item.title = titleInput.value;
           });
+          var titleGroup = document.createElement('div');
+          titleGroup.className = 'target-submission__content-field';
+          titleGroup.appendChild(titleField);
+          titleGroup.appendChild(titleInput);
           var descField = document.createElement('label');
           descField.className = 'target-reference__form-label';
           descField.setAttribute('for', descId);
@@ -3410,21 +3427,14 @@
           {
             item.description = descInput.value;
           });
-          fieldWrap.appendChild(titleField);
-          fieldWrap.appendChild(titleInput);
-          fieldWrap.appendChild(descField);
-          fieldWrap.appendChild(descInput);
+          var descGroup = document.createElement('div');
+          descGroup.className = 'target-submission__content-field';
+          descGroup.appendChild(descField);
+          descGroup.appendChild(descInput);
+          fieldWrap.appendChild(titleGroup);
+          fieldWrap.appendChild(descGroup);
           row.appendChild(fieldWrap);
         }
-        var remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'target-submission__content-remove';
-        remove.textContent = '×';
-        remove.addEventListener('click', function ()
-        {
-          self.removeSelectedContent(modal, code);
-        });
-        row.appendChild(remove);
         listNode.appendChild(row);
       });
       listNode.hidden = false;

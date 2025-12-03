@@ -25,6 +25,7 @@
         'displayGuidance',
         'displayGoals',
         'displayAgreements',
+        'displayBasicConfirmation',
         'displayAnnouncements',
         'displayReferences',
         'displaySchedules',

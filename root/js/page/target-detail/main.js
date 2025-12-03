@@ -19,6 +19,7 @@
     'displayGuidance',
     'displayGoals',
     'displayAgreements',
+    'displayBasicConfirmation',
     'displayAnnouncements',
     'displayReferences',
     'displaySchedules',
@@ -2641,7 +2642,6 @@
       var flags = {};
       var sources = [
         raw && raw.displayFlags,
-        raw && raw.displaySettings,
         raw
       ];
       DISPLAY_FLAG_KEYS.forEach(function (key)
@@ -2738,7 +2738,8 @@
       var map = {
         guidance: 'displayGuidance',
         goals: 'displayGoals',
-        agreements: 'displayAgreements'
+        agreements: 'displayAgreements',
+        basicConfirmation: 'displayBasicConfirmation'
       };
       var flagKey = map[sectionId];
       if (!flagKey)

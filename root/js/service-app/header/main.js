@@ -184,6 +184,20 @@
       return false;
     }
 
+    _isDashboardEnabled(user) {
+      if (!user) { return true; }
+      const value = (typeof user.useDashboard !== 'undefined')
+        ? user.useDashboard
+        : user.use_dashboard;
+      if (typeof value === 'undefined') { return true; }
+      if (value === true || value === 1 || value === '1') { return true; }
+      if (typeof value === 'string') {
+        const normalized = value.toLowerCase();
+        return normalized === 'true' || normalized === 'yes' || normalized === 'on';
+      }
+      return false;
+    }
+
     _normalizeRoleFlag(value)
     {
       if (value === true || value === 1 || value === '1') { return true; }
@@ -217,9 +231,9 @@
       return cloned;
     }
 
-    _filterContentsMenu(items, allowContents) {
+    _filterContentsMenu(items, allowContents, allowDashboard) {
       const cloned = this._cloneMenu(items);
-      if (allowContents) {
+      if (allowContents && allowDashboard) {
         return cloned;
       }
       const filtered = [];
@@ -227,8 +241,8 @@
         const it = cloned[i] || {};
         const key = (it.key || '').toString().toLowerCase();
         const href = (it.href || '').toString();
-        if (key === 'contents') { continue; }
-        if (href.indexOf('/contents') === 0) { continue; }
+        if (!allowContents && (key === 'contents' || href.indexOf('/contents') === 0)) { continue; }
+        if (!allowDashboard && (key === 'dashboard' || href.indexOf('/dashboard') === 0)) { continue; }
         filtered.push(it);
       }
       return filtered;
@@ -341,17 +355,18 @@
         || this._hasRoleName(user, ['operator'])
         || isSupervisor;
       const allowContents = this._isContentsManagementEnabled(user);
+      const allowDashboard = this._isDashboardEnabled(user);
 
       if (isSupervisor && presets.supervisor) {
-        return this._filterContentsMenu(presets.supervisor, allowContents);
+        return this._filterContentsMenu(presets.supervisor, allowContents, allowDashboard);
       }
       if (isOperator && presets.operator) {
-        return this._filterContentsMenu(presets.operator, allowContents);
+        return this._filterContentsMenu(presets.operator, allowContents, allowDashboard);
       }
       if (presets.general) {
-        return this._filterContentsMenu(presets.general, allowContents);
+        return this._filterContentsMenu(presets.general, allowContents, allowDashboard);
       }
-      return this._filterContentsMenu(this.DEFAULTS.menu || [], allowContents);
+      return this._filterContentsMenu(this.DEFAULTS.menu || [], allowContents, allowDashboard);
     }
 
     isLoggedInUser(user)
@@ -425,7 +440,8 @@
     setMenu(items) {
       if (!this._mounted) { return this; }
       const allowContents = this._isContentsManagementEnabled(this._currentUser);
-      const menuItems = this._filterContentsMenu(items, allowContents);
+      const allowDashboard = this._isDashboardEnabled(this._currentUser);
+      const menuItems = this._filterContentsMenu(items, allowContents, allowDashboard);
       this.config.menu = this._cloneMenu(menuItems);
       this.jobMenu.renderMenu(this.config.menu);
       return this;
@@ -668,6 +684,7 @@
           profile.loggedIn = true;
         }
         profile.useContentsManagement = this._isContentsManagementEnabled(profile);
+        profile.useDashboard = this._isDashboardEnabled(profile);
         return profile;
       }
 

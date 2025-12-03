@@ -9,6 +9,7 @@ class TargetManagementTargets extends Base
                 'displayGuidance',
                 'displayGoals',
                 'displayAgreements',
+                'displayBasicConfirmation',
                 'displayAnnouncements',
                 'displayReferences',
                 'displaySchedules',
@@ -976,7 +977,7 @@ class TargetManagementTargets extends Base
                         $creatorCode = $this->getLoginUserCode();
                 }
 
-                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayAnnouncements, displayReferences, displaySchedules, displayProducts, displayCreator, displayAudience, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+                $stmt = $this->getPDOTarget()->prepare("INSERT INTO targets (targetCode, title, description, status, priority, dueDate, startDate, endDate, assignedUserCode, assignedGroupCode, displayGuidance, displayGoals, displayAgreements, displayBasicConfirmation, displayAnnouncements, displayReferences, displaySchedules, displayProducts, displayCreator, displayAudience, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey, createdByUserCode, createdAt, updatedAt, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute(array(
                         $targetCode,
                         $title,
@@ -991,6 +992,7 @@ class TargetManagementTargets extends Base
                         $displayFlags['displayGuidance'],
                         $displayFlags['displayGoals'],
                         $displayFlags['displayAgreements'],
+                        $displayFlags['displayBasicConfirmation'],
                         $displayFlags['displayAnnouncements'],
                         $displayFlags['displayReferences'],
                         $displayFlags['displaySchedules'],
@@ -1005,7 +1007,8 @@ class TargetManagementTargets extends Base
                         $displayFlags['displaySurvey'],
                         $creatorCode,
                         $nowStr,
-                        $nowStr
+                        $nowStr,
+                        0
                 ));
 
                 $targetId = (int)$this->getPDOTarget()->lastInsertId();
@@ -1804,6 +1807,7 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
                                          'displayGuidance' => $displayFlags['displayGuidance'],
                                          'displayGoals' => $displayFlags['displayGoals'],
                                          'displayAgreements' => $displayFlags['displayAgreements'],
+                                         'displayBasicConfirmation' => $displayFlags['displayBasicConfirmation'],
                                          'displayAnnouncements' => $displayFlags['displayAnnouncements'],
                                          'displayReferences' => $displayFlags['displayReferences'],
                                          'displaySchedules' => $displayFlags['displaySchedules'],
@@ -1815,7 +1819,6 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
                                          'displayReviews' => $displayFlags['displayReviews'],
                                          'displayBadges' => $displayFlags['displayBadges'],
                                          'displaySurvey' => $displayFlags['displaySurvey'],
-                                         'displaySettings' => $displayFlags,
                                          'createdByUserCode' => $creatorUserCode,
                                          'createdByUserDisplayName' => $creatorDisplayName,
                                          'createdByDisplayName' => $creatorDisplayName,
