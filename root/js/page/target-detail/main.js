@@ -1093,6 +1093,7 @@
         isSupervisor: false,
         roleFlags: null
       };
+      this.targetAlias = '';
       this.refs = {
         container: null,
         helpModal: null,
@@ -1129,6 +1130,7 @@
       }
 
       this.initConfig();
+      this.targetAlias = this.resolveTargetAlias();
 
       const jsList = [
         { src: '/js/service-app/header/main.js' },
@@ -1224,6 +1226,7 @@
       await this.loadSessionProfile();
 
       this.cacheElements();
+      this.applyTargetAliasTexts();
       this.renderBreadcrumbs();
       this.updateEvent();
       await this.initialLoad();
@@ -1235,11 +1238,138 @@
       if (!this.breadcrumbService) {
         return;
       }
-      this.breadcrumbService.render([
-        { label: 'ダッシュボード', href: 'dashboard.html' },
-        { label: 'ターゲット管理', href: 'targets.html' },
-        { label: 'ターゲット詳細' }
-      ]);
+      var profile = this.state && this.state.profile ? this.state.profile : null;
+      var managementLabel = this._resolveTargetManagementLabel();
+      var items = [
+        { label: managementLabel, href: 'targets.html' },
+        { label: this.targetAlias + '詳細' }
+      ];
+      if (this._isDashboardEnabled(profile))
+      {
+        items.unshift({ label: 'ダッシュボード', href: 'dashboard.html' });
+      }
+      this.breadcrumbService.render(items);
+    }
+
+    _isDashboardEnabled(profile)
+    {
+      if (!profile)
+      {
+        return true;
+      }
+      var value = (typeof profile.useDashboard !== 'undefined')
+        ? profile.useDashboard
+        : profile.use_dashboard;
+      if (typeof value === 'undefined')
+      {
+        return true;
+      }
+      if (value === true || value === 1 || value === '1')
+      {
+        return true;
+      }
+      if (typeof value === 'string')
+      {
+        var normalized = value.toLowerCase();
+        return normalized === 'true' || normalized === 'yes' || normalized === 'on';
+      }
+      return false;
+    }
+
+    resolveTargetAlias()
+    {
+      var alias = '';
+      var settings = (window.siteSettings || window.SiteSettings || {});
+      if (settings && typeof settings.targetAlias === 'string')
+      {
+        alias = settings.targetAlias;
+      }
+      if (!alias)
+      {
+        var body = document.body || {};
+        var ds = body.dataset || {};
+        alias = ds.targetAlias || ds.targetalias || '';
+      }
+      alias = String(alias || '').trim();
+      return alias || 'ターゲット';
+    }
+
+    applyTargetAliasTexts()
+    {
+      var alias = this.targetAlias || this.resolveTargetAlias();
+      var managementLabel = this._resolveTargetManagementLabel();
+      var detailLabel = alias + '詳細';
+      var root = this.root || document;
+
+      var introTitle = root.querySelector('.screen-intro__title');
+      if (introTitle)
+      {
+        introTitle.textContent = detailLabel;
+      }
+
+      var introSummary = root.querySelector('.screen-intro__summary');
+      if (introSummary)
+      {
+        introSummary.textContent = alias + 'の配信設定、提出状況、資料、レビュー履歴を一つの画面で管理できます。';
+      }
+
+      var breadcrumbItems = root.querySelectorAll('.screen-breadcrumbs__item');
+      if (breadcrumbItems && breadcrumbItems.length >= 2)
+      {
+        var managementItem = breadcrumbItems[breadcrumbItems.length - 2];
+        var detailItem = breadcrumbItems[breadcrumbItems.length - 1];
+        var managementLink = managementItem.querySelector('a');
+        if (managementLink)
+        {
+          managementLink.textContent = managementLabel;
+        }
+        else if (managementItem)
+        {
+          managementItem.textContent = managementLabel;
+        }
+        if (detailItem)
+        {
+          var detailLink = detailItem.querySelector('a');
+          if (detailLink)
+          {
+            detailLink.textContent = detailLabel;
+          }
+          else
+          {
+            detailItem.textContent = detailLabel;
+          }
+        }
+      }
+
+      var helpModal = root.querySelector('#target-detail-help-modal');
+      if (helpModal)
+      {
+        helpModal.setAttribute('aria-label', detailLabel + 'のヒント');
+      }
+      var helpTitle = root.querySelector('#target-detail-help-modal-title');
+      if (helpTitle)
+      {
+        helpTitle.textContent = detailLabel + 'のヒント';
+      }
+    }
+
+    _resolveTargetManagementLabel()
+    {
+      var alias = this.targetAlias || this.resolveTargetAlias();
+      var flags = this.state && this.state.roleFlags;
+      if (!flags)
+      {
+        flags = this._deriveRoleFlagsFromProfile(this.state && this.state.profile);
+      }
+      if (!flags)
+      {
+        flags = { isSupervisor: false, isOperator: false };
+      }
+      this.state.roleFlags = flags;
+
+      var managementLabel = alias + '管理';
+      var listLabel = alias + '一覧';
+      return (flags.isSupervisor || flags.isOperator) ? managementLabel : listLabel;
     }
 
     initConfig()
@@ -1607,7 +1737,11 @@
       this.refs.container = document.querySelector(selectors.container);
       this.refs.helpButton = document.querySelector(selectors.helpButton);
       this.refs.helpModalElement = document.querySelector(selectors.helpModal);
-      this.root = this.refs.container || this.root || document;
+      var pageRoot = document.querySelector('[data-page="target-detail"]')
+        || document.querySelector('.screen-page')
+        || document.body
+        || document;
+      this.root = pageRoot;
     }
 
     updateEvent()
@@ -2344,11 +2478,13 @@
     openPageHelp(trigger)
     {
       trigger.setAttribute('aria-expanded', 'true');
-      
+ 
       this.lastHelpTrigger = trigger || this.refs.helpButton || this.lastHelpTrigger;
+      var alias = this.targetAlias || this.resolveTargetAlias();
+      var detailLabel = alias + '詳細';
       this.helpModalService.show({
-        title: 'ターゲット詳細のヒント',
-        text: 'この画面ではターゲットの設定や提出、資料、バッジ管理をまとめて確認できます。'
+        title: detailLabel + 'のヒント',
+        text: 'この画面では' + alias + 'の設定や提出、資料、バッジ管理をまとめて確認できます。'
       });
       this.refs.helpModalElement.removeAttribute('hidden');
       this.refs.helpModalElement.setAttribute('aria-hidden', 'false');

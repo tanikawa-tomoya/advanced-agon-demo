@@ -231,9 +231,9 @@
       return cloned;
     }
 
-    _filterContentsMenu(items, allowContents, allowDashboard) {
+    _filterContentsMenu(items, allowContents, allowDashboard, targetLabel) {
       const cloned = this._cloneMenu(items);
-      if (allowContents && allowDashboard) {
+      if (allowContents && allowDashboard && !targetLabel) {
         return cloned;
       }
       const filtered = [];
@@ -243,9 +243,24 @@
         const href = (it.href || '').toString();
         if (!allowContents && (key === 'contents' || href.indexOf('/contents') === 0)) { continue; }
         if (!allowDashboard && (key === 'dashboard' || href.indexOf('/dashboard') === 0)) { continue; }
+        if (targetLabel && (key === 'targets' || href.indexOf('/targets') === 0)) {
+          it.label = targetLabel;
+        }
         filtered.push(it);
       }
       return filtered;
+    }
+
+    _resolveTargetLabel(user)
+    {
+      const alias = this.targetAlias || this._resolveTargetAlias();
+      const isSupervisor = this.isSupervisorRole(user);
+      const isOperator = this._normalizeRoleFlag(user && user.isOperator)
+        || this._hasRoleName(user, ['operator'])
+        || isSupervisor;
+      const managementLabel = alias + '管理';
+      const listLabel = alias + '一覧';
+      return (isSupervisor || isOperator) ? managementLabel : listLabel;
     }
 
     _mergeDisplayOptions(options) {
@@ -356,17 +371,18 @@
         || isSupervisor;
       const allowContents = this._isContentsManagementEnabled(user);
       const allowDashboard = this._isDashboardEnabled(user);
+      const targetLabel = this._resolveTargetLabel(user);
 
       if (isSupervisor && presets.supervisor) {
-        return this._filterContentsMenu(presets.supervisor, allowContents, allowDashboard);
+        return this._filterContentsMenu(presets.supervisor, allowContents, allowDashboard, targetLabel);
       }
       if (isOperator && presets.operator) {
-        return this._filterContentsMenu(presets.operator, allowContents, allowDashboard);
+        return this._filterContentsMenu(presets.operator, allowContents, allowDashboard, targetLabel);
       }
       if (presets.general) {
-        return this._filterContentsMenu(presets.general, allowContents, allowDashboard);
+        return this._filterContentsMenu(presets.general, allowContents, allowDashboard, targetLabel);
       }
-      return this._filterContentsMenu(this.DEFAULTS.menu || [], allowContents, allowDashboard);
+      return this._filterContentsMenu(this.DEFAULTS.menu || [], allowContents, allowDashboard, targetLabel);
     }
 
     isLoggedInUser(user)
@@ -441,7 +457,8 @@
       if (!this._mounted) { return this; }
       const allowContents = this._isContentsManagementEnabled(this._currentUser);
       const allowDashboard = this._isDashboardEnabled(this._currentUser);
-      const menuItems = this._filterContentsMenu(items, allowContents, allowDashboard);
+      const targetLabel = this._resolveTargetLabel(this._currentUser);
+      const menuItems = this._filterContentsMenu(items, allowContents, allowDashboard, targetLabel);
       this.config.menu = this._cloneMenu(menuItems);
       this.jobMenu.renderMenu(this.config.menu);
       return this;
@@ -693,8 +710,30 @@
       return profile;
     }
 
+    _resolveTargetAlias()
+    {
+      var alias = '';
+      var settings = (window.siteSettings || window.SiteSettings || {});
+      if (settings && typeof settings.targetAlias === 'string')
+      {
+        alias = settings.targetAlias;
+      }
+
+      if (!alias)
+      {
+        var body = document.body || {};
+        var ds = body.dataset || {};
+        alias = ds.targetAlias || ds.targetalias || '';
+      }
+
+      alias = String(alias || '').trim();
+      return alias || 'ターゲット';
+    }
+
     initConfig()
     {
+      var targetAlias = this._resolveTargetAlias();
+      this.targetAlias = targetAlias;
       this.SELECTORS = Object.freeze({
         root: '.site-header',
         logo: '.site-header__logo',
@@ -714,22 +753,21 @@
         purchase: Object.freeze({ key: 'purchase', label: '購入管理', href: '/admin-purchase' }),
         contactlog: Object.freeze({ key: 'contactlog', label: '問い合わせ管理', href: '/admin-contactlog' }),
         system: Object.freeze({ key: 'system', label: 'システム管理', href: '/admin-system' }),
-        targets: Object.freeze({ key: 'targets', label: 'ターゲット管理', href: '/targets' }),
-        contents: Object.freeze({ key: 'contents', label: 'コンテンツ管理', href: '/contents' }),
-        contentAccess: Object.freeze({ key: 'contentAccess', label: 'アクセス管理', href: '/admin-contents-access' })
+        targets: Object.freeze({ key: 'targets', label: targetAlias + '管理', href: '/targets' }),
+        contents: Object.freeze({ key: 'contents', label: 'コンテンツ管理', href: '/contents' })
       });
 
       this.MENU_PRESETS = Object.freeze({
         supervisor: window.Utils.freezeArray([
-          this.MENU_ITEMS.announcements,
+          this.MENU_ITEMS.dashboard,
           this.MENU_ITEMS.users,
-          this.MENU_ITEMS.queue,
-          this.MENU_ITEMS.purchase,
-          this.MENU_ITEMS.contactlog,
-          this.MENU_ITEMS.system,
           this.MENU_ITEMS.targets,
+          this.MENU_ITEMS.system,
+          this.MENU_ITEMS.announcements,
+          this.MENU_ITEMS.contactlog,
+          this.MENU_ITEMS.queue,
           this.MENU_ITEMS.contents,
-          this.MENU_ITEMS.contentAccess
+          this.MENU_ITEMS.purchase
         ]),
         operator: window.Utils.freezeArray([
           this.MENU_ITEMS.dashboard,

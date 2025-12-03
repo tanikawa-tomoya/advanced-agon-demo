@@ -21,7 +21,7 @@
   {
     var bootOverlay = showPageBootOverlay();
     loadUtilSync();
-    await syncThemeWithServer();
+    await syncSiteSettings();
     registerServiceWorker();
 
     var pageName = detectPageName();
@@ -580,50 +580,78 @@
     applyThemePreset(cached, { persist: false, silent: true });
   }
 
-  function syncThemeWithServer()
+  var siteSettingsReady = null;
+
+  function syncSiteSettings()
   {
     var requestApi = window.Utils && window.Utils.requestApi;
     var endpoint = window.Utils && typeof window.Utils.getApiEndpoint === 'function'
       ? window.Utils.getApiEndpoint()
       : '/scripts/request.php';
 
+    if (siteSettingsReady)
+    {
+      return siteSettingsReady;
+    }
+
     if (typeof requestApi !== 'function')
     {
       applyThemePreset(THEME_DEFAULT, { persist: false, silent: true });
-      return Promise.resolve(THEME_DEFAULT);
+      var fallbackSettings = setSiteSettingsCache({ siteTheme: THEME_DEFAULT });
+      return Promise.resolve(fallbackSettings);
     }
 
-    return Promise.resolve(requestApi('System', 'SiteThemeGet', {}, {
+    siteSettingsReady = Promise.resolve(requestApi('System', 'SiteGet', {}, {
       url: endpoint,
       dataType: 'json',
       timeout: 8000
     })).then(function (response)
     {
-      var theme = resolveThemeFromPayload(response);
-      return applyThemePreset(theme, { persist: true, silent: true });
+      var settings = resolveSiteSettingsFromPayload(response);
+      var theme = resolveThemeFromSiteSettings(settings);
+      applyThemePreset(theme, { persist: true, silent: true });
+      return setSiteSettingsCache(settings);
     }).catch(function ()
     {
       applyThemePreset(THEME_DEFAULT, { persist: false, silent: true });
-      return THEME_DEFAULT;
+      return setSiteSettingsCache({ siteTheme: THEME_DEFAULT });
     });
+
+    return siteSettingsReady;
   }
 
-  function resolveThemeFromPayload(response)
+  function resolveThemeFromSiteSettings(settings)
+  {
+    var theme = settings && typeof settings.siteTheme === 'string' ? settings.siteTheme : THEME_DEFAULT;
+    return normalizeThemeValue(theme);
+  }
+
+  function resolveSiteSettingsFromPayload(response)
   {
     var payload = response && (response.result || response.payload || response.data || response);
-    var theme = '';
-    if (payload && typeof payload === 'object')
+    var list = Array.isArray(payload) ? payload : Array.isArray(payload && payload.items) ? payload.items : [];
+    var settings = {};
+    for (var i = 0; i < list.length; i += 1)
     {
-      if (typeof payload.theme === 'string')
+      var entry = list[i] || {};
+      var key = typeof entry.key === 'string' ? entry.key : '';
+      if (!key)
       {
-        theme = payload.theme;
+        continue;
       }
-      else if (payload.data && typeof payload.data.theme === 'string')
-      {
-        theme = payload.data.theme;
-      }
+      settings[key] = entry.value;
     }
-    return normalizeThemeValue(theme || THEME_DEFAULT);
+    return settings;
+  }
+
+  function setSiteSettingsCache(settings)
+  {
+    var normalized = settings && typeof settings === 'object' ? settings : {};
+    var copy = Object.assign({}, normalized);
+    window.siteSettings = copy;
+    window.SiteSettings = copy;
+    document.entrypoint.siteSettings = copy;
+    return copy;
   }
 
   function applyThemePreset(theme, options)

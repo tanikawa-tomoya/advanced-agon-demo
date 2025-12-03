@@ -1879,30 +1879,31 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
 			$activities[] = $entry;
 		};
 
-		$targetCode = isset($targetRow['targetCode']) ? trim((string)$targetRow['targetCode']) : '';
-		$targetTitle = isset($targetRow['title']) ? trim((string)$targetRow['title']) : '';
-		$targetSubject = $targetTitle !== '' ? 'ターゲット「' . $targetTitle . '」' : 'ターゲット';
+                $targetCode = isset($targetRow['targetCode']) ? trim((string)$targetRow['targetCode']) : '';
+                $targetTitle = isset($targetRow['title']) ? trim((string)$targetRow['title']) : '';
+                $targetAlias = $this->getTargetAlias();
+                $targetSubject = $targetTitle !== '' ? $targetAlias . '「' . $targetTitle . '」' : $targetAlias;
 
 		$createdAt = isset($targetRow['createdAt']) ? $targetRow['createdAt'] : null;
 		$createdTimestamp = Util::normalizeTimestampValue($createdAt);
 		$creatorSummary = $this->resolveActivityActorSummary(isset($targetRow['createdByUserCode']) ? $targetRow['createdByUserCode'] : null);
-		if ($createdTimestamp !== null) {
-			$creatorName = $creatorSummary[1];
-			$description = $creatorName !== '' ? $creatorName . 'がターゲットを作成しました。' : 'ターゲットが作成されました。';
-			$append($createdTimestamp, 'target', 'create', $targetSubject, $description, $creatorSummary[0], $creatorName);
-		}
+                if ($createdTimestamp !== null) {
+                        $creatorName = $creatorSummary[1];
+                        $description = $creatorName !== '' ? $creatorName . 'が' . $targetAlias . 'を作成しました。' : $targetAlias . 'が作成されました。';
+                        $append($createdTimestamp, 'target', 'create', $targetSubject, $description, $creatorSummary[0], $creatorName);
+                }
 
 		$updatedAt = isset($targetRow['updatedAt']) ? $targetRow['updatedAt'] : null;
 		$updatedTimestamp = Util::normalizeTimestampValue($updatedAt);
 		$statusValue = isset($targetRow['status']) ? trim((string)$targetRow['status']) : '';
 		if ($updatedTimestamp !== null && ($createdTimestamp === null || strcmp($updatedTimestamp, $createdTimestamp) !== 0)) {
-			if (isset($targetRow['isDeleted']) && (int)$targetRow['isDeleted'] === 1) {
-				$append($updatedTimestamp, 'target', 'delete', $targetSubject, $targetSubject . 'が削除されました。');
-			} else {
-				$description = $statusValue !== '' ? 'ステータス: ' . $statusValue : 'ターゲット情報が更新されました。';
-				$append($updatedTimestamp, 'target', 'update', $targetSubject, $description);
-			}
-		}
+                        if (isset($targetRow['isDeleted']) && (int)$targetRow['isDeleted'] === 1) {
+                                $append($updatedTimestamp, 'target', 'delete', $targetSubject, $targetSubject . 'が削除されました。');
+                        } else {
+                                $description = $statusValue !== '' ? 'ステータス: ' . $statusValue : $targetAlias . '情報が更新されました。';
+                                $append($updatedTimestamp, 'target', 'update', $targetSubject, $description);
+                        }
+                }
 
 		$pdo = $this->getPDOTarget();
 
@@ -2264,12 +2265,13 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
 
 
 
-	private function resolveActivityCategoryLabel($category)
-	{
-		$map = array(
-					 'target' => 'ターゲット',
-					 'agreement' => '規約',
-					 'guidance' => 'ガイダンスコンテンツ',
+        private function resolveActivityCategoryLabel($category)
+        {
+                $targetAlias = $this->getTargetAlias();
+                $map = array(
+                                         'target' => $targetAlias,
+                                        'agreement' => '規約',
+                                        'guidance' => 'ガイダンスコンテンツ',
                                         'reference' => '資料',
 					 'schedule' => 'スケジュール',
 					 'submission' => '提出',

@@ -84,11 +84,11 @@
       return {
         roleVariants: {
           admin: {
-            title: 'ターゲット管理（管理者向け）',
+            title: this._targetAlias() + '管理（管理者向け）',
             html: adminHtml
           },
           user: {
-            title: 'ターゲット管理（利用者向け）',
+            title: this._targetAlias() + '管理（利用者向け）',
             html: userHtml
           }
         }
@@ -102,16 +102,18 @@
         return '';
       }
 
+      var alias = this._targetAlias();
+
       return '' +
         '<h3>管理者のチェックポイント</h3>' +
         '<ul>' +
           '<li>ドラフト作成後は期間・担当者・配布設定を整えてから公開します。</li>' +
           '<li>公開後はステータスを更新し、滞留が疑われる案件は担当者や開始日で並べ替えて確認します。</li>' +
-          '<li>「表示列」やフィルタで必要な指標に絞り込み、優先度の高いターゲットを把握します。</li>' +
+          '<li>「表示列」やフィルタで必要な指標に絞り込み、優先度の高い' + alias + 'を把握します。</li>' +
         '</ul>' +
         '<h3>権限付き操作</h3>' +
         '<ul>' +
-          '<li>「新規作成」からテンプレや配布中ターゲットを登録し、必要に応じて編集・削除できます。</li>' +
+          '<li>「新規作成」からテンプレや配布中' + alias + 'を登録し、必要に応じて編集・削除できます。</li>' +
           '<li>担当者・参加者を設定して役割を明確化し、進行中のタスクを追跡します。</li>' +
           '<li>完了・キャンセルしたものはステータスを更新し、履歴管理を徹底してください。</li>' +
         '</ul>' +
@@ -125,23 +127,27 @@
         return '';
       }
 
+      var alias = this._targetAlias();
+
       return '' +
         '<h3>利用者の使いどころ</h3>' +
         '<ul>' +
-          '<li>検索とフィルタで自分に関係するターゲットを素早く見つけられます。</li>' +
+          '<li>検索とフィルタで自分に関係する' + alias + 'を素早く見つけられます。</li>' +
           '<li>一覧の表示列を切り替えて、期限・ステータス・担当者など必要な情報を確認します。</li>' +
-          '<li>自分に割り当てられたターゲットは進行状況をステータスで共有し、コメントや更新内容を整えてください。</li>' +
+          '<li>自分に割り当てられた' + alias + 'は進行状況をステータスで共有し、コメントや更新内容を整えてください。</li>' +
         '</ul>' +
         '<p>権限に応じて表示・編集できる項目が変わります。操作できない項目は管理者に連絡してください。</p>';
     }
 
-    _topicTitle(topic) {
-      if (topic === 'form') return 'ターゲット管理 - フォーム';
-      if (topic === 'list') return 'ターゲット管理 - 一覧';
-      return 'ターゲット管理ヘルプ';
+  _topicTitle(topic) {
+      var alias = this._targetAlias();
+      if (topic === 'form') return alias + '管理 - フォーム';
+      if (topic === 'list') return alias + '管理 - 一覧';
+      return alias + '管理ヘルプ';
     }
 
     _topicHtml(topic) {
+      var alias = this._targetAlias();
       if (topic === 'form') {
         return '' +
           '<h3>フォームの使い方</h3>' +
@@ -157,16 +163,27 @@
           '<ul>' +
             '<li>検索ボックスで絞り込みできます。</li>' +
             '<li>フィルタ変更で自動再検索します。</li>' +
-            '<li>ページングで前後ページに移動できます。</li>' +
-          '</ul>';
+          '<li>ページングで前後ページに移動できます。</li>' +
+        '</ul>';
       }
       return '' +
-        '<h3>ターゲット管理について</h3>' +
-        '<p>この画面ではターゲットの作成・編集・検索・削除が行えます。</p>' +
+        '<h3>' + alias + '管理について</h3>' +
+        '<p>この画面では' + alias + 'の作成・編集・検索・削除が行えます。</p>' +
         '<ul>' +
           '<li>ヘルプボタンからトピック別の説明を開けます。</li>' +
           '<li>保存・削除時はトーストに結果が表示されます。</li>' +
         '</ul>';
+    }
+
+    _targetAlias()
+    {
+      var alias = '';
+      if (this.page && typeof this.page.resolveTargetAlias === 'function')
+      {
+        alias = this.page.targetAlias || this.page.resolveTargetAlias();
+      }
+      alias = String(alias || '').trim();
+      return alias || 'ターゲット';
     }
 
   }

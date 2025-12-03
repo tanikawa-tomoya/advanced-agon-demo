@@ -101,14 +101,15 @@
       const isSupervisor = service.isSupervisorRole(profile);
       this.toggleSupervisorLayout($root, isSupervisor);
       const allowContents = service._isContentsManagementEnabled(profile);
+      const allowDashboard = service._isDashboardEnabled(profile);
       let menuItems = service.config && service.config.menu ? menuJob.cloneMenu(service.config.menu) : [];
       if (!service._hasCustomMenu) {
         menuItems = service.resolveMenuByRole(profile);
         service.config.menu = menuJob.cloneMenu(menuItems);
       } else {
-        menuItems = service._filterContentsMenu(menuItems, allowContents);
+        menuItems = service._filterContentsMenu(menuItems, allowContents, allowDashboard);
       }
-      menuItems = service._filterContentsMenu(menuItems, allowContents);
+      menuItems = service._filterContentsMenu(menuItems, allowContents, allowDashboard);
       menuJob.renderMenu(menuItems);
     }
 

@@ -20,6 +20,8 @@
 
       this.selectorConfig = {};
       this.textConfig = {};
+      this.columnVisibility = null;
+      this.columnVisibilityStorageKey = 'admin-users-column-visibility';
       this.api = {
         endpoint: window.Utils.getApiEndpoint(),
         requestType: 'User',
@@ -239,6 +241,8 @@
         role: '[data-admin-users-role]',
         deleted: '[data-admin-users-deleted]',
         actions: '[data-admin-users-actions]',
+        columnControls: '[data-admin-users-column-controls]',
+        columnCheckbox: '[data-admin-users-column-checkbox]',
         reloadBtn: '[data-action="admin-users-reload"]',
         addBtn: '[data-action="admin-users-add"]',
         table: '[data-admin-users-table]',

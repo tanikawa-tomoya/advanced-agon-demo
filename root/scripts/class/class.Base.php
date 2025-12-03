@@ -59,9 +59,10 @@ class Base
 											 'max_execution_time'  => 7200,
 											 ];
 	
-	private $documentRoot;
-	private $requestURI;
-	private $siteTitle;
+        private $documentRoot;
+        private $requestURI;
+        private $siteTitle;
+        private $targetAlias;
 	
 	CONST RESULT_SUCCESS = 0;
 	CONST RESULT_ERROR = 1;
@@ -175,20 +176,33 @@ class Base
 			return htmlspecialchars((string) $raw, ENT_QUOTES, 'UTF-8');
         }
 
-	protected function getSiteTitle(): string
+        protected function getSiteTitle(): string
         {
-			if ($this->siteTitle === null) {
-				$stmt = $this->getPDOCommon()->prepare("SELECT value FROM siteSettings WHERE key = ?");
-				$stmt->execute(array("siteTitle"));
-				$row = $stmt->fetch(PDO::FETCH_ASSOC);
-				if ($row && isset($row['value']) && $row['value'] !== '') {
-					$this->siteTitle = $row['value'];
+                        if ($this->siteTitle === null) {
+                                $stmt = $this->getPDOCommon()->prepare("SELECT value FROM siteSettings WHERE key = ?");
+                                $stmt->execute(array("siteTitle"));
+                               $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                               if ($row && isset($row['value']) && $row['value'] !== '') {
+                                       $this->siteTitle = $row['value'];
 				} else {
 					$this->siteTitle = 'MARMO HUB';
 				}
 			}
 
-			return $this->siteTitle;
+                        return $this->siteTitle;
+        }
+
+        protected function getTargetAlias(): string
+        {
+                        if ($this->targetAlias === null) {
+                                $stmt = $this->getPDOCommon()->prepare("SELECT value FROM siteSettings WHERE key = ?");
+                                $stmt->execute(array('targetAlias'));
+                                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                                $value = $row && isset($row['value']) ? trim((string) $row['value']) : '';
+                                $this->targetAlias = $value !== '' ? $value : 'ターゲット';
+                        }
+
+                        return $this->targetAlias;
         }
 
 	public static function normalizeGroupCode($value): ?string

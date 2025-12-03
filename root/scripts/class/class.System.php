@@ -73,9 +73,20 @@ class System extends Base
 
         public function procSiteGet()
         {
-                $stmt = $this->getPDOCommon()->prepare("SELECT * FROM siteSettings");
-                $stmt->execute(array());
+                $sql = 'SELECT * FROM siteSettings';
+                $params = array();
+
+                if ($this->isSupervisor() == false) {
+                        $allowedKeys = array('siteTitle', 'siteTheme', 'targetAlias');
+                        $placeholders = implode(',', array_fill(0, count($allowedKeys), '?'));
+                        $sql .= ' WHERE key IN (' . $placeholders . ')';
+                        $params = $allowedKeys;
+                }
+
+                $stmt = $this->getPDOCommon()->prepare($sql);
+                $stmt->execute($params);
                 $this->response = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $this->status = parent::RESULT_SUCCESS;
         }
 
         public function procSiteThemeGet()

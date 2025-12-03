@@ -348,7 +348,7 @@
 
       var empty = document.createElement('div');
       empty.className = 'target-schedule__empty';
-      empty.textContent = 'このターゲットに共有されたスケジュールはまだありません。';
+      empty.textContent = '共有されたスケジュールはまだありません。';
       this.refs.empty = empty;
       section.appendChild(empty);
 
@@ -1388,7 +1388,7 @@
         {
           var message = this.state.items.length
             ? '条件に一致するスケジュールはありません。'
-            : 'このターゲットに共有されたスケジュールはまだありません。';
+            : '共有されたスケジュールはまだありません。';
           this.refs.empty.textContent = message;
           this.refs.empty.hidden = false;
         }

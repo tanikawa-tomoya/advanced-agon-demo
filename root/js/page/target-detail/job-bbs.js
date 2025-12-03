@@ -3017,7 +3017,7 @@
       var session = service.open({
         multiple: true,
         availableUsers: availableUsers,
-        emptyMessage: 'このターゲットの参加者が見つかりません。',
+        emptyMessage: '参加者が見つかりません。',
         onApply: (users) =>
         {
           this.handleThreadCreate(users);

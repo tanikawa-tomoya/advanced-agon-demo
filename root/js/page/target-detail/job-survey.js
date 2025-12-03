@@ -20,6 +20,29 @@
     return String(value).trim();
   }
 
+  function isGuestUser(entry)
+  {
+    if (!entry || typeof entry !== 'object')
+    {
+      return false;
+    }
+    var type = normalizeText(entry.userType || entry.participantType || entry.type || entry.role || '');
+    if (type && type.toLowerCase() === 'guest')
+    {
+      return true;
+    }
+    var guestFlags = [entry.isGuest, entry.guest, entry.isGuestUser, entry.guestUser];
+    for (var i = 0; i < guestFlags.length; i += 1)
+    {
+      var value = guestFlags[i];
+      if (value === true || value === 1 || value === '1' || value === 'true')
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function formatDateTime(helpers, value)
   {
     if (!helpers || typeof helpers.formatDateTime !== 'function')
@@ -96,13 +119,56 @@
     {
       return null;
     }
-    if (entry.isActive === false)
+    var user = entry.user && typeof entry.user === 'object' ? entry.user : null;
+    var userCode = normalizeText(
+      entry.userCode || entry.code || entry.loginId || (user && (user.userCode || user.code || user.loginId)) || ''
+    );
+    var displayName = normalizeText(
+      entry.displayName
+      || entry.userDisplayName
+      || entry.name
+      || (user && (user.displayName || user.userDisplayName || user.name || user.fullName))
+      || userCode
+    );
+    if (!userCode && !displayName)
     {
       return null;
     }
-    var userCode = normalizeText(entry.userCode || entry.code || '');
-    var displayName = normalizeText(entry.displayName || entry.userDisplayName || entry.name || userCode);
-    if (!userCode && !displayName)
+    var isActive = entry.isActive;
+    var status = typeof entry.status === 'string' ? entry.status.toLowerCase() : '';
+    if (entry.active === false || entry.active === 0 || entry.active === '0' || entry.active === 'false')
+    {
+      isActive = false;
+    }
+    if (status === 'inactive')
+    {
+      isActive = false;
+    }
+    if (entry.endedAt)
+    {
+      isActive = false;
+    }
+    if (user)
+    {
+      if (user.isActive === false || user.isActive === 0 || user.isActive === '0' || user.isActive === 'false')
+      {
+        isActive = false;
+      }
+      if (user.active === false || user.active === 0 || user.active === '0' || user.active === 'false')
+      {
+        isActive = false;
+      }
+      var userStatus = typeof user.status === 'string' ? user.status.toLowerCase() : '';
+      if (userStatus === 'inactive')
+      {
+        isActive = false;
+      }
+      if (user.endedAt)
+      {
+        isActive = false;
+      }
+    }
+    if (isActive === false)
     {
       return null;
     }
@@ -129,20 +195,25 @@
       hasAcknowledgement = hasAcknowledgementData || true;
     }
     hasAcknowledgement = Boolean(hasAcknowledgement);
+    var guestFlag = isGuestUser(entry) || isGuestUser(user);
+    var selectionKey = normalizeText(entry.selectionKey || entry.recipientKey || entry.participantKey || (user && user.selectionKey) || '');
+    var role = normalizeText(entry.role || (user && user.role));
     return {
       userCode: userCode,
       displayName: displayName || userCode || 'ユーザー',
-      role: normalizeText(entry.role || ''),
+      role: role,
       acknowledgedAt: acknowledgedAt,
       acknowledgedDisplay: acknowledgedAt || (entry.acknowledgedAtDisplay || ''),
       hasAcknowledgement: hasAcknowledgement,
       respondedAt: respondedAt,
       respondedAtDisplay: respondedAt || (entry.respondedAtDisplay || ''),
       answers: answers,
-      avatarUrl: normalizeText(entry.avatarUrl || entry.photoUrl || ''),
-      avatarInitial: normalizeText(entry.avatarInitial || entry.initial || ''),
-      avatarTransform: normalizeText(entry.avatarTransform || entry.transform || ''),
-      isActive: entry.isActive !== false
+      avatarUrl: normalizeText(entry.avatarUrl || entry.photoUrl || (user && (user.avatarUrl || user.photoUrl)) || ''),
+      avatarInitial: normalizeText(entry.avatarInitial || entry.initial || (user && (user.avatarInitial || user.initial)) || ''),
+      avatarTransform: normalizeText(entry.avatarTransform || entry.transform || (user && (user.avatarTransform || user.transform)) || ''),
+      isActive: true,
+      isGuest: guestFlag,
+      selectionKey: selectionKey
     };
   }
 
@@ -151,6 +222,10 @@
     if (!entry)
     {
       return '';
+    }
+    if (entry.selectionKey)
+    {
+      return String(entry.selectionKey).toLowerCase();
     }
     if (entry.userCode)
     {
@@ -225,7 +300,7 @@
 
       var empty = document.createElement('div');
       empty.className = 'target-reference__empty';
-      empty.textContent = 'このターゲットへのアンケートはまだありません。';
+      empty.textContent = 'アンケートはまだありません。';
       this.refs.empty = empty;
       section.appendChild(empty);
 
@@ -379,19 +454,31 @@
     {
       var seen = Object.create(null);
       var recipients = [];
-      (Array.isArray(list) ? list : []).forEach(function (entry)
+      (Array.isArray(list) ? list : []).forEach(function (entry, index)
       {
         var normalized = normalizeRecipient(entry);
         if (!normalized)
         {
           return;
         }
+        if (!normalized.selectionKey && entry && entry.selectionKey)
+        {
+          normalized.selectionKey = normalizeText(entry.selectionKey);
+        }
+        if (!normalized.selectionKey && (normalized.isGuest || isGuestUser(entry)))
+        {
+          normalized.selectionKey = (normalized.userCode || normalized.displayName || 'guest') + ':' + index;
+        }
         var key = buildAudienceKey(normalized);
-        if (key && seen[key])
+        var isGuest = normalized.isGuest || isGuestUser(entry);
+        if (key && seen[key] && !isGuest)
         {
           return;
         }
-        seen[key] = true;
+        if (key)
+        {
+          seen[key] = true;
+        }
         recipients.push(normalized);
       });
       return recipients;
@@ -893,6 +980,12 @@
         : periodState === 'after'
           ? '締め切り済み'
           : '回答フォームを表示する';
+
+      if (this.isGuestViewer() && this.hasRespondedAsViewer(item))
+      {
+        canRespond = false;
+        label = '回答済み';
+      }
 
       var respondButton = this.createServiceActionButton('target-survey-response', {
         label: label,
@@ -1925,6 +2018,12 @@
         title: submitLabel
       });
       modal.submitButton = submitButton;
+      if (this.isGuestViewer() && this.hasRespondedAsViewer(modal.currentItem))
+      {
+        submitButton.disabled = true;
+        submitButton.title = 'ゲストユーザーによる回答は再編集できません。';
+        submitButton.setAttribute('aria-disabled', 'true');
+      }
       submitButton.addEventListener('click', (event) =>
       {
         event.preventDefault();
@@ -3614,6 +3713,14 @@
       {
         return;
       }
+      if (this.isGuestViewer() && this.hasRespondedAsViewer(modal.currentItem))
+      {
+        if (this.page && typeof this.page.showToast === 'function')
+        {
+          this.page.showToast('info', 'ゲストユーザーの回答は送信後に編集できません。');
+        }
+        return;
+      }
       var confirmed = await this.page.confirmDialogService.open('この内容で回答を送信しますか？', { type: 'primary' });
       if (!confirmed)
       {
@@ -3722,6 +3829,31 @@
       var profile = this.page && this.page.state ? this.page.state.profile : null;
       var code = profile && (profile.userCode || profile.user_code || profile.code || '');
       return normalizeText(code);
+    }
+
+    isGuestViewer()
+    {
+      var profile = this.page && this.page.state ? this.page.state.profile : null;
+      return isGuestUser(profile);
+    }
+
+    hasRespondedAsViewer(item)
+    {
+      var viewerCode = this.getViewerUserCode();
+      if (!viewerCode)
+      {
+        return false;
+      }
+      var recipient = this.findRecipientForUser(item, viewerCode);
+      if (!recipient)
+      {
+        return false;
+      }
+      if (!recipient.isGuest && !isGuestUser(recipient))
+      {
+        return false;
+      }
+      return Boolean(recipient.respondedAt);
     }
 
     findPendingSurvey(userCode)
@@ -5527,7 +5659,9 @@
     getAudienceCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
+      var candidates = participants.concat(assignedUsers);
 
       var seen = Object.create(null);
       var normalized = [];
@@ -5537,8 +5671,16 @@
         {
           return;
         }
-        var userCode = (entry.userCode || entry.code || entry.loginId || '').trim();
-        var displayName = (entry.displayName || entry.userDisplayName || entry.name || entry.fullName || '').trim();
+        var user = entry.user && typeof entry.user === 'object' ? entry.user : null;
+        var userCode = (entry.userCode || entry.code || entry.loginId || (user && (user.userCode || user.code || user.loginId)) || '').trim();
+        var displayName = (
+          entry.displayName
+          || entry.userDisplayName
+          || entry.name
+          || entry.fullName
+          || (user && (user.displayName || user.userDisplayName || user.name || user.fullName))
+          || ''
+        ).trim();
         if (!displayName && userCode)
         {
           displayName = userCode;
@@ -5562,6 +5704,26 @@
         {
           isActive = false;
         }
+        if (user)
+        {
+          if (user.isActive === false || user.isActive === 0 || user.isActive === '0' || user.isActive === 'false')
+          {
+            isActive = false;
+          }
+          if (user.active === false || user.active === 0 || user.active === '0' || user.active === 'false')
+          {
+            isActive = false;
+          }
+          var userStatus = typeof user.status === 'string' ? user.status.toLowerCase() : '';
+          if (userStatus === 'inactive')
+          {
+            isActive = false;
+          }
+          if (user.endedAt)
+          {
+            isActive = false;
+          }
+        }
         if (isActive === false)
         {
           return;
@@ -5570,11 +5732,17 @@
         var recipient = normalizeRecipient({
           userCode: userCode,
           displayName: displayName,
-          mail: entry.mail || entry.mailAddress || entry.email || '',
-          isActive: true
+          mail: entry.mail || entry.mailAddress || entry.email || (user && (user.mail || user.mailAddress || user.email)) || '',
+          isActive: true,
+          isGuest: isGuestUser(entry) || isGuestUser(user),
+          selectionKey: (entry && entry.selectionKey) || (user && user.selectionKey) || ''
         });
+        if (!recipient.selectionKey && recipient.isGuest)
+        {
+          recipient.selectionKey = (recipient.userCode || recipient.displayName || 'guest') + ':' + normalized.length;
+        }
         var key = buildAudienceKey(recipient);
-        if (key && seen[key])
+        if (key && seen[key] && !recipient.isGuest)
         {
           return;
         }
@@ -5595,19 +5763,31 @@
       }
       var seen = Object.create(null);
       var selection = [];
-      (Array.isArray(list) ? list : []).forEach(function (entry)
+      (Array.isArray(list) ? list : []).forEach(function (entry, index)
       {
         var normalized = normalizeRecipient(entry);
         if (!normalized)
         {
           return;
         }
+        if (!normalized.selectionKey && entry && entry.selectionKey)
+        {
+          normalized.selectionKey = normalizeText(entry.selectionKey);
+        }
+        if (!normalized.selectionKey && (normalized.isGuest || isGuestUser(entry)))
+        {
+          normalized.selectionKey = (normalized.userCode || normalized.displayName || 'guest') + ':' + index;
+        }
         var key = buildAudienceKey(normalized);
-        if (key && seen[key])
+        var isGuest = normalized.isGuest || isGuestUser(entry);
+        if (key && seen[key] && !isGuest)
         {
           return;
         }
-        seen[key] = true;
+        if (key)
+        {
+          seen[key] = true;
+        }
         selection.push(normalized);
       });
       modal.selectedRecipients = selection;
@@ -5751,6 +5931,10 @@
       var candidates = this.getAudienceCandidates();
       var availableUsers = candidates.filter(function (entry)
       {
+        if (isGuestUser(entry))
+        {
+          return true;
+        }
         return selectedKeys.indexOf(buildAudienceKey(entry)) === -1;
       });
       service.open({

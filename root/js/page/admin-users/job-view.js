@@ -35,6 +35,16 @@
       this.page = page;
       this.avatarService = null;
       this._doc = document;
+      this._columnDefinitions = [
+        { key: 'name', label: '氏名 / コード', className: 'col--name', alwaysVisible: true },
+        { key: 'mail', label: 'メール', className: 'col--mail', defaultVisible: true },
+        { key: 'organization', label: '所属', className: 'col--organization', defaultVisible: true },
+        { key: 'role', label: 'ロール', className: 'col--role', defaultVisible: true },
+        { key: 'dashboard', label: 'ダッシュボード', className: 'col--dashboard', defaultVisible: true },
+        { key: 'contents', label: 'コンテンツ管理', className: 'col--contents', defaultVisible: true },
+        { key: 'selectable', label: '選択可能ユーザー', className: 'col--selectable', defaultVisible: true },
+        { key: 'actions', label: '操作', className: 'col--actions', alwaysVisible: true }
+      ];
     }
 
     async loadUsers() {
@@ -250,6 +260,8 @@
       const $tbody = $(sel.tableBody);
       if (!$tbody.length) return;
 
+      this._renderColumnSelector();
+
       const rows = (this.page.filtered || []).map((u) => {
         const mailCell = this._renderMailCell(u);
         const deletedMark = u.isDeleted ? ' data-deleted="1"' : '';
@@ -289,6 +301,182 @@
       this._mountUserAvatars();
       this._applyAvatarPopovers();
       this._mountSelectableUserlists();
+      this._applyColumnVisibility();
+    }
+
+    _renderColumnSelector() {
+      const sel = this.page.selectorConfig || {};
+      const container = this._doc.querySelector(sel.columnControls);
+      if (!container) {
+        return;
+      }
+
+      const definitions = this._getColumnDefinitions().filter((def) => !def.alwaysVisible);
+      if (!definitions.length) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const visibility = this._getColumnVisibility();
+      const blocks = ['<div class="admin-users__column-selector-label">表示する列</div>', '<div class="admin-users__column-options">'];
+      for (let i = 0; i < definitions.length; i += 1) {
+        const def = definitions[i];
+        const checked = visibility[def.key] !== false ? ' checked' : '';
+        blocks.push(
+          `<label class="admin-users__column-toggle">`
+          + `<input type="checkbox" data-admin-users-column-checkbox data-column-key="${this._esc(def.key)}"${checked}>`
+          + `<span>${this._esc(def.label || def.key)}</span>`
+          + '</label>'
+        );
+      }
+      blocks.push('</div>');
+
+      container.innerHTML = blocks.join('');
+      this._bindColumnSelector(container);
+    }
+
+    _bindColumnSelector(container) {
+      const sel = this.page.selectorConfig || {};
+      const checkboxSelector = sel.columnCheckbox || '[data-admin-users-column-checkbox]';
+      $(container).off('change.adminUsers.columns', checkboxSelector)
+        .on('change.adminUsers.columns', checkboxSelector, (ev) => {
+          const key = (ev.currentTarget && ev.currentTarget.getAttribute('data-column-key')) || '';
+          const checked = !!(ev.currentTarget && ev.currentTarget.checked);
+          this._setColumnVisibility(key, checked);
+          this._applyColumnVisibility();
+        });
+    }
+
+    _applyColumnVisibility() {
+      const sel = this.page.selectorConfig || {};
+      const table = this._doc.querySelector(sel.table);
+      if (!table) {
+        return;
+      }
+      const definitions = this._getColumnDefinitions();
+      if (!definitions.length) {
+        return;
+      }
+      const visibility = this._getColumnVisibility();
+      const hiddenClass = 'user-table__column-hidden';
+      for (let i = 0; i < definitions.length; i += 1) {
+        const def = definitions[i];
+        if (!def.className) {
+          continue;
+        }
+        const visible = def.alwaysVisible || visibility[def.key] !== false;
+        const nodes = table.querySelectorAll('.' + def.className);
+        for (let j = 0; j < nodes.length; j += 1) {
+          const node = nodes[j];
+          if (!node || !node.classList) { continue; }
+          if (visible) {
+            node.classList.remove(hiddenClass);
+            node.removeAttribute('aria-hidden');
+          } else {
+            node.classList.add(hiddenClass);
+            node.setAttribute('aria-hidden', 'true');
+          }
+        }
+      }
+    }
+
+    _getColumnDefinitions() {
+      return Array.isArray(this._columnDefinitions) ? this._columnDefinitions : [];
+    }
+
+    _getColumnVisibility() {
+      if (this.page && this.page.columnVisibility) {
+        return this.page.columnVisibility;
+      }
+      const definitions = this._getColumnDefinitions();
+      const stored = this._loadStoredColumnVisibility();
+      const visibility = {};
+      for (let i = 0; i < definitions.length; i += 1) {
+        const def = definitions[i];
+        if (!def || !def.key) {
+          continue;
+        }
+        if (def.alwaysVisible) {
+          visibility[def.key] = true;
+          continue;
+        }
+        if (stored && Object.prototype.hasOwnProperty.call(stored, def.key)) {
+          visibility[def.key] = stored[def.key] !== false;
+        } else {
+          visibility[def.key] = def.defaultVisible !== false;
+        }
+      }
+      if (this.page) {
+        this.page.columnVisibility = visibility;
+      }
+      return visibility;
+    }
+
+    _setColumnVisibility(key, isVisible) {
+      if (!key) {
+        return;
+      }
+      const definitions = this._getColumnDefinitions();
+      let matched = null;
+      for (let i = 0; i < definitions.length; i += 1) {
+        if (definitions[i] && definitions[i].key === key) {
+          matched = definitions[i];
+          break;
+        }
+      }
+      if (!matched) {
+        return;
+      }
+      if (matched.alwaysVisible) {
+        return;
+      }
+      const visibility = this._getColumnVisibility();
+      visibility[key] = isVisible !== false;
+      if (this.page) {
+        this.page.columnVisibility = visibility;
+      }
+      this._saveColumnVisibility(visibility);
+    }
+
+    _loadStoredColumnVisibility() {
+      try {
+        if (w && w.localStorage) {
+          const raw = w.localStorage.getItem(this._getColumnStorageKey()) || '';
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+              return parsed;
+            }
+          }
+        }
+      } catch (err) {
+        if (w.console && typeof w.console.warn === 'function') {
+          w.console.warn('[AdminUsers.JobView] Failed to parse stored column visibility', err);
+        }
+      }
+      return null;
+    }
+
+    _saveColumnVisibility(state) {
+      if (!state || typeof state !== 'object') {
+        return;
+      }
+      try {
+        if (w && w.localStorage && typeof w.localStorage.setItem === 'function') {
+          w.localStorage.setItem(this._getColumnStorageKey(), JSON.stringify(state));
+        }
+      } catch (err) {
+        if (w.console && typeof w.console.warn === 'function') {
+          w.console.warn('[AdminUsers.JobView] Failed to save column visibility', err);
+        }
+      }
+    }
+
+    _getColumnStorageKey() {
+      if (this.page && this.page.columnVisibilityStorageKey) {
+        return this.page.columnVisibilityStorageKey;
+      }
+      return 'admin-users-column-visibility';
     }
 
     _renderMailCell(user) {

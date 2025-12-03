@@ -348,7 +348,7 @@
 
       var empty = document.createElement('div');
       empty.className = 'target-product__empty';
-      empty.textContent = 'このターゲットに共有された商品はまだありません。';
+      empty.textContent = '共有された商品はまだありません。';
       this.refs.empty = empty;
       section.appendChild(empty);
 
@@ -1388,7 +1388,7 @@
         {
           var message = this.state.items.length
             ? '条件に一致する商品はありません。'
-            : 'このターゲットに共有された商品はまだありません。';
+            : '共有された商品はまだありません。';
           this.refs.empty.textContent = message;
           this.refs.empty.hidden = false;
         }

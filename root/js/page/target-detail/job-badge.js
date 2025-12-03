@@ -752,7 +752,7 @@
       {
         var empty = document.createElement('p');
         empty.className = 'target-detail__badge-empty';
-        empty.textContent = 'このターゲットではまだバッジが授与されていません。';
+        empty.textContent = 'まだバッジが授与されていません。';
         this.refs.list.appendChild(empty);
         return;
       }
