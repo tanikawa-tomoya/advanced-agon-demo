@@ -1532,10 +1532,14 @@ public function procTargetSurveyItemList()
                         $pdo->beginTransaction();
 
                         $responseId = null;
-                        if ($guestResponse) {
+                        $appendResponse = $isGuestMode;
+                        $responseAction = null;
+
+                        if ($guestResponse || $appendResponse) {
                                 $insertResponse = $pdo->prepare('INSERT INTO targetSurveyResponses (targetSurveyId, userCode, respondedAt, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)');
                                 $insertResponse->execute(array($surveyId, $userCode, $respondedAt, $now, $now));
                                 $responseId = (int)$pdo->lastInsertId();
+                                $responseAction = 'insert';
                         } else {
                                 $existingStmt = $pdo->prepare('SELECT id FROM targetSurveyResponses WHERE targetSurveyId = ? AND userCode = ? LIMIT 1');
                                 $existingStmt->execute(array($surveyId, $userCode));
@@ -1544,10 +1548,12 @@ public function procTargetSurveyItemList()
                                         $responseId = (int)$existingId;
                                         $updateStmt = $pdo->prepare('UPDATE targetSurveyResponses SET respondedAt = ?, updatedAt = ? WHERE id = ?');
                                         $updateStmt->execute(array($respondedAt, $now, $responseId));
+                                        $responseAction = 'update';
                                 } else {
                                         $insertResponse = $pdo->prepare('INSERT INTO targetSurveyResponses (targetSurveyId, userCode, respondedAt, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)');
                                         $insertResponse->execute(array($surveyId, $userCode, $respondedAt, $now, $now));
                                         $responseId = (int)$pdo->lastInsertId();
+                                        $responseAction = 'insert';
                                 }
                         }
 
@@ -1608,6 +1614,16 @@ public function procTargetSurveyItemList()
                         }
 
                         $pdo->commit();
+
+                        if ($isGuestMode && $responseAction !== null) {
+                                $this->logSurveyEvent('procTargetSurveySubmit guest response ' . $responseAction, array(
+                                        'surveyId' => $surveyId,
+                                        'targetCode' => $targetCode,
+                                        'userCode' => $userCode,
+                                        'responseId' => $responseId,
+                                        'guestResponse' => $guestResponse,
+                                ));
+                        }
                 } catch (Exception $exception) {
                         if ($pdo->inTransaction()) {
                                 $pdo->rollBack();
@@ -2886,6 +2902,8 @@ public function procTargetSurveyItemList()
                                 $row['isGuestResponse'] = true;
                                 $row['guestDisplayName'] = $responseId > 0 ? ('ゲスト回答 #' . $responseId) : 'ゲスト回答';
                         }
+                        $row['isGuestResponse'] = isset($row['isGuestResponse']) ? ((bool)$row['isGuestResponse']) : $isGuestMode;
+                        $row['isGuestMode'] = $isGuestMode;
                         if ($userCode === '') {
                                 continue;
                         }
@@ -3140,6 +3158,8 @@ public function procTargetSurveyItemList()
                         }
                         $surveyId = isset($response['targetSurveyId']) ? (int)$response['targetSurveyId'] : 0;
                         $userCode = isset($response['userCode']) ? trim((string)$response['userCode']) : '';
+                        $isGuestResponse = isset($response['isGuestResponse']) ? ((bool)$response['isGuestResponse']) : false;
+                        $isGuestMode = isset($response['isGuestMode']) ? ((int)$response['isGuestMode'] !== 0) : false;
                         if ($surveyId <= 0 || $userCode === '') {
                                 continue;
                         }
@@ -3147,8 +3167,15 @@ public function procTargetSurveyItemList()
                         if ($normalizedUser === '') {
                                 continue;
                         }
+                        if ($isGuestMode && $isGuestResponse === false) {
+                                $isGuestResponse = true;
+                        }
 
                         $responseId = isset($response['id']) ? (int)$response['id'] : 0;
+                        $responseKey = $normalizedUser;
+                        if ($isGuestResponse) {
+                                $responseKey = $normalizedUser . '#resp-' . ($responseId > 0 ? $responseId : $this->generateUniqid());
+                        }
                         $answers = array();
                         if ($responseId > 0 && isset($responseItemMap[$responseId])) {
                                 foreach ($responseItemMap[$responseId] as $itemRow) {
@@ -3179,11 +3206,13 @@ public function procTargetSurveyItemList()
                                 $lookup[$surveyKey] = array();
                         }
 
-                        $lookup[$surveyKey][$normalizedUser] = array(
+                        $lookup[$surveyKey][$responseKey] = array(
                                 'userCode' => $userCode,
                                 'respondedAt' => isset($response['respondedAt']) ? $response['respondedAt'] : null,
                                 'answers' => $answers,
-                                'isGuestResponse' => isset($response['isGuestResponse']) ? ((bool)$response['isGuestResponse']) : false,
+                                'isGuestResponse' => $isGuestResponse,
+                                'isGuestMode' => $isGuestMode,
+                                'normalizedUserCode' => $normalizedUser,
                                 'guestDisplayName' => isset($response['guestDisplayName']) ? $response['guestDisplayName'] : null,
                         );
                 }

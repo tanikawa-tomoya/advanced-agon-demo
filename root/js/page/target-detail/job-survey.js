@@ -101,29 +101,6 @@
     return normalizeBooleanFlag(flag);
   }
 
-  function isGuestUser(entry)
-  {
-    if (!entry || typeof entry !== 'object')
-    {
-      return false;
-    }
-    var type = normalizeText(entry.userType || entry.participantType || entry.type || entry.role || '');
-    if (type && type.toLowerCase() === 'guest')
-    {
-      return true;
-    }
-    var guestFlags = [entry.isGuest, entry.guest, entry.isGuestUser, entry.guestUser];
-    for (var i = 0; i < guestFlags.length; i += 1)
-    {
-      var value = guestFlags[i];
-      if (value === true || value === 1 || value === '1' || value === 'true')
-      {
-        return true;
-      }
-    }
-    return false;
-  }
-
   function normalizeRecipient(entry)
   {
     if (!entry)
@@ -206,7 +183,8 @@
       hasAcknowledgement = hasAcknowledgementData || true;
     }
     hasAcknowledgement = Boolean(hasAcknowledgement);
-    var guestFlag = isGuestUser(entry) || isGuestUser(user);
+    var guestFlag = normalizeBooleanFlag((entry && (entry.isGuest || entry.guest))
+      || (user && (user.isGuest || user.guest)));
     var selectionKey = normalizeText(entry.selectionKey || entry.recipientKey || entry.participantKey || (user && user.selectionKey) || '');
     var role = normalizeText(entry.role || (user && user.role));
     return {
@@ -484,12 +462,12 @@
         {
           normalized.selectionKey = normalizeText(entry.selectionKey);
         }
-        if (!normalized.selectionKey && (normalized.isGuest || isGuestUser(entry)))
+        if (!normalized.selectionKey && normalized.isGuest)
         {
           normalized.selectionKey = (normalized.userCode || normalized.displayName || 'guest') + ':' + index;
         }
         var key = buildAudienceKey(normalized);
-        var isGuest = normalized.isGuest || isGuestUser(entry);
+        var isGuest = normalized.isGuest;
         if (key && seen[key] && !isGuest)
         {
           return;
@@ -962,17 +940,12 @@
 
       var periodState = this.getSurveyPeriodState(item);
       var canRespond = periodState === 'active';
+      var isGuestMode = normalizeGuestModeFlag(item);
       var label = periodState === 'before'
         ? '開始待ち'
         : periodState === 'after'
           ? '締め切り済み'
           : '回答フォームを表示する';
-
-      if (this.isGuestViewer() && this.hasRespondedAsViewer(item))
-      {
-        canRespond = false;
-        label = '回答済み';
-      }
 
       var respondButton = this.createServiceActionButton('target-survey-response', {
         label: label,
@@ -1364,10 +1337,11 @@
         trigger: null,
         currentItem: null,
         allowRespondedAtInput: Boolean(options && options.allowRespondedAtInput),
-        submitLabel: options && options.submitLabel ? options.submitLabel : 'この内容で回答する'
+        submitLabel: options && options.submitLabel ? options.submitLabel : 'この内容で回答する',
+        initialResponseSnapshot: ''
       };
 
-      var close = () => this.toggleResponseModal(modal, false);
+      var close = () => this.handleResponseModalClose(modal);
       if (overlay)
       {
         overlay.addEventListener('click', close);
@@ -1580,6 +1554,151 @@
       }
     }
 
+    getResponseAnswers(modal)
+    {
+      var answers = [];
+      if (!modal)
+      {
+        return answers;
+      }
+      var items = Array.isArray(modal.surveyItems) ? modal.surveyItems.slice() : [];
+      items.sort(function (a, b)
+      {
+        var posA = Number(a && a.position ? a.position : 0);
+        var posB = Number(b && b.position ? b.position : 0);
+        if (posA === posB)
+        {
+          var idA = String(a && a.id ? a.id : '');
+          var idB = String(b && b.id ? b.id : '');
+          return idA.localeCompare(idB);
+        }
+        return posA < posB ? -1 : 1;
+      });
+
+      var container = modal.items;
+      for (var i = 0; i < items.length; i += 1)
+      {
+        var item = items[i];
+        var itemId = item && item.id ? String(item.id) : '';
+        if (!itemId)
+        {
+          continue;
+        }
+        var kind = String(item.type || item.kind || '').toLowerCase();
+        var host = container ? container.querySelector('[data-survey-item-id="' + itemId + '"]') : null;
+        var answer = null;
+        if (kind === 'choicesingle')
+        {
+          var selected = host ? host.querySelector('input[type="radio"]:checked') : null;
+          if (selected && selected.value)
+          {
+            answer = { itemId: itemId, value: selected.value };
+          }
+        }
+        else if (kind === 'choicemultiple')
+        {
+          var selections = host ? host.querySelectorAll('input[type="checkbox"]:checked') : [];
+          var values = Array.prototype.slice.call(selections).map(function (input)
+          {
+            return input && input.value ? input.value.trim() : '';
+          }).filter(function (value)
+          {
+            return value !== '';
+          });
+          if (values.length)
+          {
+            answer = { itemId: itemId, values: values };
+          }
+        }
+        else if (kind === 'quadrant')
+        {
+          var quadrantInputs = host ? host.querySelectorAll('[data-quadrant-input]') : [];
+          var payload = {};
+          Array.prototype.forEach.call(quadrantInputs, function (input)
+          {
+            if (!input)
+            {
+              return;
+            }
+            var key = input.dataset && input.dataset.quadrantInput ? input.dataset.quadrantInput : '';
+            var value = input.value ? input.value.trim() : '';
+            if (key && value)
+            {
+              payload[key] = value;
+            }
+          });
+          if (Object.keys(payload).length)
+          {
+            answer = { itemId: itemId, json: payload };
+          }
+        }
+        else
+        {
+          var textarea = host ? host.querySelector('textarea') : null;
+          var textValue = textarea && textarea.value ? textarea.value.trim() : '';
+          if (textValue)
+          {
+            answer = { itemId: itemId, text: textValue };
+          }
+        }
+
+        if (answer)
+        {
+          answers.push(answer);
+        }
+      }
+
+      return answers;
+    }
+
+    buildResponseSnapshot(modal)
+    {
+      if (!modal)
+      {
+        return '';
+      }
+      var respondedAt = modal.respondedAtInput ? modal.respondedAtInput.value : '';
+      var answers = this.getResponseAnswers(modal);
+      return JSON.stringify({ answers: answers, respondedAt: respondedAt });
+    }
+
+    resetResponseSnapshot(modal)
+    {
+      if (!modal)
+      {
+        return;
+      }
+      modal.initialResponseSnapshot = this.buildResponseSnapshot(modal);
+    }
+
+    hasResponseChanges(modal)
+    {
+      if (!modal)
+      {
+        return false;
+      }
+      var baseline = typeof modal.initialResponseSnapshot === 'string' ? modal.initialResponseSnapshot : '';
+      var current = this.buildResponseSnapshot(modal);
+      return baseline !== current;
+    }
+
+    async handleResponseModalClose(modal)
+    {
+      if (!modal)
+      {
+        return;
+      }
+      if (this.hasResponseChanges(modal))
+      {
+        var confirmed = await this.page.confirmDialogService.open('入力中の回答が破棄されます。閉じてもよろしいですか？', { type: 'warning' });
+        if (!confirmed)
+        {
+          return;
+        }
+      }
+      this.toggleResponseModal(modal, false);
+    }
+
     toggleReminderModal(modal, open)
     {
       if (!modal)
@@ -1754,13 +1873,15 @@
       this.updateDetailModalActions(modal, item);
     }
 
-    renderPreviewModal(item, modal)
+    renderPreviewModal(item, modal, options)
     {
       if (!modal)
       {
         return;
       }
       modal.currentItem = item || null;
+      var opts = options || {};
+      var hideAuthorMeta = Boolean(opts.hideAuthor);
       if (modal.title)
       {
         modal.title.textContent = item && item.title ? item.title : 'アンケートプレビュー';
@@ -1768,34 +1889,37 @@
       if (modal.meta)
       {
         modal.meta.innerHTML = '';
-        var authorName = item && (item.createdByDisplayName || item.createdByUserCode)
-          ? (item.createdByDisplayName || item.createdByUserCode)
-          : '作成者';
-        var metaAuthor = document.createElement('span');
-        metaAuthor.className = 'target-detail__survey-dialog-author';
-        var avatarHost = document.createElement('span');
-        avatarHost.className = 'target-detail__survey-author-avatar target-detail__survey-dialog-author-avatar c-user-avatar-host';
-        avatarHost.dataset.avatarName = authorName;
-        avatarHost.dataset.avatarAlt = authorName;
-        if (item && item.createdByUserCode)
+        if (!hideAuthorMeta)
         {
-          avatarHost.dataset.userCode = item.createdByUserCode;
+          var authorName = item && (item.createdByDisplayName || item.createdByUserCode)
+            ? (item.createdByDisplayName || item.createdByUserCode)
+            : '作成者';
+          var metaAuthor = document.createElement('span');
+          metaAuthor.className = 'target-detail__survey-dialog-author';
+          var avatarHost = document.createElement('span');
+          avatarHost.className = 'target-detail__survey-author-avatar target-detail__survey-dialog-author-avatar c-user-avatar-host';
+          avatarHost.dataset.avatarName = authorName;
+          avatarHost.dataset.avatarAlt = authorName;
+          if (item && item.createdByUserCode)
+          {
+            avatarHost.dataset.userCode = item.createdByUserCode;
+          }
+          avatarHost.dataset.userActive = item && item.createdByIsActive === false ? 'false' : 'true';
+          this.renderAvatar(avatarHost, {
+            name: authorName,
+            userCode: item && item.createdByUserCode,
+            src: item && item.createdByAvatarUrl,
+            transform: item && item.createdByAvatarTransform,
+            initial: item && item.createdByAvatarInitial,
+            isActive: item && item.createdByIsActive !== false
+          }, { size: 32, nameOverlay: false });
+          metaAuthor.appendChild(avatarHost);
+          var authorId = document.createElement('span');
+          authorId.className = 'target-detail__survey-dialog-author-id';
+          authorId.textContent = item && item.createdByUserCode ? item.createdByUserCode : '—';
+          metaAuthor.appendChild(authorId);
+          modal.meta.appendChild(metaAuthor);
         }
-        avatarHost.dataset.userActive = item && item.createdByIsActive === false ? 'false' : 'true';
-        this.renderAvatar(avatarHost, {
-          name: authorName,
-          userCode: item && item.createdByUserCode,
-          src: item && item.createdByAvatarUrl,
-          transform: item && item.createdByAvatarTransform,
-          initial: item && item.createdByAvatarInitial,
-          isActive: item && item.createdByIsActive !== false
-        }, { size: 32, nameOverlay: false });
-        metaAuthor.appendChild(avatarHost);
-        var authorId = document.createElement('span');
-        authorId.className = 'target-detail__survey-dialog-author-id';
-        authorId.textContent = item && item.createdByUserCode ? item.createdByUserCode : '—';
-        metaAuthor.appendChild(authorId);
-        modal.meta.appendChild(metaAuthor);
 
         var dateText = item && item.createdAtDisplay ? item.createdAtDisplay : '';
         if (dateText)
@@ -1868,9 +1992,10 @@
           modal.responseUserCode = this.getViewerUserCode();
         }
       }
-      this.renderPreviewModal(item, modal);
+      this.renderPreviewModal(item, modal, { hideAuthor: true });
       this.renderResponseMetadata(modal);
       this.renderResponseActions(modal);
+      this.resetResponseSnapshot(modal);
     }
 
     renderResponseMetadata(modal)
@@ -1988,12 +2113,6 @@
         title: submitLabel
       });
       modal.submitButton = submitButton;
-      if (this.isGuestViewer() && this.hasRespondedAsViewer(modal.currentItem))
-      {
-        submitButton.disabled = true;
-        submitButton.title = 'ゲストユーザーによる回答は再編集できません。';
-        submitButton.setAttribute('aria-disabled', 'true');
-      }
       submitButton.addEventListener('click', (event) =>
       {
         event.preventDefault();
@@ -2914,6 +3033,10 @@
 
     getAnswerLookupForUser(item, userCode)
     {
+      if (normalizeGuestModeFlag(item))
+      {
+        return {};
+      }
       var normalizedUser = normalizeText(userCode).toLowerCase();
       if (!item || !normalizedUser || !Array.isArray(item.recipients))
       {
@@ -3162,8 +3285,17 @@
       }
 
       var acknowledged = recipient && recipient.acknowledgedAt;
+      var respondedText = normalizeText(recipient && (recipient.respondedAtDisplay
+        || formatDateTime(this.helpers, recipient.respondedAt)));
       var dateCell = document.createElement('td');
-      dateCell.textContent = acknowledged ? formatDateTime(this.helpers, recipient.acknowledgedAt) : '—';
+      if (respondedText)
+      {
+        dateCell.textContent = respondedText;
+      }
+      else
+      {
+        dateCell.textContent = acknowledged ? formatDateTime(this.helpers, recipient.acknowledgedAt) : '—';
+      }
       row.appendChild(dateCell);
 
       if (!isGuestMode)
@@ -3916,14 +4048,6 @@
         return;
       }
       var isGuestMode = Boolean(modal.currentItem && modal.currentItem.isGuestMode);
-      if (this.isGuestViewer() && this.hasRespondedAsViewer(modal.currentItem))
-      {
-        if (this.page && typeof this.page.showToast === 'function')
-        {
-          this.page.showToast('info', 'ゲストユーザーの回答は送信後に編集できません。');
-        }
-        return;
-      }
       var responses = this.collectSurveyResponses(modal);
       if (responses && responses.missingRequired && responses.missingRequired.length)
       {
@@ -4045,31 +4169,6 @@
       var profile = this.page && this.page.state ? this.page.state.profile : null;
       var code = profile && (profile.userCode || profile.user_code || profile.code || '');
       return normalizeText(code);
-    }
-
-    isGuestViewer()
-    {
-      var profile = this.page && this.page.state ? this.page.state.profile : null;
-      return isGuestUser(profile);
-    }
-
-    hasRespondedAsViewer(item)
-    {
-      var viewerCode = this.getViewerUserCode();
-      if (!viewerCode)
-      {
-        return false;
-      }
-      var recipient = this.findRecipientForUser(item, viewerCode);
-      if (!recipient)
-      {
-        return false;
-      }
-      if (!recipient.isGuest && !isGuestUser(recipient))
-      {
-        return false;
-      }
-      return Boolean(recipient.respondedAt);
     }
 
     findPendingSurvey(userCode)
@@ -6403,7 +6502,8 @@
           displayName: displayName,
           mail: entry.mail || entry.mailAddress || entry.email || (user && (user.mail || user.mailAddress || user.email)) || '',
           isActive: entry.isActive !== false,
-          isGuest: isGuestUser(entry) || isGuestUser(user),
+          isGuest: normalizeBooleanFlag((entry && (entry.isGuest || entry.guest))
+            || (user && (user.isGuest || user.guest))),
           selectionKey: (entry && entry.selectionKey) || (user && user.selectionKey) || ''
         });
         if (!recipient.selectionKey && recipient.isGuest)
@@ -6443,12 +6543,12 @@
         {
           normalized.selectionKey = normalizeText(entry.selectionKey);
         }
-        if (!normalized.selectionKey && (normalized.isGuest || isGuestUser(entry)))
+        if (!normalized.selectionKey && normalized.isGuest)
         {
           normalized.selectionKey = (normalized.userCode || normalized.displayName || 'guest') + ':' + index;
         }
         var key = buildAudienceKey(normalized);
-        var isGuest = normalized.isGuest || isGuestUser(entry);
+        var isGuest = normalized.isGuest;
         if (key && seen[key] && !isGuest)
         {
           return;
@@ -6612,10 +6712,6 @@
       var candidates = this.getAudienceCandidates();
       var availableUsers = candidates.filter(function (entry)
       {
-        if (isGuestUser(entry))
-        {
-          return true;
-        }
         return selectedKeys.indexOf(buildAudienceKey(entry)) === -1;
       });
       service.open({
