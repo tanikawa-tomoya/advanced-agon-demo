@@ -536,6 +536,56 @@ class Contents extends Base
                 return isset($row['userCode']) ? trim((string)$row['userCode']) : '';
         }
 
+        protected function loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode)
+        {
+                if ($ownerUserCode === '' || $loginUserCode === null || $loginUserCode === '') {
+                        return false;
+                }
+
+                $pdoTarget = $this->getPDOTarget();
+                if ($pdoTarget === null) {
+                        return false;
+                }
+
+                $ownerCondition = '('
+                        . 't.createdByUserCode = ? OR '
+                        . 't.assignedUserCode = ? OR '
+                        . 'EXISTS (SELECT 1 FROM targetAssignedUsers tau WHERE tau.targetCode = t.targetCode AND tau.userCode = ? AND (tau.isActive IS NULL OR tau.isActive = 1))'
+                        . ')';
+
+                $viewerCondition = '('
+                        . 't.createdByUserCode = ? OR '
+                        . 't.assignedUserCode = ? OR '
+                        . 'EXISTS (SELECT 1 FROM targetAssignedUsers tau WHERE tau.targetCode = t.targetCode AND tau.userCode = ? AND (tau.isActive IS NULL OR tau.isActive = 1))'
+                        . ')';
+
+                $sql = 'SELECT 1 FROM targets t '
+                        . 'WHERE (t.isDeleted IS NULL OR t.isDeleted = 0) '
+                        . 'AND ' . $ownerCondition . ' '
+                        . 'AND ' . $viewerCondition . ' '
+                        . 'LIMIT 1';
+
+                $stmt = $pdoTarget->prepare($sql);
+                if ($stmt === false) {
+                        return false;
+                }
+
+                $params = array(
+                        $ownerUserCode,
+                        $ownerUserCode,
+                        $ownerUserCode,
+                        $loginUserCode,
+                        $loginUserCode,
+                        $loginUserCode,
+                );
+
+                if ($stmt->execute($params) === false) {
+                        return false;
+                }
+
+                return $stmt->fetchColumn() !== false;
+        }
+
         protected function appendUsageEntry(array &$usageMap, $targetCode, $targetTitle, $usageType)
         {
                 $code = trim((string)$targetCode);
@@ -1211,18 +1261,20 @@ class Contents extends Base
 			return;
 		}
 
-		$ownerUserCode = isset($contentRow['userCode']) ? trim((string) $contentRow['userCode']) : '';
-		if ($ownerUserCode === '') {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'invalid_owner';
-			return;
-		}
+                $ownerUserCode = isset($contentRow['userCode']) ? trim((string) $contentRow['userCode']) : '';
+                if ($ownerUserCode === '') {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid_owner';
+                        return;
+                }
 
-		if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator()) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'forbidden';
-			return;
-		}
+                $sharesTargetWithOwner = $this->loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode);
+
+                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator() && !$sharesTargetWithOwner) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'forbidden';
+                        return;
+                }
 
 		$clipTimes = $this->normalizeClipTimeList($this->params['clipTimes']);
 		$clipPayload = array_map(static function ($value) {
@@ -1287,18 +1339,20 @@ class Contents extends Base
 			return;
 		}
 
-		$ownerUserCode = isset($contentRow['userCode']) ? trim((string) $contentRow['userCode']) : '';
-		if ($ownerUserCode === '') {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'invalid_owner';
-			return;
-		}
+                $ownerUserCode = isset($contentRow['userCode']) ? trim((string) $contentRow['userCode']) : '';
+                if ($ownerUserCode === '') {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid_owner';
+                        return;
+                }
 
-		if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator()) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'forbidden';
-			return;
-		}
+                $sharesTargetWithOwner = $this->loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode);
+
+                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator() && !$sharesTargetWithOwner) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'forbidden';
+                        return;
+                }
 
 		$userInfo = $this->getUserInfo($ownerUserCode);
 		if (!is_array($userInfo) || !array_key_exists('id', $userInfo)) {
@@ -1386,7 +1440,9 @@ class Contents extends Base
                         return;
                 }
 
-                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator()) {
+                $sharesTargetWithOwner = $this->loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode);
+
+                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator() && !$sharesTargetWithOwner) {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'forbidden';
                         return;
@@ -1478,7 +1534,9 @@ class Contents extends Base
                         return;
                 }
 
-                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator()) {
+                $sharesTargetWithOwner = $this->loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode);
+
+                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator() && !$sharesTargetWithOwner) {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'forbidden';
                         return;
@@ -1552,7 +1610,9 @@ class Contents extends Base
                         return;
                 }
 
-                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator()) {
+                $sharesTargetWithOwner = $this->loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode);
+
+                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator() && !$sharesTargetWithOwner) {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'forbidden';
                         return;
@@ -1626,7 +1686,9 @@ class Contents extends Base
                         return;
                 }
 
-                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator()) {
+                $sharesTargetWithOwner = $this->loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode);
+
+                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator() && !$sharesTargetWithOwner) {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'forbidden';
                         return;
@@ -1697,18 +1759,20 @@ class Contents extends Base
 			return;
 		}
 
-		$ownerUserCode = isset($contentRow['userCode']) ? trim((string) $contentRow['userCode']) : '';
-		if ($ownerUserCode === '') {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'invalid_owner';
-			return;
-		}
+                $ownerUserCode = isset($contentRow['userCode']) ? trim((string) $contentRow['userCode']) : '';
+                if ($ownerUserCode === '') {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid_owner';
+                        return;
+                }
 
-		if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator()) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'forbidden';
-			return;
-		}
+                $sharesTargetWithOwner = $this->loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode);
+
+                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator() && !$sharesTargetWithOwner) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'forbidden';
+                        return;
+                }
 
 		$contentType = isset($contentRow['contentType']) ? strtolower((string) $contentRow['contentType']) : '';
 		if ($contentType !== 'video') {
@@ -2067,7 +2131,9 @@ class Contents extends Base
                         return;
                 }
 
-                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator()) {
+                $sharesTargetWithOwner = $this->loginUserSharesTargetWithOwner($ownerUserCode, $loginUserCode);
+
+                if ($ownerUserCode !== $loginUserCode && !$this->isSupervisor() && !$this->isOperator() && !$sharesTargetWithOwner) {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'forbidden';
                         return;

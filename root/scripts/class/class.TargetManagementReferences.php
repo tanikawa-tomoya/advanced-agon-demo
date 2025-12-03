@@ -19,10 +19,29 @@ class TargetManagementReferences extends Base
 		return 50;
 	}
 
-	private function getContentMaxPerPage()
-	{
-		return 100;
-	}
+        private function getContentMaxPerPage()
+        {
+                return 100;
+        }
+
+        private function normalizeReferencePosition($rawValue)
+        {
+                if ($rawValue === null || $rawValue === '') {
+                        return null;
+                }
+
+                $filtered = filter_var(
+                        $rawValue,
+                        FILTER_VALIDATE_INT,
+                        array('options' => array('min_range' => 0))
+                );
+
+                if ($filtered === false || $filtered === null) {
+                        return null;
+                }
+
+                return (int)$filtered;
+        }
 
 
 	private function normalizePositiveIntParam($rawValue, $defaultValue, $minValue = 1, $maxValue = null)
@@ -144,13 +163,23 @@ class TargetManagementReferences extends Base
                         }
                 }
 
-		$linkUrl = null;
-		if (isset($this->params['linkUrl'])) {
-			try {
-				$linkValue = Util::normalizeOptionalUrl($this->params['linkUrl'], 512);
-			} catch (UrlNormalizationException $exception) {
-				$rawLink = (string)$this->params['linkUrl'];
-				$sanitizedLink = str_replace(array("\r", "\n"), ' ', $rawLink);
+                $position = null;
+                if (array_key_exists('position', $this->params)) {
+                        $position = $this->normalizeReferencePosition($this->params['position']);
+                        if ($position === null && $this->params['position'] !== null && $this->params['position'] !== '') {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                }
+
+                $linkUrl = null;
+                if (isset($this->params['linkUrl'])) {
+                        try {
+                                $linkValue = Util::normalizeOptionalUrl($this->params['linkUrl'], 512);
+                       } catch (UrlNormalizationException $exception) {
+                               $rawLink = (string)$this->params['linkUrl'];
+                               $sanitizedLink = str_replace(array("\r", "\n"), ' ', $rawLink);
 				if (function_exists('mb_substr')) {
 					$sanitizedLink = mb_substr($sanitizedLink, 0, 512);
 				} else {
@@ -236,31 +265,32 @@ class TargetManagementReferences extends Base
                 $materialCode = $this->generateUniqid();
 
 		
-// Reference material records themselves live in the target database,
-// so inserts/updates must go through the target connection.
-$pdo = $this->getPDOTarget();
+                // Reference material records themselves live in the target database,
+                // so inserts/updates must go through the target connection.
+                $pdo = $this->getPDOTarget();
 
-		try {
-			$pdo->beginTransaction();
+               try {
+                        $pdo->beginTransaction();
 
                         $stmt = $pdo->prepare(
-                                                                  'INSERT INTO targetReferenceMaterials (materialCode, targetCode, contentCode, title, description, category, linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt, displayOrder, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)'
+                                                                  'INSERT INTO targetReferenceMaterials (materialCode, targetCode, contentCode, title, description, category, linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt, position, displayOrder, isDeleted) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)'
                                                                   );
-			$stmt->execute(array(
-								 $materialCode,
-								 $targetCode,
-								 $contentCode,
-								 $titleValue,
-								 $description,
-								 $category,
-								 $linkUrl,
-								 null,
-								 $fileName,
-								 $fileSize,
-								 $ownerCode,
-								 $timestamp,
-								 $timestamp
-								 ));
+                        $stmt->execute(array(
+                                                                 $materialCode,
+                                                                 $targetCode,
+                                                                 $contentCode,
+                                                                 $titleValue,
+                                                                 $description,
+                                                                 $category,
+                                                                 $linkUrl,
+                                                                 null,
+                                                                 $fileName,
+                                                                 $fileSize,
+                                                                 $ownerCode,
+                                                                 $timestamp,
+                                                                 $timestamp,
+                                                                 $position
+                                                                 ));
 
 			if ($contentEntry != null) {
 				$stmt = $pdo->prepare(
@@ -335,23 +365,36 @@ $pdo = $this->getPDOTarget();
 			$description = $material['description'];
 		}
 
-		$category = null;
-		if (array_key_exists('category', $this->params)) {
-			$category = trim((string) $this->params['category']);
-			if ($category === '') {
-				$category = null;
-			}
-		} else if (isset($material['category'])) {
-			$category = $material['category'];
-		}
+                $category = null;
+                if (array_key_exists('category', $this->params)) {
+                        $category = trim((string) $this->params['category']);
+                        if ($category === '') {
+                                $category = null;
+                        }
+                } else if (isset($material['category'])) {
+                        $category = $material['category'];
+                }
 
-		$linkUrl = null;
-		if (array_key_exists('linkUrl', $this->params)) {
-			try {
-				$linkValue = Util::normalizeOptionalUrl($this->params['linkUrl'], 512);
-			} catch (UrlNormalizationException $exception) {
-				$rawLink = (string)$this->params['linkUrl'];
-				$sanitizedLink = str_replace(array("\r", "\n"), ' ', $rawLink);
+                $position = null;
+                $positionSpecified = array_key_exists('position', $this->params);
+                if ($positionSpecified) {
+                        $position = $this->normalizeReferencePosition($this->params['position']);
+                        if ($position === null && $this->params['position'] !== null && $this->params['position'] !== '') {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                } else if (isset($material['position']) && is_numeric($material['position'])) {
+                        $position = (int)$material['position'];
+                }
+
+                $linkUrl = null;
+                if (array_key_exists('linkUrl', $this->params)) {
+                        try {
+                                $linkValue = Util::normalizeOptionalUrl($this->params['linkUrl'], 512);
+                       } catch (UrlNormalizationException $exception) {
+                               $rawLink = (string)$this->params['linkUrl'];
+                               $sanitizedLink = str_replace(array("\r", "\n"), ' ', $rawLink);
 				if (function_exists('mb_substr')) {
 					$sanitizedLink = mb_substr($sanitizedLink, 0, 512);
 				} else {
@@ -440,27 +483,28 @@ $pdo = $this->getPDOTarget();
 		}
 
 		$now = new DateTime('now');
-		$timestamp = $now->format('Y-m-d H:i:s');
+                $timestamp = $now->format('Y-m-d H:i:s');
 
-		$pdo = $this->getPDOTarget();
-		try {
-			$pdo->beginTransaction();
+                $pdo = $this->getPDOTarget();
+                try {
+                        $pdo->beginTransaction();
 
-			$stmt = $pdo->prepare('UPDATE targetReferenceMaterials SET contentCode = ?, title = ?, description = ?, category = ?, linkUrl = ?, downloadUrl = ?, fileName = ?, fileSize = ?, ownerUserCode = ?, updatedAt = ? WHERE materialCode = ? AND targetCode = ?');
-			$stmt->execute(array(
-				$contentCode,
-				$titleValue,
-				$description,
-				$category,
-				$linkUrl,
-				$downloadUrl,
-				$fileName,
-				$fileSize,
-				$ownerCode,
-				$timestamp,
-				$materialCode,
-				$targetCode
-			));
+                        $stmt = $pdo->prepare('UPDATE targetReferenceMaterials SET contentCode = ?, title = ?, description = ?, category = ?, linkUrl = ?, downloadUrl = ?, fileName = ?, fileSize = ?, ownerUserCode = ?, position = ?, updatedAt = ? WHERE materialCode = ? AND targetCode = ?');
+                        $stmt->execute(array(
+                                $contentCode,
+                                $titleValue,
+                                $description,
+                                $category,
+                                $linkUrl,
+                                $downloadUrl,
+                                $fileName,
+                                $fileSize,
+                                $ownerCode,
+                                $position,
+                                $timestamp,
+                                $materialCode,
+                                $targetCode
+                        ));
 
 			$stmt = $pdo->prepare('DELETE FROM targetReferenceMaterialContents WHERE materialCode = ?');
 			$stmt->execute(array($materialCode));
