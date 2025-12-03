@@ -682,6 +682,40 @@ SQL
     fi
 }
 
+create_db_slide() {
+    local db_path="$1"
+    sqlite3 "$db_path" <<'SQL'
+BEGIN;
+CREATE TABLE IF NOT EXISTS slides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slideCode VARCHAR(32) NOT NULL UNIQUE,
+    title VARCHAR(256) NOT NULL,
+    description TEXT,
+    ownerUserCode VARCHAR(32) NOT NULL,
+    isPublished INTEGER DEFAULT 0,
+    createdAt VARCHAR(32),
+    updatedAt VARCHAR(32),
+    isDeleted INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_slides_owner ON slides(ownerUserCode);
+CREATE TABLE IF NOT EXISTS slideSlides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slideSlideCode VARCHAR(32) NOT NULL UNIQUE,
+    slideCode VARCHAR(32) NOT NULL,
+    contentCode VARCHAR(32) NOT NULL,
+    caption TEXT,
+    displayOrder INTEGER DEFAULT 0,
+    durationSeconds INTEGER,
+    createdAt VARCHAR(32),
+    updatedAt VARCHAR(32),
+    isDeleted INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_slideSlides_parent ON slideSlides(slideCode);
+CREATE INDEX IF NOT EXISTS idx_slideSlides_order ON slideSlides(slideCode, displayOrder, id);
+COMMIT;
+SQL
+}
+
 create_db_target() {
     local db_path="$1"
     sqlite3 "$db_path" <<'SQL'
@@ -2234,14 +2268,14 @@ WHERE b.badge_code = '${badge_code}'
 SQL
 
     sqlite3 "${contents_db_path}" <<SQL
-  INSERT OR REPLACE INTO userContents (
-      contentCode, userCode, contentType, title, description, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
-  )
-  VALUES
-      ('${doc_content_code}', '${creator}', 'document', '${title} ガイド', '${title} ガイドの概要', '${target_code}-guide.pdf', 'content/${doc_content_code}.pdf', 'application/pdf', 4096, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
-      ('${support_content_code}', '${creator}', 'link', '${title} FAQ', '${title} FAQの概要', '${target_code}-faq.html', 'content/${support_content_code}.html', 'text/html', 0, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
-      ('${chat_attachment_content_code}', '${assigned_user}', 'note', '${title} チャットメモ', '${title} チャットメモ詳細', '${target_code}-memo.txt', 'content/${chat_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
-      ('${bbs_attachment_content_code}', '${assigned_user}', 'note', '${title} BBSメモ', '${title} BBSメモ詳細', '${target_code}-memo.txt', 'content/${bbs_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
+INSERT OR REPLACE INTO userContents (
+    contentCode, userCode, contentType, title, description, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
+)
+VALUES
+    ('${doc_content_code}', '${creator}', 'document', '${title} ガイド', '${title} ガイドの概要', '${target_code}-guide.pdf', 'content/${doc_content_code}.pdf', 'application/pdf', 4096, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
+    ('${support_content_code}', '${creator}', 'link', '${title} FAQ', '${title} FAQの概要', '${target_code}-faq.html', 'content/${support_content_code}.html', 'text/html', 0, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
+    ('${chat_attachment_content_code}', '${assigned_user}', 'note', '${title} チャットメモ', '${title} チャットメモ詳細', '${target_code}-memo.txt', 'content/${chat_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime')),
+    ('${bbs_attachment_content_code}', '${assigned_user}', 'note', '${title} BBSメモ', '${title} BBSメモ詳細', '${target_code}-memo.txt', 'content/${bbs_attachment_content_code}.txt', 'text/plain', 128, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
 SQL
 
         local doc_content_id
@@ -2502,13 +2536,13 @@ VALUES
     ('${goal_secondary_code}', '${assigned_user}', 0);
 SQL
 
-  if [[ "${video_id}" != "-" ]]; then
-      local video_embed_url="https://www.youtube.com/embed/${video_id}"
-      local video_watch_url="https://www.youtube.com/watch?v=${video_id}"
-      sqlite3 "${contents_db_path}" <<SQL
-  INSERT OR REPLACE INTO userContents (
+        if [[ "${video_id}" != "-" ]]; then
+            local video_embed_url="https://www.youtube.com/embed/${video_id}"
+            local video_watch_url="https://www.youtube.com/watch?v=${video_id}"
+            sqlite3 "${contents_db_path}" <<SQL
+INSERT OR REPLACE INTO userContents (
     contentCode, userCode, contentType, title, description, fileName, filePath, mimeType, fileSize, duration, bitrate, width, height, isVisible, createdAt, updatedAt
-  )
+)
 VALUES ('${video_content_code}', '${creator}', 'video', '${title} 動画チュートリアル', '${title} 動画チュートリアルの概要', 'youtube-${video_id}.html', 'content/${video_content_code}.html', 'text/html', 0, NULL, NULL, NULL, NULL, 1, datetime('now','localtime'), datetime('now','localtime'));
 SQL
 
@@ -3334,6 +3368,7 @@ SQL
 
 create_db_common "${DB_DIR}/common.sqlite"
 create_db_contents "${DB_DIR}/contents.sqlite"
+create_db_slide "${DB_DIR}/slide.sqlite"
 create_db_target "${DB_DIR}/target.sqlite"
 create_db_register "${DB_DIR}/register.sqlite"
 create_db_contact "${DB_DIR}/contact.sqlite"
