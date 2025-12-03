@@ -2912,6 +2912,65 @@ body.is-modal-open {
   gap: 12px;
 }
 
+.survey-management__audience-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.survey-management__required-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  width: fit-content;
+}
+
+.survey-management__item-required-checkbox,
+.survey-management__required-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.survey-management__required-checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: rgba(120, 206, 255, 0.85);
+}
+
+.survey-management__item-required-checkbox {
+  justify-content: center;
+}
+
+.survey-management__item-required-label {
+  color: var(--text);
+}
+
+.survey-management__audience-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.survey-management__audience-toggle-desc {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .survey-management__audience-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3073,20 +3132,21 @@ body.is-modal-open {
   resize: vertical;
 }
 
-.survey-management__items-action-col,
-.survey-management__items-action-cell {
-  white-space: nowrap;
-  text-align: right;
-}
-
 .survey-management__items-empty {
   margin: 0;
   color: var(--text-muted);
 }
 
+.survey-management__items-title-col,
+.survey-management__item-title-cell {
+  width: 160px;
+  max-width: 160px;
+}
+
 .survey-management__item-title-cell {
   font-weight: 700;
   color: var(--text);
+  word-break: break-word;
 }
 
 .survey-management__item-description-cell {
@@ -3135,6 +3195,13 @@ body.is-modal-open {
 .survey-management__items-action-cell .btn,
 .survey-management__item-choice .btn {
   padding: 6px;
+}
+
+.survey-management__items-action-col,
+.survey-management__items-action-cell {
+  white-space: nowrap;
+  text-align: right;
+  width: 160px;
 }
 
 .survey-management__items-action-cell {
