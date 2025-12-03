@@ -1057,6 +1057,7 @@
         raw: candidates.length,
         skipped: { noIdentity: 0, inactive: 0, nonOperator: 0, duplicate: 0 }
       };
+
       var seen = Object.create(null);
       var normalizeFlag = function (value)
       {
@@ -1066,36 +1067,6 @@
           return normalized === '1' || normalized === 'true';
         }
         return value === true || value === 1;
-      };
-      var resolveRoleFlags = function (entry, user)
-      {
-        var flags = { isOperator: false, isSupervisor: false };
-        var sources = [];
-        if (entry && entry.roleFlags && typeof entry.roleFlags === 'object')
-        {
-          sources.push(entry.roleFlags);
-        }
-        if (user && user.roleFlags && typeof user.roleFlags === 'object')
-        {
-          sources.push(user.roleFlags);
-        }
-        for (var i = 0; i < sources.length; i += 1)
-        {
-          var source = sources[i];
-          if (!source)
-          {
-            continue;
-          }
-          if (!flags.isOperator && normalizeFlag(source.isOperator))
-          {
-            flags.isOperator = true;
-          }
-          if (!flags.isSupervisor && normalizeFlag(source.isSupervisor))
-          {
-            flags.isSupervisor = true;
-          }
-        }
-        return flags;
       };
       var resolveRole = function (entry, user)
       {
@@ -1136,6 +1107,36 @@
         }
         return '';
       };
+      var resolveRoleFlags = function (entry, user)
+      {
+        var flags = { isOperator: false, isSupervisor: false };
+        var sources = [];
+        if (entry && entry.roleFlags && typeof entry.roleFlags === 'object')
+        {
+          sources.push(entry.roleFlags);
+        }
+        if (user && user.roleFlags && typeof user.roleFlags === 'object')
+        {
+          sources.push(user.roleFlags);
+        }
+        for (var i = 0; i < sources.length; i += 1)
+        {
+          var source = sources[i];
+          if (!source)
+          {
+            continue;
+          }
+          if (!flags.isOperator && normalizeFlag(source.isOperator))
+          {
+            flags.isOperator = true;
+          }
+          if (!flags.isSupervisor && normalizeFlag(source.isSupervisor))
+          {
+            flags.isSupervisor = true;
+          }
+        }
+        return flags;
+      };
       var normalize = function (entry)
       {
         if (!entry)
@@ -1156,10 +1157,6 @@
         if (!displayName && userCode)
         {
           displayName = userCode;
-        }
-        if (!userCode && displayName)
-        {
-          userCode = displayName;
         }
         if (!displayName && !userCode)
         {
@@ -2385,14 +2382,6 @@
         '</div>' +
         '</div>' +
         '</div>' +
-        '<div class="target-reference__form-field target-reference__form-row--full">' +
-        '<label class="target-reference__form-label" for="target-review-content">レビュー内容</label>' +
-        '<textarea id="target-review-content" class="user-management__input target-reference__textarea" name="content" rows="3" maxlength="1024" placeholder="フィードバックを入力" required></textarea>' +
-        '</div>' +
-        '<div class="target-reference__form-field target-reference__form-row--full">' +
-        '<label class="target-reference__form-label" for="target-review-note">内部メモ (任意)</label>' +
-        '<textarea id="target-review-note" class="user-management__input target-reference__textarea" name="privateNote" rows="3" maxlength="1024" placeholder="内部共有用のメモを入力"></textarea>' +
-        '</div>' +
         '<div class="target-submission__panel-grid">' +
         '<section class="target-submission__panel" aria-labelledby="target-review-panel-library">' +
         '<div class="target-reference__form-field target-reference__form-row--full">' +
@@ -2425,6 +2414,14 @@
         '<p class="target-reference__upload-note" data-target-review-upload-counter>アップロードは任意です。ファイルを選択するとここに表示されます。</p>' +
         '</div>' +
         '</section>' +
+        '</div>' +
+        '<div class="target-reference__form-field target-reference__form-row--full">' +
+        '<label class="target-reference__form-label" for="target-review-content">レビュー内容</label>' +
+        '<textarea id="target-review-content" class="user-management__input target-reference__textarea" name="content" rows="3" maxlength="1024" placeholder="フィードバックを入力" required></textarea>' +
+        '</div>' +
+        '<div class="target-reference__form-field target-reference__form-row--full">' +
+        '<label class="target-reference__form-label" for="target-review-note">内部メモ (任意)</label>' +
+        '<textarea id="target-review-note" class="user-management__input target-reference__textarea" name="privateNote" rows="3" maxlength="1024" placeholder="内部共有用のメモを入力"></textarea>' +
         '</div>' +
         '<p class="target-reference__form-feedback" aria-live="polite" hidden></p>' +
         '<div class="target-reference__form-actions">' +
@@ -2516,7 +2513,7 @@
         });
       }
 
-      var closeConfirmMessage = '入力内容が保存されていません。モーダルを閉じますか？';
+      var closeConfirmMessage = '入力内容が保存されていません。編集画面を閉じますか？';
 
       async function close(event)
       {

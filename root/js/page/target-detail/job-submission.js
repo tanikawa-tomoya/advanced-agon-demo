@@ -362,6 +362,7 @@
       this.page = pageInstance;
       this.helpers = pageInstance.helpers || {};
       this.canManage = false;
+      this.canSubmit = false;
       this.state = {
         items: [],
         isLoading: false,
@@ -398,6 +399,11 @@
     {
       this.canManage = this.page && typeof this.page.canManageTargetContent === 'function'
         && this.page.canManageTargetContent();
+      this.canSubmit = this.canManage;
+      if (!this.canSubmit && this.page && typeof this.page.canSubmitTargetContent === 'function')
+      {
+        this.canSubmit = this.page.canSubmitTargetContent();
+      }
       this.refs.container = this.page.refs.tabPanels && this.page.refs.tabPanels.submissions;
       if (!this.refs.container)
       {
@@ -418,7 +424,7 @@
       var actions = document.createElement('div');
       actions.className = 'target-detail__section-actions target-detail__submission-actions';
 
-      if (this.canManage)
+      if (this.canSubmit)
       {
         var addLink = this.page.buttonService.createActionButton('expandable-icon-button/add', {
           baseClass: 'target-management__icon-button target-management__icon-button--primary target-detail__submission-add',
@@ -1787,6 +1793,55 @@
       return flags || { isSupervisor: false, isOperator: false };
     }
 
+    getDefaultStatusLabel()
+    {
+      if (Array.isArray(this.defaultStatuses) && this.defaultStatuses.length)
+      {
+        return this.defaultStatuses[0];
+      }
+      return 'レビュー待ち';
+    }
+
+    normalizeRoleFlag(flag)
+    {
+      if (flag === undefined || flag === null)
+      {
+        return false;
+      }
+      if (typeof flag === 'string')
+      {
+        var normalized = flag.toLowerCase();
+        return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'y';
+      }
+      if (typeof flag === 'number')
+      {
+        return flag === 1;
+      }
+      if (typeof flag === 'boolean')
+      {
+        return flag;
+      }
+      return false;
+    }
+
+    canEditSubmissionStatus()
+    {
+      var flags = this.getRoleFlags();
+      var isSupervisor = this.normalizeRoleFlag(flags && flags.isSupervisor);
+      var isOperator = this.normalizeRoleFlag(flags && flags.isOperator);
+      return !!(isSupervisor || isOperator);
+    }
+
+    getReadOnlyStatusLabel(modal)
+    {
+      var statusFromItem = modal && modal.currentItem ? (modal.currentItem.statusLabel || modal.currentItem.status) : '';
+      if (statusFromItem)
+      {
+        return statusFromItem;
+      }
+      return this.getDefaultStatusLabel();
+    }
+
     getSessionUserSelection()
     {
       var profile = this.page && this.page.state ? this.page.state.profile : null;
@@ -1858,6 +1913,39 @@
       if (modal.submitterClearButton)
       {
         modal.submitterClearButton.hidden = !isSupervisor;
+      }
+    }
+
+    applyStatusSelectionPolicy(modal)
+    {
+      if (!modal || !modal.statusSelect)
+      {
+        return;
+      }
+      var canEdit = this.canEditSubmissionStatus();
+      var status = canEdit ? (modal.statusSelect.value || this.getDefaultStatusLabel()) : this.getReadOnlyStatusLabel(modal);
+      modal.statusSelect.value = status;
+      if (!modal.statusField && typeof modal.statusSelect.closest === 'function')
+      {
+        modal.statusField = modal.statusSelect.closest('.target-reference__form-field');
+      }
+      this.setElementVisibility(modal.statusField, canEdit);
+      if (canEdit)
+      {
+        modal.statusSelect.removeAttribute('disabled');
+      }
+      else
+      {
+        modal.statusSelect.setAttribute('disabled', 'disabled');
+        modal.statusSelect.value = this.getDefaultStatusLabel();
+      }
+      if (canEdit)
+      {
+        modal.statusSelect.removeAttribute('aria-hidden');
+      }
+      else
+      {
+        modal.statusSelect.setAttribute('aria-hidden', 'true');
       }
     }
 
@@ -1993,6 +2081,7 @@
       this.setModalFeedback('', null);
       this.clearModalValidationState(modal);
       this.fillFormWithItem(modal, item);
+      this.applyStatusSelectionPolicy(modal);
       this.applySubmitterSelectionPolicy(modal);
       var focusSubmitter = this.shouldShowSubmitterField();
       if (focusSubmitter && modal.submitterSelectButton && typeof modal.submitterSelectButton.focus === 'function')
@@ -2126,6 +2215,9 @@
       var submitterSelectButton = form.querySelector('[data-target-submission-user-select]');
       var submitterClearButton = form.querySelector('[data-target-submission-user-clear]');
       var statusSelect = form.querySelector('#target-submission-status');
+      var statusField = statusSelect && typeof statusSelect.closest === 'function'
+        ? statusSelect.closest('.target-reference__form-field')
+        : null;
       var contentInput = form.querySelector('#target-submission-content');
       var commentInput = form.querySelector('#target-submission-comment');
       var feedback = form.querySelector('.target-reference__form-feedback');
@@ -2158,6 +2250,7 @@
         submitterSelectButton: submitterSelectButton,
         submitterClearButton: submitterClearButton,
         statusSelect: statusSelect,
+        statusField: statusField,
         contentInput: contentInput,
         commentInput: commentInput,
         feedback: feedback,
@@ -2196,7 +2289,7 @@
         });
       }
 
-      var closeConfirmMessage = '入力内容が保存されていません。モーダルを閉じますか？';
+      var closeConfirmMessage = '入力内容が保存されていません。編集画面を閉じますか？';
 
       async function close(event)
       {
@@ -2623,28 +2716,6 @@
       });
     }
 
-    applySelectedContentFormValues(modal, entry)
-    {
-      if (!modal || !entry)
-      {
-        return;
-      }
-      var source = entry.raw || entry;
-      var userContents = source && source.userContents ? source.userContents : null;
-      if (!userContents)
-      {
-        return;
-      }
-      if (modal.contentInput && userContents.title !== undefined && userContents.title !== null)
-      {
-        modal.contentInput.value = String(userContents.title);
-      }
-      if (modal.commentInput && userContents.description !== undefined && userContents.description !== null)
-      {
-        modal.commentInput.value = String(userContents.description);
-      }
-    }
-
     getContentOwnerSelection(modal)
     {
       if (this.shouldShowSubmitterField())
@@ -2841,6 +2912,28 @@
       });
     }
 
+    applySelectedContentFormValues(modal, entry)
+    {
+      if (!modal || !entry)
+      {
+        return;
+      }
+      var source = entry.raw || entry;
+      var userContents = source && source.userContents ? source.userContents : null;
+      if (!userContents)
+      {
+        return;
+      }
+      if (modal.contentInput && userContents.title !== undefined && userContents.title !== null)
+      {
+        modal.contentInput.value = String(userContents.title);
+      }
+      if (modal.commentInput && userContents.description !== undefined && userContents.description !== null)
+      {
+        modal.commentInput.value = String(userContents.description);
+      }
+    }
+
     addContentSelection(modal, entry)
     {
       if (!modal)
@@ -2965,16 +3058,19 @@
         return {
           userDisplayName: '',
           userCode: '',
-          statusLabel: 'レビュー待ち',
+          statusLabel: this.getDefaultStatusLabel(),
           content: '',
           comment: ''
         };
       }
       var selectedUser = modal.selectedUser || null;
+      var statusLabel = this.canEditSubmissionStatus() && modal.statusSelect
+        ? (modal.statusSelect.value || this.getDefaultStatusLabel())
+        : this.getReadOnlyStatusLabel(modal);
       return {
         userDisplayName: selectedUser && selectedUser.displayName ? String(selectedUser.displayName).trim() : '',
         userCode: selectedUser && selectedUser.userCode ? String(selectedUser.userCode).trim() : '',
-        statusLabel: modal.statusSelect.value || 'レビュー待ち',
+        statusLabel: statusLabel,
         content: modal.contentInput.value.trim(),
         comment: modal.commentInput.value.trim()
       };
@@ -3055,7 +3151,7 @@
       if (!item)
       {
         this.setSubmitterSelection(modal, null);
-        modal.statusSelect.value = 'レビュー待ち';
+        modal.statusSelect.value = this.getDefaultStatusLabel();
         modal.contentInput.value = '';
         modal.commentInput.value = '';
         this.updateUploadCounterText(0, modal);
@@ -3067,7 +3163,7 @@
         userCode: item.userCode || '',
         userId: item.userId || item.user_id || ''
       });
-      var statusValue = item.statusLabel || item.status || 'レビュー待ち';
+      var statusValue = item.statusLabel || item.status || this.getDefaultStatusLabel();
       modal.statusSelect.value = statusValue;
       modal.contentInput.value = item.content || '';
       modal.commentInput.value = item.comment || '';
@@ -3148,7 +3244,7 @@
         var submission = modal.currentItem ? Object.assign({}, modal.currentItem) : {};
         submission.userDisplayName = values.userDisplayName;
         submission.userCode = values.userCode || '';
-        submission.statusLabel = values.statusLabel || 'レビュー待ち';
+        submission.statusLabel = values.statusLabel || this.getDefaultStatusLabel();
         submission.content = values.content;
         submission.comment = values.comment;
         submission.attachments = attachments;

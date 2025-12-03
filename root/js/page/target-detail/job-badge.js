@@ -1670,7 +1670,7 @@
         isSubmitting: false
       };
 
-      var closeConfirmMessage = '入力内容が保存されていません。モーダルを閉じますか？';
+      var closeConfirmMessage = '入力内容が保存されていません。編集画面を閉じますか？';
 
       async function close(event)
       {

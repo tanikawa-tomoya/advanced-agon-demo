@@ -2827,7 +2827,7 @@
         allowMultipleContents: true
       };
 
-      var closeConfirmMessage = '入力内容が保存されていません。モーダルを閉じますか？';
+      var closeConfirmMessage = '入力内容が保存されていません。編集画面を閉じますか？';
 
       async function close(event)
       {
@@ -3112,13 +3112,13 @@
       try
       {
         service.open({
-        title: 'コンテンツを選択',
-        owner: ownerKey,
-        ownerParams: ownerParams,
-        multiple: allowMultiple,
-        selectedItems: selectedItems,
-        onSelect: handleSelection,
-        onApply: handleSelection,
+          title: 'コンテンツを選択',
+          owner: ownerKey,
+          ownerParams: ownerParams,
+          multiple: allowMultiple,
+          selectedItems: selectedItems,
+          onSelect: handleSelection,
+          onApply: handleSelection,
           onClose: (reason, payload) =>
           {
             if (Array.isArray(payload) && !payload.length)

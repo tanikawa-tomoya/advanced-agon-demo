@@ -20,29 +20,6 @@
     return String(value).trim();
   }
 
-  function isGuestUser(entry)
-  {
-    if (!entry || typeof entry !== 'object')
-    {
-      return false;
-    }
-    var type = normalizeText(entry.userType || entry.participantType || entry.type || entry.role || '');
-    if (type && type.toLowerCase() === 'guest')
-    {
-      return true;
-    }
-    var guestFlags = [entry.isGuest, entry.guest, entry.isGuestUser, entry.guestUser];
-    for (var i = 0; i < guestFlags.length; i += 1)
-    {
-      var value = guestFlags[i];
-      if (value === true || value === 1 || value === '1' || value === 'true')
-      {
-        return true;
-      }
-    }
-    return false;
-  }
-
   function formatDateTime(helpers, value)
   {
     if (!helpers || typeof helpers.formatDateTime !== 'function')
@@ -111,6 +88,40 @@
       return '';
     }
     return normalized.replace(/\n{2,}/g, '\n\n').trim();
+  }
+
+  function normalizeBooleanFlag(value)
+  {
+    return value === true || value === 1 || value === '1' || value === 'true';
+  }
+
+  function normalizeGuestModeFlag(entry)
+  {
+    var flag = entry && (entry.isGuestMode || entry.guestMode);
+    return normalizeBooleanFlag(flag);
+  }
+
+  function isGuestUser(entry)
+  {
+    if (!entry || typeof entry !== 'object')
+    {
+      return false;
+    }
+    var type = normalizeText(entry.userType || entry.participantType || entry.type || entry.role || '');
+    if (type && type.toLowerCase() === 'guest')
+    {
+      return true;
+    }
+    var guestFlags = [entry.isGuest, entry.guest, entry.isGuestUser, entry.guestUser];
+    for (var i = 0; i < guestFlags.length; i += 1)
+    {
+      var value = guestFlags[i];
+      if (value === true || value === 1 || value === '1' || value === 'true')
+      {
+        return true;
+      }
+    }
+    return false;
   }
 
   function normalizeRecipient(entry)
@@ -417,11 +428,17 @@
         {
           return recipient && recipient.acknowledgedAt;
         }).length;
+        var rawAcknowledgedCount = Number(raw && (raw.acknowledgedCount || raw.responseCount));
+        if (Number.isFinite(rawAcknowledgedCount) && rawAcknowledgedCount >= 0)
+        {
+          acknowledgedCount = rawAcknowledgedCount;
+        }
         var recipientCount = Number(raw && raw.recipientCount ? raw.recipientCount : recipients.length);
         if (!Number.isFinite(recipientCount) || recipientCount < 0)
         {
           recipientCount = recipients.length;
         }
+        var isGuestMode = normalizeGuestModeFlag(raw);
         var rawId = raw && (raw.id || raw.surveyCode);
         var normalizedId = normalizeText(rawId);
         return {
@@ -433,6 +450,7 @@
           endAt: normalizeText(raw && raw.endAt),
           startAtDisplay: formatDateTime(helpers, raw && raw.startAt),
           endAtDisplay: formatDateTime(helpers, raw && raw.endAt),
+          isGuestMode: Boolean(raw && raw.isGuestMode),
           createdAt: raw && raw.createdAt ? raw.createdAt : '',
           createdAtDisplay: formatDateTime(helpers, raw && raw.createdAt),
           createdByDisplayName: normalizeText(raw && (raw.createdByDisplayName || raw.createdByUserDisplayName)),
@@ -441,6 +459,7 @@
           createdByAvatarTransform: normalizeText(raw && raw.createdByAvatarTransform),
           createdByAvatarInitial: normalizeText(raw && raw.createdByAvatarInitial),
           createdByIsActive: raw && raw.createdByIsActive !== false,
+          isGuestMode: isGuestMode,
           acknowledgedCount: acknowledgedCount,
           recipientCount: recipientCount > 0 ? recipientCount : 0,
           acknowledgedRate: recipientCount > 0 ? Math.round((acknowledgedCount / recipientCount) * 100) : 0,
@@ -699,7 +718,6 @@
       var thead = document.createElement('thead');
       thead.innerHTML = '' +
         '<tr>' +
-        '<th scope="col">作成者</th>' +
         '<th scope="col">タイトル</th>' +
         '<th scope="col">期間</th>' +
         '<th scope="col">回答状況</th>' +
@@ -715,14 +733,11 @@
       });
       table.appendChild(tbody);
       this.refs.list.appendChild(table);
-      this.bindAuthorPopovers(table);
     }
 
     createTableRow(item)
     {
       var row = document.createElement('tr');
-
-      row.appendChild(this.renderAuthorCell(item));
 
       var titleCell = document.createElement('td');
       titleCell.className = 'target-detail__survey-content-cell';
@@ -756,61 +771,6 @@
         row.appendChild(this.renderResponseCell(item));
       }
       return row;
-    }
-
-    renderAuthorCell(item)
-    {
-      var cell = document.createElement('td');
-      cell.className = 'target-detail__survey-author-cell';
-
-      var author = document.createElement('div');
-      author.className = 'target-detail__survey-author';
-      var authorName = item.createdByDisplayName || item.createdByUserCode || '作成者';
-      author.title = authorName;
-      author.setAttribute('aria-label', authorName);
-
-      var avatarHost = document.createElement('span');
-      avatarHost.className = 'target-detail__survey-author-avatar c-user-avatar-host';
-      avatarHost.setAttribute('role', 'button');
-      avatarHost.tabIndex = 0;
-      avatarHost.dataset.avatarName = authorName;
-      avatarHost.dataset.avatarAlt = avatarHost.dataset.avatarName;
-      if (item.createdByUserCode)
-      {
-        avatarHost.dataset.userCode = item.createdByUserCode;
-      }
-      avatarHost.dataset.userActive = item && item.createdByIsActive === false ? 'false' : 'true';
-      avatarHost.dataset.userDisplay = authorName;
-      avatarHost.dataset.userName = authorName;
-      avatarHost.dataset.userTooltip = authorName;
-      avatarHost.dataset.userRole = '作成者';
-      if (item && item.createdByAvatarUrl)
-      {
-        avatarHost.dataset.avatarSrc = item.createdByAvatarUrl;
-      }
-      if (item && item.createdByAvatarTransform)
-      {
-        avatarHost.dataset.avatarTransform = item.createdByAvatarTransform;
-      }
-      avatarHost.setAttribute('data--creator-avatar', 'true');
-      avatarHost.title = authorName;
-      this.renderAvatar(avatarHost, {
-        name: avatarHost.dataset.avatarName,
-        userCode: item.createdByUserCode,
-        src: item.createdByAvatarUrl,
-        transform: item.createdByAvatarTransform,
-        initial: item.createdByAvatarInitial,
-        isActive: item && item.createdByIsActive !== false
-      }, { size: 36, nameOverlay: true });
-      author.appendChild(avatarHost);
-
-      var srName = document.createElement('span');
-      srName.className = 'target-table__sr-only';
-      srName.textContent = authorName;
-      author.appendChild(srName);
-
-      cell.appendChild(author);
-      return cell;
     }
 
     renderPeriodCell(item)
@@ -862,6 +822,29 @@
     {
       var cell = document.createElement('td');
       cell.className = 'target-detail__survey-progress-chart-cell';
+      if (item && item.isGuestMode)
+      {
+        var badge = this.createServiceActionButton('target-detail-status', {
+          label: 'ゲストモード',
+          ariaLabel: 'ゲストモード',
+          title: 'ゲストモード',
+          variant: 'guest',
+          dataset: { statusKey: 'guest-mode' }
+        });
+        if (badge && badge.classList)
+        {
+          badge.classList.add('target-detail__survey-guest-badge');
+        }
+        if (badge)
+        {
+          cell.appendChild(badge);
+        }
+        var guestSummary = document.createElement('p');
+        guestSummary.className = 'target-detail__survey-ack-badge target-detail__survey-ack-badge--guest';
+        guestSummary.textContent = this.formatAcknowledgementStatus(item);
+        cell.appendChild(guestSummary);
+        return cell;
+      }
       var meter = document.createElement('div');
       meter.className = 'target-detail__survey-progress-meter';
       meter.setAttribute('role', 'progressbar');
@@ -907,6 +890,10 @@
 
     formatViewerStatusText(item)
     {
+      if (item && item.isGuestMode)
+      {
+        return this.formatAcknowledgementStatus(item);
+      }
       var recipient = this.findRecipientForUser(item, this.getViewerUserCode());
       if (!recipient)
       {
@@ -1010,41 +997,18 @@
       return cell;
     }
 
-    bindAuthorPopovers(container)
-    {
-      var avatarService = this.getAvatarService();
-      if (!avatarService || typeof avatarService.eventUpdate !== 'function')
-      {
-        return;
-      }
-      var anchors = (container || this.refs.list || document).querySelectorAll('.target-detail__survey-author-avatar');
-      if (!anchors.length)
-      {
-        return;
-      }
-      avatarService.eventUpdate(anchors, {
-        beforeShow: function (anchor)
-        {
-          if (anchor && anchor.classList)
-          {
-            anchor.classList.add('is-popover-open');
-          }
-        },
-        beforeHide: function (anchor)
-        {
-          if (anchor && anchor.classList)
-          {
-            anchor.classList.remove('is-popover-open');
-          }
-        },
-        popover: { placement: 'top-start', offset: 10 }
-      });
-    }
-
     formatAcknowledgementStatus(item)
     {
       var total = Number(item && item.recipientCount ? item.recipientCount : 0);
       var acknowledged = Number(item && item.acknowledgedCount ? item.acknowledgedCount : 0);
+      if (!Number.isFinite(acknowledged) || acknowledged < 0)
+      {
+        acknowledged = 0;
+      }
+      if (item && item.isGuestMode)
+      {
+        return '回答数 ' + acknowledged;
+      }
       if (!total)
       {
         return '—';
@@ -1214,10 +1178,10 @@
         '<div class="target-detail__survey-overlay" data-modal-close></div>' +
         '<div class="target-detail__survey-dialog" role="dialog" aria-modal="true" aria-labelledby="target-announce-detail-title">' +
         '  <header class="target-detail__survey-dialog-header">' +
-        '    <div>' +
+        '    <div class="target-detail__survey-dialog-header-main">' +
         '      <h2 class="target-detail__survey-dialog-title" id="target-announce-detail-title"></h2>' +
-        '      <p class="target-detail__survey-dialog-meta" data-survey-meta></p>' +
         '    </div>' +
+        '    <p class="target-detail__survey-dialog-meta target-detail__survey-dialog-header-meta" data-survey-meta></p>' +
         '    <button type="button" class="target-detail__survey-dialog-close" aria-label="閉じる">×</button>' +
         '  </header>' +
         '  <hr class="target-detail__survey-dialog-divider" />' +
@@ -1271,7 +1235,8 @@
         currentItem: null,
         hideStatus: false,
         surveyItems: [],
-        visibleItemIds: null
+        visibleItemIds: null,
+        showUserColumn: true
       };
 
       var close = () => this.toggleDetailModal(modal, false);
@@ -1318,10 +1283,10 @@
         '<div class="target-detail__survey-overlay" data-modal-close></div>' +
         '<div class="target-detail__survey-dialog" role="dialog" aria-modal="true" aria-labelledby="target-survey-preview-title">' +
         '  <header class="target-detail__survey-dialog-header">' +
-        '    <div>' +
+        '    <div class="target-detail__survey-dialog-header-main">' +
         '      <h2 class="target-detail__survey-dialog-title" id="target-survey-preview-title">アンケートプレビュー</h2>' +
-        '      <p class="target-detail__survey-dialog-meta" data-survey-preview-meta></p>' +
         '    </div>' +
+        '    <p class="target-detail__survey-dialog-meta target-detail__survey-dialog-header-meta" data-survey-preview-meta></p>' +
         '    <button type="button" class="target-detail__survey-dialog-close" aria-label="閉じる">×</button>' +
         '  </header>' +
         '  <hr class="target-detail__survey-dialog-divider" />' +
@@ -1366,10 +1331,10 @@
         '<div class="target-detail__survey-overlay" data-modal-close></div>' +
         '<div class="target-detail__survey-response-dialog" role="dialog" aria-modal="true" aria-labelledby="' + titleId + '">' +
         '  <header class="target-detail__survey-dialog-header">' +
-        '    <div>' +
+        '    <div class="target-detail__survey-dialog-header-main">' +
         '      <h2 class="target-detail__survey-dialog-title" id="' + titleId + '">アンケート</h2>' +
-        '      <p class="target-detail__survey-dialog-meta" data-survey-response-meta></p>' +
         '    </div>' +
+        '    <p class="target-detail__survey-dialog-meta target-detail__survey-dialog-header-meta" data-survey-response-meta></p>' +
         '    <button type="button" class="target-detail__survey-dialog-close" aria-label="閉じる">×</button>' +
         '  </header>' +
         '  <hr class="target-detail__survey-dialog-divider" />' +
@@ -1452,10 +1417,10 @@
         '<div class="target-detail__survey-overlay" data-modal-close></div>' +
         '<div class="target-detail__survey-dialog" role="dialog" aria-modal="true" aria-labelledby="target-survey-reminder-title">' +
         '  <header class="target-detail__survey-dialog-header">' +
-        '    <div>' +
+        '    <div class="target-detail__survey-dialog-header-main">' +
         '      <h2 class="target-detail__survey-dialog-title" id="target-survey-reminder-title">アンケート</h2>' +
-        '      <p class="target-detail__survey-dialog-meta" data-survey-reminder-meta></p>' +
         '    </div>' +
+        '    <p class="target-detail__survey-dialog-meta target-detail__survey-dialog-header-meta" data-survey-reminder-meta></p>' +
         '    <button type="button" class="target-detail__survey-dialog-close" aria-label="閉じる">×</button>' +
         '  </header>' +
         '  <hr class="target-detail__survey-dialog-divider" />' +
@@ -1656,6 +1621,10 @@
       modal.hideStatus = hideStatus;
       modal.currentItem = item || null;
       var recipients = Array.isArray(item && item.recipients) ? item.recipients : [];
+      if (typeof modal.showUserColumn !== 'boolean')
+      {
+        modal.showUserColumn = true;
+      }
       if (modal.title)
       {
         modal.title.textContent = item && item.title ? item.title : 'アンケート詳細';
@@ -1696,7 +1665,7 @@
         {
           var date = document.createElement('span');
           date.className = 'target-detail__survey-dialog-date';
-          date.textContent = dateText;
+          date.textContent = '作成: ' + dateText;
           modal.meta.appendChild(date);
         }
         var periodText = this.formatPeriodDisplay(item);
@@ -1704,7 +1673,7 @@
         {
           var period = document.createElement('span');
           period.className = 'target-detail__survey-dialog-period';
-          period.textContent = periodText;
+          period.textContent = '回答期間: ' + periodText;
           modal.meta.appendChild(period);
         }
       }
@@ -1833,7 +1802,7 @@
         {
           var date = document.createElement('span');
           date.className = 'target-detail__survey-dialog-date';
-          date.textContent = dateText;
+          date.textContent = '作成: ' + dateText;
           modal.meta.appendChild(date);
         }
       }
@@ -1954,7 +1923,8 @@
       }
       if (modal.meta)
       {
-        modal.meta.textContent = this.formatPeriodDisplay(item) || '';
+        var reminderPeriodText = this.formatPeriodDisplay(item);
+        modal.meta.textContent = reminderPeriodText ? '回答期間: ' + reminderPeriodText : '';
       }
       if (modal.content)
       {
@@ -2044,6 +2014,7 @@
         item.className = 'target-detail__survey-preview-item';
         item.dataset.surveyItemId = entry && entry.id ? entry.id : '';
         item.dataset.surveyItemKind = entry && entry.type ? entry.type : '';
+        item.dataset.surveyItemRequired = entry && entry.isRequired ? 'true' : 'false';
 
         var heading = document.createElement('div');
         heading.className = 'target-detail__survey-preview-heading';
@@ -2055,13 +2026,26 @@
         var typeBadge = document.createElement('span');
         typeBadge.className = 'target-detail__survey-preview-type';
         typeBadge.textContent = this.getSurveyItemTypeLabel(entry && entry.type);
-        heading.appendChild(typeBadge);
+
+        var badgeGroup = document.createElement('span');
+        badgeGroup.className = 'target-detail__survey-preview-badges';
+        if (entry && entry.isRequired)
+        {
+          var requiredBadge = this.createRequiredBadge();
+          if (requiredBadge)
+          {
+            requiredBadge.classList.add('target-detail__survey-preview-required');
+            badgeGroup.appendChild(requiredBadge);
+          }
+        }
+        badgeGroup.appendChild(typeBadge);
+        heading.appendChild(badgeGroup);
 
         item.appendChild(heading);
 
         var description = document.createElement('p');
         description.className = 'target-detail__survey-preview-description';
-        description.textContent = entry && entry.description ? entry.description : '—';
+        description.textContent = entry && entry.description ? entry.description : '';
         item.appendChild(description);
 
         var lookup = answerLookup && entry && entry.id ? answerLookup[entry.id] : null;
@@ -2079,6 +2063,78 @@
     renderSurveyItemPreviewField(entry, index, answer)
     {
       var type = String(entry && entry.type || '').toLowerCase();
+      var isRequired = Boolean(entry && entry.isRequired);
+      if (type === 'quadrant')
+      {
+        var axes = Object.assign({}, this.getDefaultQuadrantAxes(), entry && entry.axes);
+        var quadrants = Object.assign({}, this.getDefaultQuadrants(), entry && entry.quadrants);
+        var normalizedAnswer = this.normalizeAnswerInput(answer);
+        var container = document.createElement('div');
+        container.className = 'target-detail__survey-preview-field target-detail__survey-preview-quadrant';
+        var axesRow = document.createElement('div');
+        axesRow.className = 'target-detail__survey-quadrant-axes';
+        var vertical = document.createElement('span');
+        vertical.textContent = '縦軸: ' + (axes.verticalTop || '上') + ' / ' + (axes.verticalBottom || '下');
+        axesRow.appendChild(vertical);
+        var horizontal = document.createElement('span');
+        horizontal.textContent = '横軸: ' + (axes.horizontalLeft || '左') + ' / ' + (axes.horizontalRight || '右');
+        axesRow.appendChild(horizontal);
+        container.appendChild(axesRow);
+
+        var grid = document.createElement('div');
+        grid.className = 'target-detail__survey-quadrant-grid';
+        var labels = [
+          { key: 'topLeft', label: '左上' },
+          { key: 'topRight', label: '右上' },
+          { key: 'bottomLeft', label: '左下' },
+          { key: 'bottomRight', label: '右下' }
+        ];
+        var answerMap = normalizedAnswer && normalizedAnswer.map ? normalizedAnswer.map : {};
+        labels.forEach(function (entryLabel)
+        {
+          var cell = document.createElement('div');
+          cell.className = 'target-detail__survey-quadrant-cell';
+          var heading = document.createElement('div');
+          heading.className = 'target-detail__survey-quadrant-cell-heading';
+          heading.textContent = entryLabel.label;
+          cell.appendChild(heading);
+          var description = document.createElement('div');
+          description.className = 'target-detail__survey-quadrant-description';
+          var targetQuadrant = quadrants && quadrants[entryLabel.key];
+          var contentLines = targetQuadrant && targetQuadrant.content ? String(targetQuadrant.content).split(/\n/) : [];
+          if (!contentLines.length)
+          {
+            var empty = document.createElement('span');
+            empty.textContent = '—';
+            description.appendChild(empty);
+          }
+          else
+          {
+            contentLines.forEach(function (line)
+            {
+              var para = document.createElement('p');
+              para.textContent = line;
+              description.appendChild(para);
+            });
+          }
+          cell.appendChild(description);
+
+          var textarea = document.createElement('textarea');
+          textarea.className = 'user-management__input target-detail__survey-quadrant-input';
+          textarea.rows = 3;
+          textarea.dataset.quadrantInput = entryLabel.key;
+          textarea.placeholder = 'ここに入力';
+          if (isRequired)
+          {
+            textarea.required = true;
+          }
+          textarea.value = answerMap && answerMap[entryLabel.key] ? answerMap[entryLabel.key] : '';
+          cell.appendChild(textarea);
+          grid.appendChild(cell);
+        });
+        container.appendChild(grid);
+        return container;
+      }
       if (type === 'choicesingle' || type === 'choicemultiple')
       {
         var choices = Array.isArray(entry && entry.choices) ? entry.choices : [];
@@ -2103,6 +2159,10 @@
           input.type = type === 'choicemultiple' ? 'checkbox' : 'radio';
           input.name = name;
           input.value = normalizedChoice.value || normalizedChoice.title || '';
+          if (isRequired)
+          {
+            input.required = true;
+          }
           if (type === 'choicemultiple')
           {
             input.checked = selectedValues.indexOf(normalizeText(input.value)) >= 0;
@@ -2129,6 +2189,10 @@
       textarea.rows = entry && entry.rows ? entry.rows : 5;
       var normalizedText = this.normalizeAnswerInput(answer).text;
       textarea.placeholder = 'ここに回答を入力';
+      if (isRequired)
+      {
+        textarea.required = true;
+      }
       textarea.value = normalizedText || '';
       container.appendChild(textarea);
       return container;
@@ -2144,6 +2208,10 @@
       if (normalized === 'choicemultiple')
       {
         return '複数選択';
+      }
+      if (normalized === 'quadrant')
+      {
+        return '4象限';
       }
       return '自由記述';
     }
@@ -2224,6 +2292,27 @@
       host.appendChild(heading);
 
       var self = this;
+      var userOption = document.createElement('label');
+      userOption.className = 'target-detail__survey-filter-option';
+
+      var userCheckbox = document.createElement('input');
+      userCheckbox.type = 'checkbox';
+      userCheckbox.className = 'target-detail__survey-filter-checkbox';
+      userCheckbox.checked = modal.showUserColumn !== false;
+      userCheckbox.id = 'survey-filter-user';
+      userCheckbox.addEventListener('change', function ()
+      {
+        modal.showUserColumn = userCheckbox.checked;
+        self.renderStatusTable(modal, modal.currentItem && modal.currentItem.recipients ? modal.currentItem.recipients : []);
+      });
+      userOption.appendChild(userCheckbox);
+
+      var userLabel = document.createElement('span');
+      userLabel.className = 'target-detail__survey-filter-label';
+      userLabel.textContent = 'ユーザー';
+      userOption.appendChild(userLabel);
+
+      list.appendChild(userOption);
       items.forEach(function (item, index)
       {
         var option = document.createElement('label');
@@ -2324,6 +2413,7 @@
       {
         return;
       }
+      var isGuestMode = Boolean(modal.currentItem && modal.currentItem.isGuestMode);
       modal.statusActionsHost.hidden = Boolean(hideStatus);
       if (hideStatus)
       {
@@ -2334,7 +2424,7 @@
       modal.statusActionsHost.innerHTML = '';
 
       modal.remindButton = null;
-      if (this.canManage)
+      if (this.canManage && !isGuestMode)
       {
         var remindButton = this.createServiceActionButton('target-reference-refresh', {
           label: 'リマインドを送る',
@@ -2411,14 +2501,19 @@
       {
         return;
       }
+      var isGuestMode = Boolean(modal.currentItem && modal.currentItem.isGuestMode);
+      var showUserColumn = modal.showUserColumn !== false;
       var visibleItems = this.getVisibleSurveyItems(modal);
 
       modal.statusHead.innerHTML = '';
       var headerRow = document.createElement('tr');
-      var userHeader = document.createElement('th');
-      userHeader.scope = 'col';
-      userHeader.textContent = 'ユーザー';
-      headerRow.appendChild(userHeader);
+      if (showUserColumn)
+      {
+        var userHeader = document.createElement('th');
+        userHeader.scope = 'col';
+        userHeader.textContent = 'ユーザー';
+        headerRow.appendChild(userHeader);
+      }
 
       visibleItems.forEach(function (item, index)
       {
@@ -2433,10 +2528,13 @@
       dateHeader.textContent = '回答日時';
       headerRow.appendChild(dateHeader);
 
-      var remindHeader = document.createElement('th');
-      remindHeader.scope = 'col';
-      remindHeader.textContent = 'リマインド';
-      headerRow.appendChild(remindHeader);
+      if (!isGuestMode)
+      {
+        var remindHeader = document.createElement('th');
+        remindHeader.scope = 'col';
+        remindHeader.textContent = 'リマインド';
+        headerRow.appendChild(remindHeader);
+      }
 
       var actionHeader = document.createElement('th');
       actionHeader.scope = 'col';
@@ -2452,7 +2550,8 @@
       {
         var emptyRow = document.createElement('tr');
         var cell = document.createElement('td');
-        cell.colSpan = visibleItems.length + 4;
+        var columnCount = visibleItems.length + 2 + (showUserColumn ? 1 : 0) + (isGuestMode ? 0 : 1);
+        cell.colSpan = columnCount;
         cell.className = 'target-detail__survey-status-empty';
         cell.textContent = '対象ユーザーが設定されていません。';
         emptyRow.appendChild(cell);
@@ -2462,7 +2561,7 @@
 
       for (var i = 0; i < rows.length; i += 1)
       {
-        modal.statusBody.appendChild(this.renderRecipientRow(rows[i], modal.currentItem, visibleItems));
+        modal.statusBody.appendChild(this.renderRecipientRow(rows[i], modal.currentItem, visibleItems, showUserColumn));
       }
     }
 
@@ -2873,6 +2972,15 @@
       {
         values = answer.json;
       }
+
+      var map = {};
+      if (answer && answer.json && typeof answer.json === 'object' && !Array.isArray(answer.json))
+      {
+        Object.keys(answer.json).forEach(function (key)
+        {
+          map[key] = normalizeText(answer.json[key]);
+        });
+      }
       else if (answer && typeof answer.json === 'string')
       {
         try
@@ -2882,10 +2990,16 @@
           {
             values = parsed;
           }
+          else if (parsed && typeof parsed === 'object')
+          {
+            Object.keys(parsed).forEach(function (key)
+            {
+              map[key] = normalizeText(parsed[key]);
+            });
+          }
         }
         catch (error)
         {
-          values = [];
         }
       }
 
@@ -2912,7 +3026,8 @@
         {
           return normalizeText(entry);
         }).filter(Boolean),
-        text: normalizeText(text)
+        text: normalizeText(text),
+        map: map
       };
     }
 
@@ -3002,36 +3117,40 @@
       return value || '—';
     }
 
-    renderRecipientRow(recipient, item, visibleItems)
+    renderRecipientRow(recipient, item, visibleItems, showUserColumn)
     {
       var row = document.createElement('tr');
-      var userCell = document.createElement('td');
-      userCell.className = 'target-detail__survey-status-user-cell';
-      var identity = document.createElement('div');
-      identity.className = 'target-detail__survey-status-identity c-user-avatar-host';
-      var avatar = document.createElement('span');
-      avatar.className = 'target-detail__survey-status-avatar';
-      this.renderAvatar(avatar, {
-        name: recipient && (recipient.displayName || recipient.userCode),
-        userCode: recipient && recipient.userCode,
-        src: recipient && recipient.avatarUrl,
-        initial: recipient && recipient.avatarInitial,
-        isActive: recipient && recipient.isActive !== false
-      }, { size: 32, nameOverlay: false });
-      identity.appendChild(avatar);
-      var text = document.createElement('div');
-      text.className = 'target-detail__survey-status-text';
-      var name = document.createElement('div');
-      name.className = 'target-detail__survey-status-name';
-      name.textContent = recipient && (recipient.displayName || recipient.userCode) ? (recipient.displayName || recipient.userCode) : 'ユーザー';
-      var code = document.createElement('div');
-      code.className = 'target-detail__survey-status-code';
-      code.textContent = recipient && recipient.userCode ? recipient.userCode : '';
-      text.appendChild(name);
-      text.appendChild(code);
-      identity.appendChild(text);
-      userCell.appendChild(identity);
-      row.appendChild(userCell);
+      var isGuestMode = Boolean(item && item.isGuestMode);
+      if (showUserColumn !== false)
+      {
+        var userCell = document.createElement('td');
+        userCell.className = 'target-detail__survey-status-user-cell';
+        var identity = document.createElement('div');
+        identity.className = 'target-detail__survey-status-identity c-user-avatar-host';
+        var avatar = document.createElement('span');
+        avatar.className = 'target-detail__survey-status-avatar';
+        this.renderAvatar(avatar, {
+          name: recipient && (recipient.displayName || recipient.userCode),
+          userCode: recipient && recipient.userCode,
+          src: recipient && recipient.avatarUrl,
+          initial: recipient && recipient.avatarInitial,
+          isActive: recipient && recipient.isActive !== false
+        }, { size: 32, nameOverlay: false });
+        identity.appendChild(avatar);
+        var text = document.createElement('div');
+        text.className = 'target-detail__survey-status-text';
+        var name = document.createElement('div');
+        name.className = 'target-detail__survey-status-name';
+        name.textContent = recipient && (recipient.displayName || recipient.userCode) ? (recipient.displayName || recipient.userCode) : 'ユーザー';
+        var code = document.createElement('div');
+        code.className = 'target-detail__survey-status-code';
+        code.textContent = recipient && recipient.userCode ? recipient.userCode : '';
+        text.appendChild(name);
+        text.appendChild(code);
+        identity.appendChild(text);
+        userCell.appendChild(identity);
+        row.appendChild(userCell);
+      }
 
       var items = Array.isArray(visibleItems) ? visibleItems : [];
       for (var i = 0; i < items.length; i += 1)
@@ -3047,68 +3166,71 @@
       dateCell.textContent = acknowledged ? formatDateTime(this.helpers, recipient.acknowledgedAt) : '—';
       row.appendChild(dateCell);
 
-      var reminderCell = document.createElement('td');
-      reminderCell.className = 'target-detail__survey-reminder-cell';
-      var hasAcknowledgement = recipient && recipient.hasAcknowledgement;
-      var reminderContent = document.createElement('div');
-      reminderContent.className = 'target-detail__survey-reminder-actions';
-      if (!hasAcknowledgement)
+      if (!isGuestMode)
       {
-        reminderContent.textContent = '—';
-      }
-      else if (acknowledged)
-      {
-        var reminderText = document.createElement('span');
-        reminderText.className = 'target-detail__survey-reminder-text';
-        reminderText.textContent = formatDateTime(this.helpers, recipient.acknowledgedAt);
-        reminderContent.appendChild(reminderText);
-
-        var reminderDelete = this.createServiceActionButton('delete', {
-          label: '',
-          ariaLabel: 'リマインド日時を削除',
-          hoverLabel: 'リマインド日時を削除',
-          title: 'リマインド日時を削除',
-          className: 'target-detail__survey-status-action target-detail__survey-status-action--undo',
-          hideLabel: true,
-          buttonType: 'delete'
-        });
-        reminderDelete.addEventListener('click', async (event) =>
+        var reminderCell = document.createElement('td');
+        reminderCell.className = 'target-detail__survey-reminder-cell';
+        var hasAcknowledgement = recipient && recipient.hasAcknowledgement;
+        var reminderContent = document.createElement('div');
+        reminderContent.className = 'target-detail__survey-reminder-actions';
+        if (!hasAcknowledgement)
         {
-          event.preventDefault();
-          var confirmed = await this.page.confirmDialogService.open('リマインド日時を削除しますか？', { type: 'warning' });
-          if (!confirmed)
+          reminderContent.textContent = '—';
+        }
+        else if (acknowledged)
+        {
+          var reminderText = document.createElement('span');
+          reminderText.className = 'target-detail__survey-reminder-text';
+          reminderText.textContent = formatDateTime(this.helpers, recipient.acknowledgedAt);
+          reminderContent.appendChild(reminderText);
+
+          var reminderDelete = this.createServiceActionButton('delete', {
+            label: '',
+            ariaLabel: 'リマインド日時を削除',
+            hoverLabel: 'リマインド日時を削除',
+            title: 'リマインド日時を削除',
+            className: 'target-detail__survey-status-action target-detail__survey-status-action--undo',
+            hideLabel: true,
+            buttonType: 'delete'
+          });
+          reminderDelete.addEventListener('click', async (event) =>
           {
-            return;
-          }
-          this.toggleRecipientAcknowledgement(item, recipient, false, [reminderDelete]);
-        });
-        reminderContent.appendChild(reminderDelete);
-      }
-      else
-      {
-        var reminderPending = document.createElement('span');
-        reminderPending.className = 'target-detail__survey-reminder-text';
-        reminderPending.textContent = '未確認';
-        reminderContent.appendChild(reminderPending);
-
-        var reminderEdit = this.createServiceActionButton('edit', {
-          label: '',
-          ariaLabel: 'リマインド日時を保存',
-          hoverLabel: 'リマインド日時を保存',
-          title: 'リマインド日時を保存',
-          className: 'target-detail__survey-status-action target-detail__survey-status-action--edit',
-          hideLabel: true
-        });
-        reminderEdit.disabled = !this.canManage;
-        reminderEdit.addEventListener('click', (event) =>
+            event.preventDefault();
+            var confirmed = await this.page.confirmDialogService.open('リマインド日時を削除しますか？', { type: 'warning' });
+            if (!confirmed)
+            {
+              return;
+            }
+            this.toggleRecipientAcknowledgement(item, recipient, false, [reminderDelete]);
+          });
+          reminderContent.appendChild(reminderDelete);
+        }
+        else
         {
-          event.preventDefault();
-          this.toggleRecipientAcknowledgement(item, recipient, true, [reminderEdit]);
-        });
-        reminderContent.appendChild(reminderEdit);
+          var reminderPending = document.createElement('span');
+          reminderPending.className = 'target-detail__survey-reminder-text';
+          reminderPending.textContent = '未確認';
+          reminderContent.appendChild(reminderPending);
+
+          var reminderEdit = this.createServiceActionButton('edit', {
+            label: '',
+            ariaLabel: 'リマインド日時を保存',
+            hoverLabel: 'リマインド日時を保存',
+            title: 'リマインド日時を保存',
+            className: 'target-detail__survey-status-action target-detail__survey-status-action--edit',
+            hideLabel: true
+          });
+          reminderEdit.disabled = !this.canManage;
+          reminderEdit.addEventListener('click', (event) =>
+          {
+            event.preventDefault();
+            this.toggleRecipientAcknowledgement(item, recipient, true, [reminderEdit]);
+          });
+          reminderContent.appendChild(reminderEdit);
+        }
+        reminderCell.appendChild(reminderContent);
+        row.appendChild(reminderCell);
       }
-      reminderCell.appendChild(reminderContent);
-      row.appendChild(reminderCell);
 
       var actionsCell = document.createElement('td');
       actionsCell.className = 'target-detail__survey-status-action-cell';
@@ -3411,6 +3533,21 @@
         var items = this.normalizeSurveyItems(payload && payload.items ? payload.items : (item && item.items ? item.items : []));
         var startAt = payload && payload.startAt ? payload.startAt : (item && item.startAt);
         var endAt = payload && payload.endAt ? payload.endAt : (item && item.endAt);
+        var isGuestMode = normalizeGuestModeFlag(payload || item);
+        var acknowledgedCount = recipients.filter(function (entry)
+        {
+          return entry && entry.acknowledgedAt;
+        }).length;
+        var payloadAcknowledgedCount = Number(payload && (payload.acknowledgedCount || payload.responseCount));
+        if (Number.isFinite(payloadAcknowledgedCount) && payloadAcknowledgedCount >= 0)
+        {
+          acknowledgedCount = payloadAcknowledgedCount;
+        }
+        var recipientCount = Number(payload && payload.recipientCount ? payload.recipientCount : (item && item.recipientCount));
+        if (!Number.isFinite(recipientCount) || recipientCount < 0)
+        {
+          recipientCount = recipients.length || 0;
+        }
         var updated = Object.assign({}, item, {
           content: formatContent(payload && (payload.content || payload.body || payload.message || item.content)),
           recipients: recipients,
@@ -3419,11 +3556,9 @@
           endAt: endAt,
           startAtDisplay: formatDateTime(this.helpers, startAt),
           endAtDisplay: formatDateTime(this.helpers, endAt),
-          acknowledgedCount: recipients.filter(function (entry)
-          {
-            return entry && entry.acknowledgedAt;
-          }).length,
-          recipientCount: recipients.length || item.recipientCount || 0
+          isGuestMode: isGuestMode,
+          acknowledgedCount: acknowledgedCount,
+          recipientCount: recipientCount
         });
         updated.acknowledgedRate = updated.recipientCount
           ? Math.round((updated.acknowledgedCount / updated.recipientCount) * 100)
@@ -3510,10 +3645,10 @@
 
     collectSurveyResponses(modal)
     {
-      var answers = [];
+      var result = { answers: [], missingRequired: [] };
       if (!modal)
       {
-        return answers;
+        return result;
       }
       var items = Array.isArray(modal.surveyItems) ? modal.surveyItems.slice() : [];
       items.sort(function (a, b)
@@ -3530,6 +3665,23 @@
       });
 
       var container = modal.items;
+      if (container)
+      {
+        var errorItems = container.querySelectorAll('.target-detail__survey-preview-item--error');
+        Array.prototype.forEach.call(errorItems, function (node)
+        {
+          node.classList.remove('target-detail__survey-preview-item--error');
+        });
+        var previousErrors = container.querySelectorAll('.target-detail__survey-preview-error');
+        Array.prototype.forEach.call(previousErrors, function (node)
+        {
+          if (node && node.parentNode)
+          {
+            node.parentNode.removeChild(node);
+          }
+        });
+      }
+
       for (var i = 0; i < items.length; i += 1)
       {
         var item = items[i];
@@ -3540,6 +3692,7 @@
         }
         var kind = String(item.type || item.kind || '').toLowerCase();
         var host = container ? container.querySelector('[data-survey-item-id="' + itemId + '"]') : null;
+        var isRequired = Boolean(item && item.isRequired);
         var answer = null;
         if (kind === 'choicesingle')
         {
@@ -3564,6 +3717,28 @@
             answer = { itemId: itemId, values: values };
           }
         }
+        else if (kind === 'quadrant')
+        {
+          var quadrantInputs = host ? host.querySelectorAll('[data-quadrant-input]') : [];
+          var payload = {};
+          Array.prototype.forEach.call(quadrantInputs, function (input)
+          {
+            if (!input)
+            {
+              return;
+            }
+            var key = input.dataset && input.dataset.quadrantInput ? input.dataset.quadrantInput : '';
+            var value = input.value ? input.value.trim() : '';
+            if (key && value)
+            {
+              payload[key] = value;
+            }
+          });
+          if (Object.keys(payload).length)
+          {
+            answer = { itemId: itemId, json: payload };
+          }
+        }
         else
         {
           var textarea = host ? host.querySelector('textarea') : null;
@@ -3574,13 +3749,27 @@
           }
         }
 
+        if (!answer && isRequired)
+        {
+          result.missingRequired.push(item && item.title ? item.title : '設問 ' + (i + 1));
+          if (host)
+          {
+            host.classList.add('target-detail__survey-preview-item--error');
+            var errorNote = document.createElement('p');
+            errorNote.className = 'target-detail__survey-preview-error';
+            errorNote.textContent = 'この設問は必須です。';
+            host.appendChild(errorNote);
+          }
+          continue;
+        }
+
         if (answer)
         {
-          answers.push(answer);
+          result.answers.push(answer);
         }
       }
 
-      return answers;
+      return result;
     }
 
     async handleSurveyConfirm(modal)
@@ -3589,22 +3778,35 @@
       {
         return;
       }
-      var userCode = modal.responseUserCode || this.getViewerUserCode();
-      if (!userCode)
+      var isGuestMode = Boolean(modal.currentItem && modal.currentItem.isGuestMode);
+      var userCode = isGuestMode ? '' : (modal.responseUserCode || this.getViewerUserCode());
+      if (!isGuestMode && !userCode)
       {
         return;
       }
       var target = modal.currentItem;
+      var responses = this.collectSurveyResponses(modal);
+      if (responses && responses.missingRequired && responses.missingRequired.length)
+      {
+        if (this.page && typeof this.page.showToast === 'function')
+        {
+          this.page.showToast('error', '未回答の必須設問があります。');
+        }
+        this.state.acknowledgingId = null;
+        this.updateDetailModalActions(modal, target);
+        return;
+      }
       this.state.acknowledgingId = target.id;
       this.updateDetailModalActions(modal, target);
-      var answers = this.collectSurveyResponses(modal);
+      var answers = responses && responses.answers ? responses.answers : [];
       try
       {
-        await this.page.callApi(
-          'TargetSurveySubmit',
-          { targetCode: this.page.state.targetCode, surveyCode: target.id, userCode: userCode, answers: answers },
-          { requestType: 'TargetManagementSurvey' }
-        );
+        var payload = { targetCode: this.page.state.targetCode, surveyCode: target.id, answers: answers };
+        if (userCode)
+        {
+          payload.userCode = userCode;
+        }
+        await this.page.callApi('TargetSurveySubmit', payload, { requestType: 'TargetManagementSurvey' });
         await this.fetchAndRenderSurvey();
         var updated = this.findSurveyById(target.id) || target;
         if (updated)
@@ -3713,6 +3915,7 @@
       {
         return;
       }
+      var isGuestMode = Boolean(modal.currentItem && modal.currentItem.isGuestMode);
       if (this.isGuestViewer() && this.hasRespondedAsViewer(modal.currentItem))
       {
         if (this.page && typeof this.page.showToast === 'function')
@@ -3721,13 +3924,22 @@
         }
         return;
       }
+      var responses = this.collectSurveyResponses(modal);
+      if (responses && responses.missingRequired && responses.missingRequired.length)
+      {
+        if (this.page && typeof this.page.showToast === 'function')
+        {
+          this.page.showToast('error', '未回答の必須設問があります。');
+        }
+        return;
+      }
       var confirmed = await this.page.confirmDialogService.open('この内容で回答を送信しますか？', { type: 'primary' });
       if (!confirmed)
       {
         return;
       }
-      var userCode = modal.responseUserCode || this.getViewerUserCode();
-      if (!userCode)
+      var userCode = isGuestMode ? '' : (modal.responseUserCode || this.getViewerUserCode());
+      if (!isGuestMode && !userCode)
       {
         return;
       }
@@ -3737,7 +3949,7 @@
         button.disabled = true;
         button.setAttribute('aria-busy', 'true');
       }
-      var answers = this.collectSurveyResponses(modal);
+      var answers = responses && responses.answers ? responses.answers : [];
       var surveyCode = modal.currentItem.surveyCode || modal.currentItem.id;
       var respondedAt = null;
       if (modal.allowRespondedAtInput && modal.respondedAtInput)
@@ -3758,7 +3970,11 @@
       }
       try
       {
-        var basePayload = { targetCode: this.page.state.targetCode, surveyCode: surveyCode, userCode: userCode, answers: answers };
+        var basePayload = { targetCode: this.page.state.targetCode, surveyCode: surveyCode, answers: answers };
+        if (userCode)
+        {
+          basePayload.userCode = userCode;
+        }
         if (respondedAt)
         {
           basePayload.respondedAt = respondedAt;
@@ -4227,6 +4443,11 @@
       {
         modal.contentInput.value = item && item.content ? item.content : '';
       }
+      if (modal.guestToggle)
+      {
+        modal.guestToggle.checked = Boolean(item && item.isGuestMode);
+        this.renderAudienceSelection(modal);
+      }
       if (modal.titleInput)
       {
         modal.titleInput.focus();
@@ -4308,6 +4529,17 @@
         '<div class="survey-management__items-table" data-survey-items-table></div>' +
         '</div>' +
         '<div class="survey-management__form-field survey-management__audience-selector" data-field="audience">' +
+        '<div class="survey-management__audience-toggle">' +
+        '<div class="survey-management__audience-toggle-text">' +
+        '<div class="survey-management__form-label">ゲストモード</div>' +
+        '<p class="survey-management__audience-toggle-desc">ゲストモードをオンにすると、アンケート回答時にユーザーコードを指定せずに回答できます。</p>' +
+        '</div>' +
+        '<label class="toggle-switch">' +
+        '<input type="checkbox" class="toggle-switch__input" data-survey-guest-toggle>' +
+        '<span class="toggle-switch__slider" aria-hidden="true"></span>' +
+        '<span class="visually-hidden">ゲストモードを切り替える</span>' +
+        '</label>' +
+        '</div>' +
         '<div class="survey-management__audience-actions">' +
         '<button type="button" class="btn btn--ghost" data-survey-audience-add>対象ユーザーを追加</button>' +
         '</div>' +
@@ -4341,6 +4573,7 @@
       var audienceCount = modalRoot.querySelector('[data-survey-audience-count]');
       var audienceAddButton = modalRoot.querySelector('[data-survey-audience-add]');
       var audienceField = modalRoot.querySelector('[data-field="audience"]');
+      var guestToggle = modalRoot.querySelector('[data-survey-guest-toggle]');
       var titleRequiredHost = modalRoot.querySelector('[data-required-indicator="title"]');
       var contentRequiredHost = modalRoot.querySelector('[data-required-indicator="content"]');
       var startRequiredHost = modalRoot.querySelector('[data-required-indicator="startAt"]');
@@ -4366,6 +4599,7 @@
         audienceList: audienceList,
         audienceCount: audienceCount,
         audienceAddButton: audienceAddButton,
+        guestToggle: guestToggle,
         itemAddButton: itemAddButton,
         itemsTable: itemTable,
         submitButton: submitButton,
@@ -4446,6 +4680,13 @@
           self.openSurveyItemDetailModal(modal);
         });
       }
+      if (guestToggle)
+      {
+        guestToggle.addEventListener('change', function ()
+        {
+          self.renderAudienceSelection(modal);
+        });
+      }
 
       this.renderRequiredIndicators(modal);
 
@@ -4464,6 +4705,33 @@
       var self = this;
       return entries.map(function (entry, index)
       {
+        var axes = self.getDefaultQuadrantAxes();
+        var quadrants = self.getDefaultQuadrants();
+        var requiredValue = entry && (entry.isRequired !== undefined ? entry.isRequired : entry && entry.required);
+        var isRequired = false;
+        if (requiredValue !== undefined && requiredValue !== null)
+        {
+          var requiredText = String(requiredValue).toLowerCase();
+          isRequired = requiredValue === true || requiredValue === 1 || requiredText === '1' || requiredText === 'true';
+        }
+        if (entry && typeof entry.axes === 'object' && !Array.isArray(entry.axes))
+        {
+          axes = Object.assign({}, axes, {
+            verticalTop: normalizeText(entry.axes.verticalTop),
+            verticalBottom: normalizeText(entry.axes.verticalBottom),
+            horizontalLeft: normalizeText(entry.axes.horizontalLeft),
+            horizontalRight: normalizeText(entry.axes.horizontalRight)
+          });
+        }
+        if (entry && typeof entry.quadrants === 'object' && !Array.isArray(entry.quadrants))
+        {
+          quadrants = Object.assign({}, quadrants, {
+            topLeft: self.normalizeQuadrantCell(entry.quadrants.topLeft),
+            topRight: self.normalizeQuadrantCell(entry.quadrants.topRight),
+            bottomLeft: self.normalizeQuadrantCell(entry.quadrants.bottomLeft),
+            bottomRight: self.normalizeQuadrantCell(entry.quadrants.bottomRight)
+          });
+        }
         var baseId = entry && entry.id ? String(entry.id) : self.createLocalId('survey-item');
         var normalizedChoices = [];
         if (Array.isArray(entry && (entry.choices || entry.kinds)))
@@ -4486,16 +4754,49 @@
             ? 'choiceMultiple'
             : normalizeText(entry && (entry.kind || entry.type || '')).toLowerCase() === 'choicesingle'
               ? 'choiceSingle'
-              : (normalizeText(entry && (entry.kind || entry.type || '')) || 'text'),
+              : normalizeText(entry && (entry.kind || entry.type || '')).toLowerCase() === 'quadrant'
+                ? 'quadrant'
+                : (normalizeText(entry && (entry.kind || entry.type || '')) || 'text'),
           position: Number(entry && entry.position ? entry.position : index),
-          choices: normalizedChoices
+          isRequired: isRequired,
+          choices: normalizedChoices,
+          axes: axes,
+          quadrants: quadrants
         };
       });
+    }
+
+    getDefaultQuadrantAxes()
+    {
+      return {
+        verticalTop: '',
+        verticalBottom: '',
+        horizontalLeft: '',
+        horizontalRight: ''
+      };
+    }
+
+    getDefaultQuadrants()
+    {
+      return {
+        topLeft: { content: '' },
+        topRight: { content: '' },
+        bottomLeft: { content: '' },
+        bottomRight: { content: '' }
+      };
+    }
+
+    normalizeQuadrantCell(cell)
+    {
+      return {
+        content: normalizeText(cell && (cell.content || cell.text || cell.body))
+      };
     }
 
     serializeSurveyItems(list)
     {
       var entries = Array.isArray(list) ? list : [];
+      var self = this;
       return entries.map(function (entry, index)
       {
         var type = normalizeText(entry && entry.type);
@@ -4504,7 +4805,8 @@
           title: normalizeText(entry && entry.title),
           description: normalizeText(entry && entry.description),
           kind: type || 'text',
-          position: Number(entry && entry.position ? entry.position : index)
+          position: Number(entry && entry.position ? entry.position : index),
+          isRequired: entry && entry.isRequired ? 1 : 0
         };
 
         if (Array.isArray(entry && entry.choices) && entry.choices.length)
@@ -4518,6 +4820,12 @@
               position: choice && Number.isFinite(choice.position) ? Number(choice.position) : choiceIndex
             };
           });
+        }
+
+        if (type === 'quadrant')
+        {
+          serialized.axes = Object.assign({}, self.getDefaultQuadrantAxes(), entry && entry.axes);
+          serialized.quadrants = Object.assign({}, self.getDefaultQuadrants(), entry && entry.quadrants);
         }
 
         return serialized;
@@ -4560,8 +4868,9 @@
       var thead = document.createElement('thead');
       thead.innerHTML = '' +
         '<tr>' +
-        '<th scope="col">タイトル</th>' +
+        '<th scope="col" class="survey-management__items-title-col">タイトル</th>' +
         '<th scope="col">説明</th>' +
+        '<th scope="col">必須</th>' +
         '<th scope="col">タイプ</th>' +
         '<th scope="col">選択肢</th>' +
         '<th scope="col" class="survey-management__items-action-col">操作</th>' +
@@ -4584,6 +4893,45 @@
         descriptionCell.textContent = item.description || '—';
         row.appendChild(descriptionCell);
 
+        var requiredCell = document.createElement('td');
+        requiredCell.className = 'survey-management__item-required-cell';
+        var requiredToggle = document.createElement('label');
+        requiredToggle.className = 'survey-management__item-required-checkbox';
+        var requiredInput = document.createElement('input');
+        requiredInput.type = 'checkbox';
+        requiredInput.className = 'survey-management__required-checkbox';
+        requiredInput.checked = Boolean(item && item.isRequired);
+        requiredInput.setAttribute('aria-label', 'この設問を必須にする');
+        var requiredLabel = document.createElement('span');
+        requiredLabel.className = 'survey-management__item-required-label';
+        requiredLabel.textContent = requiredInput.checked ? '必須' : '任意';
+
+        requiredInput.addEventListener('change', function ()
+        {
+          var nextRequired = Boolean(requiredInput && requiredInput.checked);
+          requiredLabel.textContent = nextRequired ? '必須' : '任意';
+          var items = Array.isArray(modal.surveyItems) ? modal.surveyItems.slice() : [];
+          var targetIndex = items.findIndex(function (entry)
+          {
+            return entry && item && entry.id === item.id;
+          });
+          var updatedItem = Object.assign({}, item, { isRequired: nextRequired });
+          if (targetIndex !== -1)
+          {
+            items.splice(targetIndex, 1, updatedItem);
+            modal.surveyItems = items;
+          }
+          else
+          {
+            modal.surveyItems = items;
+          }
+        });
+
+        requiredToggle.appendChild(requiredInput);
+        requiredToggle.appendChild(requiredLabel);
+        requiredCell.appendChild(requiredToggle);
+        row.appendChild(requiredCell);
+
         var typeCell = document.createElement('td');
         typeCell.className = 'survey-management__item-type-cell';
         var typeLabel = document.createElement('span');
@@ -4597,6 +4945,7 @@
         var choiceList = document.createElement('div');
         choiceList.className = 'survey-management__item-choice-list';
         var isChoiceType = item.type === 'choiceSingle' || item.type === 'choiceMultiple';
+        var isQuadrantType = item.type === 'quadrant';
         if (isChoiceType && item.choices && item.choices.length)
         {
           item.choices.forEach(function (choice)
@@ -4607,7 +4956,41 @@
             choiceList.appendChild(chip);
           });
         }
-        if (!isChoiceType)
+        if (isQuadrantType)
+        {
+          var axes = Object.assign({}, self.getDefaultQuadrantAxes(), item && item.axes);
+          var axisNote = document.createElement('div');
+          axisNote.className = 'survey-management__item-quadrant-axes';
+          axisNote.textContent = '縦: ' + (axes.verticalTop || '上') + ' / ' + (axes.verticalBottom || '下') + ' ｜ 横: ' + (axes.horizontalLeft || '左') + ' / ' + (axes.horizontalRight || '右');
+          choiceList.appendChild(axisNote);
+
+          var quadrantList = document.createElement('div');
+          quadrantList.className = 'survey-management__item-quadrant-list';
+          var labels = [
+            { key: 'topLeft', label: '左上' },
+            { key: 'topRight', label: '右上' },
+            { key: 'bottomLeft', label: '左下' },
+            { key: 'bottomRight', label: '右下' }
+          ];
+          labels.forEach(function (entry)
+          {
+            var cell = document.createElement('div');
+            cell.className = 'survey-management__item-quadrant-cell';
+            var heading = document.createElement('span');
+            heading.className = 'survey-management__item-quadrant-cell-title';
+            heading.textContent = entry.label;
+            cell.appendChild(heading);
+            var content = document.createElement('span');
+            content.className = 'survey-management__item-quadrant-cell-content';
+            var quadrants = item && item.quadrants ? item.quadrants : self.getDefaultQuadrants();
+            var target = quadrants && quadrants[entry.key];
+            content.textContent = target && target.content ? target.content : '—';
+            cell.appendChild(content);
+            quadrantList.appendChild(cell);
+          });
+          choiceList.appendChild(quadrantList);
+        }
+        if (!isChoiceType && !isQuadrantType)
         {
           var note = document.createElement('span');
           note.className = 'survey-management__item-choice-note';
@@ -4680,6 +5063,16 @@
       if (type !== 'choiceSingle' && type !== 'choiceMultiple')
       {
         next.choices = [];
+      }
+      if (type === 'quadrant')
+      {
+        next.axes = Object.assign({}, this.getDefaultQuadrantAxes(), next.axes);
+        next.quadrants = Object.assign({}, this.getDefaultQuadrants(), next.quadrants);
+      }
+      else
+      {
+        next.axes = this.getDefaultQuadrantAxes();
+        next.quadrants = this.getDefaultQuadrants();
       }
       modal.surveyItems.splice(targetIndex, 1, next);
       this.renderSurveyItemEditor(modal);
@@ -4814,6 +5207,78 @@
       }
     }
 
+    addSurveyItemChoicesFromCsv(detailModal)
+    {
+      if (!detailModal || !detailModal.targetModal || !detailModal.currentItem || !detailModal.choiceCsvInput)
+      {
+        return;
+      }
+      var csvText = detailModal.choiceCsvInput.value || '';
+      var lines = csvText.split(/\r?\n/);
+      var parsedChoices = [];
+      lines.forEach(function (line)
+      {
+        var normalizedLine = typeof line === 'string' ? line.trim() : '';
+        if (!normalizedLine)
+        {
+          return;
+        }
+        var commaIndex = normalizedLine.indexOf(',');
+        var title = commaIndex === -1 ? normalizedLine : normalizedLine.slice(0, commaIndex);
+        var description = commaIndex === -1 ? '' : normalizedLine.slice(commaIndex + 1);
+        var normalizedTitle = normalizeText(title);
+        var normalizedDescription = normalizeText(description);
+        if (!normalizedTitle)
+        {
+          return;
+        }
+        parsedChoices.push({
+          title: normalizedTitle,
+          description: normalizedDescription
+        });
+      });
+      if (!parsedChoices.length)
+      {
+        this.setModalFeedback(detailModal, 'CSVに有効な選択肢がありません。タイトルを入力してください。', 'error');
+        return;
+      }
+
+      var modal = detailModal.targetModal;
+      var items = Array.isArray(modal.surveyItems) ? modal.surveyItems.slice() : [];
+      var targetIndex = items.findIndex(function (entry)
+      {
+        return entry && entry.id === detailModal.currentItem.id;
+      });
+      var target = targetIndex === -1 ? detailModal.currentItem : items[targetIndex];
+      var choices = Array.isArray(target && target.choices) ? target.choices.slice() : [];
+      var self = this;
+      parsedChoices.forEach(function (entry)
+      {
+        choices.push({
+          id: self.createLocalId('choice'),
+          title: entry.title,
+          description: entry.description,
+          position: choices.length
+        });
+      });
+
+      var nextItem = Object.assign({}, target, { choices: choices });
+      if (targetIndex === -1)
+      {
+        detailModal.currentItem = nextItem;
+      }
+      else
+      {
+        items.splice(targetIndex, 1, nextItem);
+        modal.surveyItems = items;
+        this.renderSurveyItemEditor(modal);
+      }
+
+      this.renderSurveyItemChoiceList(modal, detailModal, nextItem);
+      detailModal.choiceCsvInput.value = '';
+      this.setModalFeedback(detailModal, parsedChoices.length + '件の選択肢を追加しました。', 'success');
+    }
+
     moveSurveyItemChoice(modal, detailModal, item, choiceId, delta)
     {
       if (!modal || !detailModal || !item || !choiceId || !delta)
@@ -4938,9 +5403,65 @@
         '<select class="user-management__input" id="target-survey-item-type" name="itemType">' +
         '<option value="choiceSingle">choiceSingle</option>' +
         '<option value="choiceMultiple">choiceMultiple</option>' +
+        '<option value="quadrant">quadrant</option>' +
         '<option value="text">text</option>' +
         '</select>' +
         '<p class="form-error" aria-live="polite"></p>' +
+        '</div>' +
+        '<div class="survey-management__form-field" data-field="item-required">' +
+        '<div class="survey-management__form-label-row">' +
+        '<label class="survey-management__form-label" for="target-survey-item-required">必須</label>' +
+        '</div>' +
+        '<div class="survey-management__required-toggle">' +
+        '<label class="survey-management__required-toggle-label" for="target-survey-item-required">' +
+        '<input type="checkbox" class="survey-management__required-checkbox" id="target-survey-item-required" data-survey-item-required />' +
+        '<span>必須にする</span>' +
+        '</label>' +
+        '</div>' +
+        '<p class="survey-management__items-summary">必須にすると回答がない場合は送信できません。</p>' +
+        '<p class="form-error" aria-live="polite"></p>' +
+        '</div>' +
+        '<div class="survey-management__form-field survey-management__quadrant-section" data-field="item-quadrants" hidden>' +
+        '<div class="survey-management__form-label-row">' +
+        '<label class="survey-management__form-label">4象限設定</label>' +
+        '</div>' +
+        '<p class="survey-management__items-summary">縦軸・横軸のラベルと各象限の表示内容を入力してください。</p>' +
+        '<div class="survey-management__quadrant-axis-grid">' +
+        '<div class="survey-management__quadrant-axis-field">' +
+        '<label class="survey-management__form-label" for="target-survey-axis-vertical-top">縦軸（上）</label>' +
+        '<input class="user-management__input" type="text" id="target-survey-axis-vertical-top" name="axisVerticalTop" maxlength="256" data-quadrant-axis="verticalTop">' +
+        '</div>' +
+        '<div class="survey-management__quadrant-axis-field">' +
+        '<label class="survey-management__form-label" for="target-survey-axis-vertical-bottom">縦軸（下）</label>' +
+        '<input class="user-management__input" type="text" id="target-survey-axis-vertical-bottom" name="axisVerticalBottom" maxlength="256" data-quadrant-axis="verticalBottom">' +
+        '</div>' +
+        '<div class="survey-management__quadrant-axis-field">' +
+        '<label class="survey-management__form-label" for="target-survey-axis-horizontal-left">横軸（左）</label>' +
+        '<input class="user-management__input" type="text" id="target-survey-axis-horizontal-left" name="axisHorizontalLeft" maxlength="256" data-quadrant-axis="horizontalLeft">' +
+        '</div>' +
+        '<div class="survey-management__quadrant-axis-field">' +
+        '<label class="survey-management__form-label" for="target-survey-axis-horizontal-right">横軸（右）</label>' +
+        '<input class="user-management__input" type="text" id="target-survey-axis-horizontal-right" name="axisHorizontalRight" maxlength="256" data-quadrant-axis="horizontalRight">' +
+        '</div>' +
+        '</div>' +
+        '<div class="survey-management__quadrant-grid">' +
+        '<div class="survey-management__quadrant-cell">' +
+        '<div class="survey-management__quadrant-cell-title">左上</div>' +
+        '<textarea class="user-management__input" rows="3" maxlength="1000" data-quadrant-content="topLeft"></textarea>' +
+        '</div>' +
+        '<div class="survey-management__quadrant-cell">' +
+        '<div class="survey-management__quadrant-cell-title">右上</div>' +
+        '<textarea class="user-management__input" rows="3" maxlength="1000" data-quadrant-content="topRight"></textarea>' +
+        '</div>' +
+        '<div class="survey-management__quadrant-cell">' +
+        '<div class="survey-management__quadrant-cell-title">左下</div>' +
+        '<textarea class="user-management__input" rows="3" maxlength="1000" data-quadrant-content="bottomLeft"></textarea>' +
+        '</div>' +
+        '<div class="survey-management__quadrant-cell">' +
+        '<div class="survey-management__quadrant-cell-title">右下</div>' +
+        '<textarea class="user-management__input" rows="3" maxlength="1000" data-quadrant-content="bottomRight"></textarea>' +
+        '</div>' +
+        '</div>' +
         '</div>' +
         '<div class="survey-management__form-field" data-field="item-choices" hidden>' +
         '<div class="survey-management__items-header">' +
@@ -4952,6 +5473,14 @@
         '</div>' +
         '<p class="survey-management__items-summary">choiceSingle または choiceMultiple の設問に選択肢を設定します。</p>' +
         '<div class="survey-management__items-table" data-survey-item-choice-list></div>' +
+        '<div class="survey-management__items-bulk">' +
+        '<label class="survey-management__form-label" for="target-survey-item-choice-csv">CSVで一括追加</label>' +
+        '<p class="survey-management__items-summary">タイトル,説明 の形式で1行1件のCSVをペーストしてください。タイトルのみの行も追加できます。</p>' +
+        '<textarea class="user-management__input survey-management__choice-textarea" id="target-survey-item-choice-csv" rows="3" data-survey-item-choice-csv></textarea>' +
+        '<div class="survey-management__items-actions">' +
+        '<button type="button" class="btn btn--ghost" data-survey-item-choice-csv-add>CSVを追加</button>' +
+        '</div>' +
+        '</div>' +
         '</div>' +
         '</div>' +
         '<p class="screen-modal__feedback" aria-live="polite"></p>' +
@@ -4971,9 +5500,25 @@
       var titleInput = root.querySelector('#target-survey-item-title');
       var descriptionInput = root.querySelector('#target-survey-item-description');
       var typeSelect = root.querySelector('#target-survey-item-type');
+      var requiredToggle = root.querySelector('[data-survey-item-required]');
+      var quadrantSection = root.querySelector('[data-field="item-quadrants"]');
+      var quadrantAxisInputs = {
+        verticalTop: root.querySelector('[data-quadrant-axis="verticalTop"]'),
+        verticalBottom: root.querySelector('[data-quadrant-axis="verticalBottom"]'),
+        horizontalLeft: root.querySelector('[data-quadrant-axis="horizontalLeft"]'),
+        horizontalRight: root.querySelector('[data-quadrant-axis="horizontalRight"]')
+      };
+      var quadrantContentInputs = {
+        topLeft: root.querySelector('[data-quadrant-content="topLeft"]'),
+        topRight: root.querySelector('[data-quadrant-content="topRight"]'),
+        bottomLeft: root.querySelector('[data-quadrant-content="bottomLeft"]'),
+        bottomRight: root.querySelector('[data-quadrant-content="bottomRight"]')
+      };
       var choiceSection = root.querySelector('[data-field="item-choices"]');
       var choiceList = root.querySelector('[data-survey-item-choice-list]');
       var addChoiceButton = root.querySelector('[data-survey-item-choice-add]');
+      var choiceCsvInput = root.querySelector('[data-survey-item-choice-csv]');
+      var addChoiceCsvButton = root.querySelector('[data-survey-item-choice-csv-add]');
       var summaryNode = root.querySelector('[data-survey-item-summary]');
       var feedback = root.querySelector('.screen-modal__feedback');
 
@@ -4986,9 +5531,15 @@
         titleInput: titleInput,
         descriptionInput: descriptionInput,
         typeSelect: typeSelect,
+        requiredToggle: requiredToggle,
+        quadrantSection: quadrantSection,
+        quadrantAxisInputs: quadrantAxisInputs,
+        quadrantContentInputs: quadrantContentInputs,
         choiceSection: choiceSection,
         choiceList: choiceList,
         addChoiceButton: addChoiceButton,
+        choiceCsvInput: choiceCsvInput,
+        addChoiceCsvButton: addChoiceCsvButton,
         summaryNode: summaryNode,
         feedback: feedback,
         currentItem: null,
@@ -5028,16 +5579,60 @@
           }
         });
       }
+      if (addChoiceCsvButton)
+      {
+        addChoiceCsvButton.addEventListener('click', function (event)
+        {
+          event.preventDefault();
+          if (detailModal.currentItem)
+          {
+            self.addSurveyItemChoicesFromCsv(detailModal);
+          }
+        });
+      }
       if (detailModal.typeSelect)
       {
         detailModal.typeSelect.addEventListener('change', function ()
         {
           var selectedType = detailModal.typeSelect.value || 'text';
-          var baseItem = detailModal.currentItem || { choices: [] };
+          var baseItem = Object.assign({}, detailModal.currentItem || { choices: [] });
+          var quadrantConfig = self.getQuadrantConfigFromDetail(detailModal);
+          if (detailModal.currentItem && detailModal.currentItem.type === 'quadrant')
+          {
+            baseItem.axes = quadrantConfig.axes;
+            baseItem.quadrants = quadrantConfig.quadrants;
+          }
           var nextItem = Object.assign({}, baseItem, { type: selectedType });
+          if (selectedType === 'quadrant')
+          {
+            nextItem.axes = Object.assign({}, quadrantConfig.axes);
+            nextItem.quadrants = Object.assign({}, quadrantConfig.quadrants);
+          }
           detailModal.currentItem = nextItem;
           self.updateSurveyItemDetailSummary(detailModal, nextItem);
           self.renderSurveyItemChoiceList(modal, detailModal, nextItem);
+          self.renderSurveyItemQuadrantSection(detailModal, nextItem);
+        });
+      }
+      if (detailModal.requiredToggle)
+      {
+        detailModal.requiredToggle.addEventListener('change', function ()
+        {
+          var nextRequired = Boolean(detailModal.requiredToggle && detailModal.requiredToggle.checked);
+          var items = Array.isArray(modal.surveyItems) ? modal.surveyItems.slice() : [];
+          var targetIndex = detailModal.currentItem && Array.isArray(items)
+            ? items.findIndex(function (entry)
+              {
+                return entry && detailModal.currentItem && entry.id === detailModal.currentItem.id;
+              })
+            : -1;
+          var nextItem = Object.assign({}, detailModal.currentItem || {}, { isRequired: nextRequired });
+          if (targetIndex !== -1)
+          {
+            items.splice(targetIndex, 1, nextItem);
+            modal.surveyItems = items;
+          }
+          detailModal.currentItem = nextItem;
         });
       }
       if (form)
@@ -5088,6 +5683,7 @@
         description: '',
         type: 'text',
         choices: [],
+        isRequired: false,
         position: Array.isArray(modal && modal.surveyItems) ? modal.surveyItems.length : 0
       };
       detailModal.currentItem = workingItem;
@@ -5105,8 +5701,17 @@
       {
         detailModal.typeSelect.value = workingItem && workingItem.type ? workingItem.type : 'text';
       }
+      if (detailModal.requiredToggle)
+      {
+        detailModal.requiredToggle.checked = Boolean(workingItem && workingItem.isRequired);
+      }
+      if (detailModal.choiceCsvInput)
+      {
+        detailModal.choiceCsvInput.value = '';
+      }
       this.updateSurveyItemDetailSummary(detailModal, workingItem);
       this.renderSurveyItemChoiceList(modal, detailModal, workingItem);
+      this.renderSurveyItemQuadrantSection(detailModal, workingItem);
       this.setModalFeedback(detailModal, '');
       this.toggleSurveyItemDetailModal(detailModal, true);
     }
@@ -5121,6 +5726,8 @@
       var title = detailModal.titleInput && detailModal.titleInput.value ? detailModal.titleInput.value.trim() : '';
       var description = detailModal.descriptionInput && detailModal.descriptionInput.value ? detailModal.descriptionInput.value.trim() : '';
       var type = detailModal.typeSelect ? detailModal.typeSelect.value : 'text';
+      var quadrantConfig = type === 'quadrant' ? this.getQuadrantConfigFromDetail(detailModal) : null;
+      var isRequired = Boolean(detailModal.requiredToggle && detailModal.requiredToggle.checked);
       var hasError = false;
       if (!title)
       {
@@ -5154,21 +5761,44 @@
             title: title,
             description: description,
             type: type,
+            isRequired: isRequired,
             choices: preservedChoices
           });
+          if (type === 'quadrant' && quadrantConfig)
+          {
+            updatedItem.axes = quadrantConfig.axes;
+            updatedItem.quadrants = quadrantConfig.quadrants;
+          }
+          else
+          {
+            updatedItem.axes = this.getDefaultQuadrantAxes();
+            updatedItem.quadrants = this.getDefaultQuadrants();
+          }
           items.splice(targetIndex, 1, updatedItem);
         }
         else
         {
           var initialChoices = Array.isArray(detailModal.currentItem.choices) ? detailModal.currentItem.choices : [];
-          items.push({
+          var nextItem = {
             id: detailModal.currentItem.id || this.createLocalId('survey-item'),
             title: title,
             description: description,
             type: type,
+            isRequired: isRequired,
             choices: (type === 'choiceSingle' || type === 'choiceMultiple') ? initialChoices : [],
             position: items.length
-          });
+          };
+          if (type === 'quadrant')
+          {
+            nextItem.axes = quadrantConfig ? quadrantConfig.axes : this.getDefaultQuadrantAxes();
+            nextItem.quadrants = quadrantConfig ? quadrantConfig.quadrants : this.getDefaultQuadrants();
+          }
+          else
+          {
+            nextItem.axes = this.getDefaultQuadrantAxes();
+            nextItem.quadrants = this.getDefaultQuadrants();
+          }
+          items.push(nextItem);
         }
         modal.surveyItems = items;
       }
@@ -5192,6 +5822,11 @@
       if (type === 'choiceMultiple')
       {
         detailModal.summaryNode.textContent = '複数選択の設問を作成します。選択肢は一覧から追加してください。';
+        return;
+      }
+      if (type === 'quadrant')
+      {
+        detailModal.summaryNode.textContent = '4象限の設問を作成します。縦横軸と各象限の内容を入力してください。';
         return;
       }
       detailModal.summaryNode.textContent = '自由記述の設問を作成します。';
@@ -5350,6 +5985,75 @@
 
       table.appendChild(tbody);
       detailModal.choiceList.appendChild(table);
+    }
+
+    renderSurveyItemQuadrantSection(detailModal, item)
+    {
+      if (!detailModal)
+      {
+        return;
+      }
+      var isQuadrant = item && item.type === 'quadrant';
+      if (detailModal.quadrantSection)
+      {
+        detailModal.quadrantSection.hidden = !isQuadrant;
+      }
+      if (!isQuadrant)
+      {
+        return;
+      }
+      var axes = Object.assign({}, this.getDefaultQuadrantAxes(), item && item.axes);
+      var quadrants = Object.assign({}, this.getDefaultQuadrants(), item && item.quadrants);
+      var axisInputs = detailModal.quadrantAxisInputs || {};
+      Object.keys(axisInputs).forEach(function (key)
+      {
+        var input = axisInputs[key];
+        if (input)
+        {
+          input.value = axes && axes[key] ? axes[key] : '';
+        }
+      });
+      var contentInputs = detailModal.quadrantContentInputs || {};
+      Object.keys(contentInputs).forEach(function (key)
+      {
+        var input = contentInputs[key];
+        if (input)
+        {
+          var cell = quadrants && quadrants[key];
+          input.value = cell && cell.content ? cell.content : '';
+        }
+      });
+      var current = detailModal.currentItem || {};
+      detailModal.currentItem = Object.assign({}, current, { axes: axes, quadrants: quadrants });
+    }
+
+    getQuadrantConfigFromDetail(detailModal)
+    {
+      var axes = this.getDefaultQuadrantAxes();
+      var quadrants = this.getDefaultQuadrants();
+      if (!detailModal)
+      {
+        return { axes: axes, quadrants: quadrants };
+      }
+      var axisInputs = detailModal.quadrantAxisInputs || {};
+      Object.keys(axisInputs).forEach(function (key)
+      {
+        var input = axisInputs[key];
+        if (input)
+        {
+          axes[key] = normalizeText(input.value);
+        }
+      });
+      var contentInputs = detailModal.quadrantContentInputs || {};
+      Object.keys(contentInputs).forEach(function (key)
+      {
+        var input = contentInputs[key];
+        if (input)
+        {
+          quadrants[key] = { content: normalizeText(input.value) };
+        }
+      });
+      return { axes: axes, quadrants: quadrants };
     }
 
     ensureSurveyItemChoiceModal(modal)
@@ -5639,6 +6343,10 @@
       }
       modal.isSubmitting = !!isSubmitting;
       var controls = [modal.submitButton, modal.cancelButton, modal.closeButton, modal.audienceAddButton];
+      if (modal.guestToggle)
+      {
+        controls.push(modal.guestToggle);
+      }
       controls.forEach(function (control)
       {
         if (!control)
@@ -5690,50 +6398,11 @@
           return;
         }
 
-        var isActive = entry.isActive;
-        var status = typeof entry.status === 'string' ? entry.status.toLowerCase() : '';
-        if (entry.active === false || entry.active === 0 || entry.active === '0' || entry.active === 'false')
-        {
-          isActive = false;
-        }
-        if (status === 'inactive')
-        {
-          isActive = false;
-        }
-        if (entry.endedAt)
-        {
-          isActive = false;
-        }
-        if (user)
-        {
-          if (user.isActive === false || user.isActive === 0 || user.isActive === '0' || user.isActive === 'false')
-          {
-            isActive = false;
-          }
-          if (user.active === false || user.active === 0 || user.active === '0' || user.active === 'false')
-          {
-            isActive = false;
-          }
-          var userStatus = typeof user.status === 'string' ? user.status.toLowerCase() : '';
-          if (userStatus === 'inactive')
-          {
-            isActive = false;
-          }
-          if (user.endedAt)
-          {
-            isActive = false;
-          }
-        }
-        if (isActive === false)
-        {
-          return;
-        }
-
         var recipient = normalizeRecipient({
           userCode: userCode,
           displayName: displayName,
           mail: entry.mail || entry.mailAddress || entry.email || (user && (user.mail || user.mailAddress || user.email)) || '',
-          isActive: true,
+          isActive: entry.isActive !== false,
           isGuest: isGuestUser(entry) || isGuestUser(user),
           selectionKey: (entry && entry.selectionKey) || (user && user.selectionKey) || ''
         });
@@ -5801,6 +6470,7 @@
       {
         return;
       }
+      var isGuestMode = this.isGuestModeEnabled(modal);
       var list = modal.audienceList;
       if (list)
       {
@@ -5809,9 +6479,18 @@
       var selection = Array.isArray(modal.selectedRecipients) ? modal.selectedRecipients : [];
       if (modal.audienceCount)
       {
-        modal.audienceCount.textContent = selection.length
-          ? selection.length + '名が選択されています。'
-          : '';
+        if (selection.length)
+        {
+          modal.audienceCount.textContent = selection.length + '名が選択されています。';
+        }
+        else if (isGuestMode)
+        {
+          modal.audienceCount.textContent = 'ゲストモードでは対象ユーザーを指定せずに回答できます。';
+        }
+        else
+        {
+          modal.audienceCount.textContent = '';
+        }
       }
       if (!list)
       {
@@ -5821,7 +6500,9 @@
       {
         var empty = document.createElement('p');
         empty.className = 'survey-management__audience-empty';
-        empty.textContent = '対象ユーザーは選択されていません。';
+        empty.textContent = isGuestMode
+          ? 'ゲストモードがオンのため、対象ユーザーを指定しなくても回答できます。'
+          : '対象ユーザーは選択されていません。';
         list.appendChild(empty);
         return;
       }
@@ -5977,6 +6658,7 @@
       var startDate = startValue ? parseDate(startValue) : null;
       var endDate = endValue ? parseDate(endValue) : null;
       var audience = Array.isArray(modal.selectedRecipients) ? modal.selectedRecipients : [];
+      var isGuestMode = this.isGuestModeEnabled(modal);
       var hasError = false;
       if (!title)
       {
@@ -6004,7 +6686,7 @@
         this.setFieldError(modal.endField, '開始日時は終了日時以前に設定してください。');
         hasError = true;
       }
-      if (!audience.length)
+      if (!audience.length && !isGuestMode)
       {
         this.setFieldError(modal.audienceField, '対象ユーザーを選択してください。');
         hasError = true;
@@ -6043,6 +6725,7 @@
           content: content,
           startAt: formatServerTimestamp(startDate),
           endAt: formatServerTimestamp(endDate),
+          isGuestMode: isGuestMode ? 1 : 0,
           recipients: audience
             .map(function (entry)
             {
@@ -6083,6 +6766,11 @@
         }
       }
       this.setModalSubmitting(modal, false);
+    }
+
+    isGuestModeEnabled(modal)
+    {
+      return Boolean(modal && modal.guestToggle && modal.guestToggle.checked);
     }
   }
 

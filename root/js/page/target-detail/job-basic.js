@@ -1104,8 +1104,9 @@
         primaryColumn.appendChild(createDefinitionList(overviewDefinitions));
       }
 
+      var periodDisplay = this.buildPeriodDisplay(target);
       primaryColumn.appendChild(createDefinitionList([
-        { term: '期限', description: target.dueDateDisplay || '—' },
+        { term: '期間', description: periodDisplay || '—' },
         { term: '最終更新', description: target.updatedAtDisplay || '—' },
         { term: '作成日時', description: target.createdAtDisplay || '—' }
       ]));
@@ -1135,6 +1136,25 @@
       }
       this.bindOverviewUserPopovers(card);
       return card;
+    }
+
+    buildPeriodDisplay(target)
+    {
+      var start = target && target.startDateDisplay ? String(target.startDateDisplay).trim() : '';
+      var end = target && target.endDateDisplay ? String(target.endDateDisplay).trim() : '';
+      if (!start && !end)
+      {
+        return '';
+      }
+      if (!start)
+      {
+        return '～' + end;
+      }
+      if (!end)
+      {
+        return start + '～';
+      }
+      return start + '～' + end;
     }
 
     applyOverviewBackground(container, target)
