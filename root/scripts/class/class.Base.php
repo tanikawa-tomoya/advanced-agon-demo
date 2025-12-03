@@ -2336,6 +2336,10 @@ class Base
                         return true;
                 }
 
+                if (TargetManagementUtil::isTargetParticipatedByUser($targetCode, $userCode, $pdoTarget)) {
+                        return true;
+                }
+
                 return false;
         }
 }
