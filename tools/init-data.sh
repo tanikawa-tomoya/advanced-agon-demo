@@ -502,6 +502,7 @@ CREATE TABLE IF NOT EXISTS user (
     isSupervisor INTEGER,
     isOperator INTEGER,
     useContentsManagement INTEGER DEFAULT 1,
+    useDashboard INTEGER DEFAULT 1,
     role VARCHAR(16),
     autoPassword VARCHAR(16),
     mail VARCHAR(128),
@@ -570,8 +571,8 @@ SQL
     done
 
     sqlite3 "$db_path" <<SQL
-INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, autoPassword, mail, role)
-VALUES ('${ADMIN_USER_CODE}', '', 'Administrator', 'Head Office', 1, 0, 1, '${admin_auto_password}', '', 'supervisor');
+INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, useDashboard, autoPassword, mail, role)
+VALUES ('${ADMIN_USER_CODE}', '', 'Administrator', 'Head Office', 1, 0, 1, 1, '${admin_auto_password}', '', 'supervisor');
 SQL
 
     for operator_code in "${OPERATOR_USER_CODES[@]}"; do
@@ -579,16 +580,16 @@ SQL
         local display_name="${operator_code//-/ }"
         display_name="${display_name^}"
         sqlite3 "$db_path" <<SQL
-INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, autoPassword, mail, role)
-VALUES ('${operator_code}', '', '${display_name}', 'Operations', 0, 1, 1, '${password}', '', 'operator');
+INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, useDashboard, autoPassword, mail, role)
+VALUES ('${operator_code}', '', '${display_name}', 'Operations', 0, 1, 1, 1, '${password}', '', 'operator');
 SQL
     done
 
     for user_code in "${USER_CODES[@]}"; do
         local password="${user_auto_passwords[${user_code}]}"
         sqlite3 "$db_path" <<SQL
-INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, autoPassword, mail, role)
-VALUES ('${user_code}', '', '${user_code}', 'General', 0, 0, 1, '${password}', '', 'member');
+INSERT OR REPLACE INTO user (userCode, hash, displayName, organization, isSupervisor, isOperator, useContentsManagement, useDashboard, autoPassword, mail, role)
+VALUES ('${user_code}', '', '${user_code}', 'General', 0, 0, 1, 1, '${password}', '', 'member');
 SQL
     done
 
@@ -701,6 +702,7 @@ CREATE TABLE IF NOT EXISTS targets (
     displayGuidance INTEGER DEFAULT 1,
     displayGoals INTEGER DEFAULT 1,
     displayAgreements INTEGER DEFAULT 1,
+    displayBasicConfirmation INTEGER DEFAULT 1,
     displayAnnouncements INTEGER DEFAULT 1,
     displayReferences INTEGER DEFAULT 1,
     displaySchedules INTEGER DEFAULT 1,
@@ -2051,7 +2053,7 @@ seed_target_test_data() {
 INSERT OR REPLACE INTO targets (
     targetCode, title, description, imageFile, status, priority, dueDate,
     startDate, endDate, assignedUserCode, assignedGroupCode,
-    displayGuidance, displayGoals, displayAgreements, displayAnnouncements,
+    displayGuidance, displayGoals, displayAgreements, displayBasicConfirmation, displayAnnouncements,
     displayReferences, displaySchedules, displayProducts, displayCreator, displayAudience, displayChat, displayBbs, displaySubmissions, displayReviews, displayBadges, displaySurvey,
     createdByUserCode, createdAt, updatedAt, isDeleted
 )
@@ -2067,6 +2069,7 @@ VALUES (
     date('now','+${end_offset} days'),
     '${assigned_user}',
     NULL,
+    1,
     1,
     1,
     1,

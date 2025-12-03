@@ -51,15 +51,19 @@
       }
     }
 
-    open(event) {
+    async open(event) {
       if (event) {
         event.preventDefault();
       }
+      var flags = null;
+      if (this.pageInstance && this.pageInstance.helpModalService && typeof this.pageInstance.helpModalService.resolveSessionRoleFlags === 'function')
+      {
+        flags = await this.pageInstance.helpModalService.resolveSessionRoleFlags();
+      }
       this.pageInstance.helpModalService.show({
-        title: 'システム管理のポイント',
-        html: this._serializeModalBody(),
+        roleVariants: this._buildVariants(),
         sanitizeFn: sanitizeHelpHtml
-      });
+      }, { roleFlags: flags });
     }
 
     close(event) {
@@ -89,6 +93,36 @@
         html += body.innerHTML;
       }
       return html;
+    }
+
+    _buildVariants()
+    {
+      var html = this._serializeModalBody();
+      var title = 'システム管理のポイント';
+      return {
+        admin: {
+          title: title + '（管理者向け）',
+          html: '' +
+            '<p>オペレーター / スーパーバイザー向けの設定ガイドです。構成変更やメンテナンスは事前に影響範囲を確認してください。</p>' +
+            '<ul>' +
+              '<li>環境設定や認証設定を変更する際はバックアップと検証環境を用意します。</li>' +
+              '<li>ジョブやサービスの再起動後はステータスを確認し、通知で共有します。</li>' +
+              '<li>アクセス権やAPIキーは最小権限で管理し、定期的に棚卸しします。</li>' +
+            '</ul>' +
+            html
+        },
+        user: {
+          title: title + '（利用者向け）',
+          html: '' +
+            '<p>システムの状態を確認する閲覧者向けのヘルプです。設定変更が必要な場合は管理担当へ連絡してください。</p>' +
+            '<ul>' +
+              '<li>必要な設定やステータスが見当たらない場合はスクリーンショットを添えて報告します。</li>' +
+              '<li>メンテナンス情報は案内文やヘルプから確認できます。</li>' +
+              '<li>不審な挙動を見つけたらログ取得の手順に従い、担当者に共有します。</li>' +
+            '</ul>' +
+            html
+        }
+      };
     }
   }
 

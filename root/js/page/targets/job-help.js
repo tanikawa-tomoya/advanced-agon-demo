@@ -40,15 +40,99 @@
       this.root = this.page.root || document;
     }
 
-    open(topic) {
+    async open(topic) {
       topic = topic || 'overview';
       var modalService = this.ui.helpModal || this.page.helpModalService;
-      var html = this._topicHtml(topic);
-      modalService.show({
-        title: this._topicTitle(topic),
-        html: html,
+      var flags = null;
+
+      if (this.page && typeof this.page.resolveSessionRoleFlags === 'function')
+      {
+        flags = await this.page.resolveSessionRoleFlags();
+      }
+
+      var content = this._topicContent(topic);
+      modalService.show(content, {
+        roleFlags: flags,
         sanitizeFn: sanitizeHelpHtml
       });
+    }
+
+    _topicContent(topic) {
+      var roleBased = this._buildRoleBasedContent(topic);
+      if (roleBased) return roleBased;
+
+      return {
+        roleVariants: {
+          default: {
+            title: this._topicTitle(topic),
+            html: this._topicHtml(topic)
+          }
+        }
+      };
+    }
+
+    _buildRoleBasedContent(topic)
+    {
+      var adminHtml = this._adminTopicHtml(topic);
+      var userHtml = this._userTopicHtml(topic);
+
+      if (!adminHtml && !userHtml)
+      {
+        return null;
+      }
+
+      return {
+        roleVariants: {
+          admin: {
+            title: 'ターゲット管理（管理者向け）',
+            html: adminHtml
+          },
+          user: {
+            title: 'ターゲット管理（利用者向け）',
+            html: userHtml
+          }
+        }
+      };
+    }
+
+    _adminTopicHtml(topic)
+    {
+      if (topic !== 'overview' && topic !== 'form' && topic !== 'list')
+      {
+        return '';
+      }
+
+      return '' +
+        '<h3>管理者のチェックポイント</h3>' +
+        '<ul>' +
+          '<li>ドラフト作成後は期間・担当者・配布設定を整えてから公開します。</li>' +
+          '<li>公開後はステータスを更新し、滞留が疑われる案件は担当者や開始日で並べ替えて確認します。</li>' +
+          '<li>「表示列」やフィルタで必要な指標に絞り込み、優先度の高いターゲットを把握します。</li>' +
+        '</ul>' +
+        '<h3>権限付き操作</h3>' +
+        '<ul>' +
+          '<li>「新規作成」からテンプレや配布中ターゲットを登録し、必要に応じて編集・削除できます。</li>' +
+          '<li>担当者・参加者を設定して役割を明確化し、進行中のタスクを追跡します。</li>' +
+          '<li>完了・キャンセルしたものはステータスを更新し、履歴管理を徹底してください。</li>' +
+        '</ul>' +
+        '<p>監視やエスカレーションを担うオペレーター / スーパーバイザー向けのヘルプです。</p>';
+    }
+
+    _userTopicHtml(topic)
+    {
+      if (topic !== 'overview' && topic !== 'form' && topic !== 'list')
+      {
+        return '';
+      }
+
+      return '' +
+        '<h3>利用者の使いどころ</h3>' +
+        '<ul>' +
+          '<li>検索とフィルタで自分に関係するターゲットを素早く見つけられます。</li>' +
+          '<li>一覧の表示列を切り替えて、期限・ステータス・担当者など必要な情報を確認します。</li>' +
+          '<li>自分に割り当てられたターゲットは進行状況をステータスで共有し、コメントや更新内容を整えてください。</li>' +
+        '</ul>' +
+        '<p>権限に応じて表示・編集できる項目が変わります。操作できない項目は管理者に連絡してください。</p>';
     }
 
     _topicTitle(topic) {

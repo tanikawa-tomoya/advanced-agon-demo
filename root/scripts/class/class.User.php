@@ -121,6 +121,12 @@ class User extends Base
                         $userInfo['useContentsManagement'] = 1;
                 }
 
+                if (array_key_exists('useDashboard', $userInfo)) {
+                        $userInfo['useDashboard'] = ((int) $userInfo['useDashboard'] === 1) ? 1 : 0;
+                } else {
+                        $userInfo['useDashboard'] = 1;
+                }
+
                 if (array_key_exists('organization', $userInfo)) {
                         $userInfo['organization'] = $userInfo['organization'] === null
                                 ? null
@@ -418,6 +424,10 @@ class User extends Base
                 if (array_key_exists('useContentsManagement', $this->params)) {
                         $useContentsManagement = $this->normalizeRoleFlagValue($this->params['useContentsManagement']);
                 }
+                $useDashboard = 1;
+                if (array_key_exists('useDashboard', $this->params)) {
+                        $useDashboard = $this->normalizeRoleFlagValue($this->params['useDashboard']);
+                }
                 if ($isSupervisor === 1) {
                         $isOperator = 1;
                 }
@@ -454,8 +464,8 @@ class User extends Base
 
                         $defaultRole = '';
 
-                        $stmt = $pdoCommon->prepare("INSERT INTO user (userCode, displayName, organization, autoPassword, mail, role, isSupervisor, isOperator, useContentsManagement) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute(array($userCode, $displayName, $organization, $autoPassword, $encryptedMail, $defaultRole, $isSupervisor, $isOperator, $useContentsManagement));
+                        $stmt = $pdoCommon->prepare("INSERT INTO user (userCode, displayName, organization, autoPassword, mail, role, isSupervisor, isOperator, useContentsManagement, useDashboard) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute(array($userCode, $displayName, $organization, $autoPassword, $encryptedMail, $defaultRole, $isSupervisor, $isOperator, $useContentsManagement, $useDashboard));
 						
 			$userId = $pdoCommon->lastInsertId();
 
@@ -504,6 +514,7 @@ class User extends Base
                         'isSupervisor' => (int) $userInfo['isSupervisor'] === 1 ? 1 : 0,
                         'isOperator'   => (int) $userInfo['isOperator'] === 1 ? 1 : 0,
                         'useContentsManagement' => isset($userInfo['useContentsManagement']) && (int) $userInfo['useContentsManagement'] === 1 ? 1 : 0,
+                        'useDashboard' => isset($userInfo['useDashboard']) && (int) $userInfo['useDashboard'] === 1 ? 1 : 0,
                                                 );
 
 		try {
@@ -531,6 +542,7 @@ class User extends Base
                                                                 "isSupervisor" => (int) $userInfo["isSupervisor"],
                                                                 "isOperator" => (int) $userInfo["isOperator"],
                                                                 "useContentsManagement" => isset($userInfo['useContentsManagement']) ? (int) $userInfo['useContentsManagement'] : 0,
+                                                                "useDashboard" => isset($userInfo['useDashboard']) ? (int) $userInfo['useDashboard'] : 0,
                                                                 "role" => isset($userInfo['role']) ? strtolower(trim((string) $userInfo['role'])) : null,
                                                                 "token" => $token,
                                                                 );
@@ -1664,8 +1676,8 @@ class User extends Base
                 }
 
                $value = $this->params[$columnName];
-                $isRoleFlag = ($columnName == "isSupervisor" || $columnName == "isOperator");
-                $isBooleanFlag = $isRoleFlag || $columnName == "useContentsManagement";
+               $isRoleFlag = ($columnName == "isSupervisor" || $columnName == "isOperator");
+               $isBooleanFlag = $isRoleFlag || $columnName == "useContentsManagement" || $columnName == "useDashboard";
 	  	  
 		if ($value == "serverTime") {
 			$now = new DateTime('now');
@@ -1707,7 +1719,7 @@ class User extends Base
                                 $value = htmlspecialchars($value, ENT_QUOTES, "UTF-8");
                         }
                 }
-                else if ($columnName == "isSupervisor" || $columnName == "isOperator" || $columnName == "useContentsManagement") {
+               else if ($columnName == "isSupervisor" || $columnName == "isOperator" || $columnName == "useContentsManagement" || $columnName == "useDashboard") {
                         $value = $this->normalizeRoleFlagValue($value);
                 }
 
@@ -2054,6 +2066,7 @@ class User extends Base
                                                   'userCode' => isset($userInfo['userCode']) ? $userInfo['userCode'] : null,
                                                   'displayName' => isset($userInfo['displayName']) ? $userInfo['displayName'] : null,
                                                   'useContentsManagement' => isset($userInfo['useContentsManagement']) ? (int) $userInfo['useContentsManagement'] : null,
+                                                  'useDashboard' => isset($userInfo['useDashboard']) ? (int) $userInfo['useDashboard'] : null,
                                                   );
 
 		if (array_key_exists('imageFileName', $metadata)) {

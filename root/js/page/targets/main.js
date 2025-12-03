@@ -548,7 +548,7 @@
           var topic = this.getAttribute('data-topic') || 'overview';
           var job = await self.useJob('help');
           if (!job) return;
-          job.open(topic);
+          await job.open(topic);
         })
         .on('click.targets', '[data-action="close-target-modal"]', async function (ev) {
           ev.preventDefault();
@@ -684,7 +684,8 @@
       }
       var shouldClose = true;
       var job = await this.useJob('form');
-      if (job && typeof job.isDirty === 'function' && job.isDirty())
+      var requiresConfirm = job && typeof job.isDirty === 'function' && job.isDirty();
+      if (requiresConfirm)
       {
         var message = (this.textConfig && this.textConfig.formCloseConfirm)
           ? this.textConfig.formCloseConfirm
@@ -692,6 +693,10 @@
         if (this.confirmDialogService && typeof this.confirmDialogService.open === 'function')
         {
           shouldClose = await this.confirmDialogService.open(message, { type: 'warning' });
+        }
+        else
+        {
+          shouldClose = false;
         }
       }
       if (shouldClose)

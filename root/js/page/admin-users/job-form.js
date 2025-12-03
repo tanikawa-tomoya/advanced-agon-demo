@@ -119,6 +119,7 @@
           if (this._showRoleFlags) {
             payload.isSupervisor = values.isSupervisor ? '1' : '0';
             payload.isOperator = values.isOperator ? '1' : '0';
+            payload.useDashboard = values.useDashboard ? '1' : '0';
             payload.useContentsManagement = values.useContentsManagement ? '1' : '0';
           }
           this._appendAvatarPayload(payload);
@@ -298,7 +299,7 @@
       if (!$form || typeof $form.find !== 'function') {
         return false;
       }
-      return $form.find('[name="isSupervisor"], [name="isOperator"], [name="useContentsManagement"]').length > 0;
+      return $form.find('[name="isSupervisor"], [name="isOperator"], [name="useContentsManagement"], [name="useDashboard"]').length > 0;
     }
 
     _readForm($form) {
@@ -310,6 +311,7 @@
       const isSupervisor = showRoleFlags ? getBool('isSupervisor') : this._getInitialRoleFlag('isSupervisor');
       const isOperator = showRoleFlags ? getBool('isOperator') : this._getInitialRoleFlag('isOperator');
       const useContentsManagement = showRoleFlags ? getBool('useContentsManagement') : this._getInitialRoleFlag('useContentsManagement');
+      const useDashboard = showRoleFlags ? getBool('useDashboard') : this._getInitialRoleFlag('useDashboard');
       return {
         mode: ($form.attr('data-mode') || 'create').toString(),
         id: ($form.find('[name="id"]').val() || '').toString(),
@@ -321,7 +323,8 @@
         initialPassword: get('initialPassword'),
         isSupervisor,
         isOperator,
-        useContentsManagement
+        useContentsManagement,
+        useDashboard
       };
     }
 
@@ -446,6 +449,11 @@
       if (typeof rawContentsFlag === 'undefined') {
         useContentsManagement = true;
       }
+      const rawDashboardFlag = (typeof u.useDashboard !== 'undefined') ? u.useDashboard : u.use_dashboard;
+      let useDashboard = this._normalizeRoleFlag(rawDashboardFlag);
+      if (typeof rawDashboardFlag === 'undefined') {
+        useDashboard = true;
+      }
       return {
         id: (u.id || u.userId || '').toString(),
         displayName,
@@ -457,7 +465,8 @@
         avatar: this._normalizeAvatarInitial(u),
         isSupervisor: this._normalizeRoleFlag(u.isSupervisor || u.supervisor),
         isOperator: this._normalizeRoleFlag(u.isOperator || u.operator || u.isSupervisor),
-        useContentsManagement
+        useContentsManagement,
+        useDashboard
       };
     }
 
@@ -594,6 +603,12 @@
           label: 'Operator',
           description: 'ユーザーにオペレーター権限を付与します。',
           checked: values.isOperator === true
+        }));
+        rows.push(this._renderRoleToggleField({
+          name: 'useDashboard',
+          label: 'ダッシュボードの利用',
+          description: 'ダッシュボード画面へのアクセスを許可します。',
+          checked: values.useDashboard !== false
         }));
         rows.push(this._renderRoleToggleField({
           name: 'useContentsManagement',
@@ -1002,7 +1017,7 @@
       changedFields.forEach((field) => {
         if (field === 'initialPassword') {
           payload.initialPassword = values.initialPassword;
-        } else if (field === 'isSupervisor' || field === 'isOperator' || field === 'useContentsManagement') {
+        } else if (field === 'isSupervisor' || field === 'isOperator' || field === 'useContentsManagement' || field === 'useDashboard') {
           payload[field] = values[field] ? '1' : '0';
         } else if (field !== 'avatar') {
           payload[field] = values[field];
@@ -1017,7 +1032,7 @@
     _getChangedFields(values) {
       const tracked = ['displayName', 'userCode', 'mail', 'organization', 'role', 'initialPassword'];
       if (this._showRoleFlags) {
-        tracked.push('isSupervisor', 'isOperator', 'useContentsManagement');
+        tracked.push('isSupervisor', 'isOperator', 'useContentsManagement', 'useDashboard');
       }
       const changed = [];
       const initial = this._initialValues || {};

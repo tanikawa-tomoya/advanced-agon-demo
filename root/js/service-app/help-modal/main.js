@@ -9,6 +9,7 @@
       this.jobs = null;
       this._region = null;
       this._current = null; // { overlay, dialog, backdrop, escHandler, prevActive }
+      this._roleFlags = null;
       this.initConfig();
     }
 
@@ -50,7 +51,7 @@
       return this;
     }
 
-    // content: string | { title, text, html, sanitizeFn, actions[], closeAriaLabel }
+    // content: string | { title, text, html, sanitizeFn, actions[], closeAriaLabel, roleVariants }
     show(content, opts) {
       opts = opts || {};
       var cfg = Object.assign({}, this.config, opts);
@@ -156,7 +157,12 @@
     _normalizeContent(content, cfg) {
       if (content == null) return { title: '', text: '' };
       if (typeof content === 'string') return { title: '', text: String(content) };
-      var o = (typeof content === 'object') ? content : { text: String(content) };
+
+      // roleVariants がある場合はユーザー属性に応じて振り分け
+      var selected = this._selectRoleVariant(content, cfg);
+
+      if (typeof selected === 'string') return { title: '', text: String(selected) };
+      var o = (typeof selected === 'object') ? selected : { text: String(selected) };
       var out = {
         title: (typeof o.title === 'string') ? o.title : '',
         closeAriaLabel: (typeof o.closeAriaLabel === 'string') ? o.closeAriaLabel : undefined
@@ -171,6 +177,107 @@
       }
       if (Array.isArray(o.actions)) out.actions = o.actions;
       return out;
+    }
+
+    _selectRoleVariant(content, cfg)
+    {
+      if (!content || typeof content !== 'object' || !content.roleVariants)
+      {
+        return content;
+      }
+
+      var variants = content.roleVariants || {};
+      var flags = (cfg && cfg.roleFlags) || content.roleFlags || {};
+      var isPrivileged = !!(flags && (flags.isOperator || flags.isSupervisor));
+
+      if (isPrivileged && variants.admin)
+      {
+        return variants.admin;
+      }
+      if (!isPrivileged && variants.user)
+      {
+        return variants.user;
+      }
+      return variants.default || variants.admin || variants.user || content;
+    }
+
+    async resolveSessionRoleFlags()
+    {
+      if (this._roleFlags)
+      {
+        return this._roleFlags;
+      }
+
+      var service = window.Services && window.Services.sessionInstance;
+      var profile = null;
+
+      if (service && typeof service.getUser === 'function')
+      {
+        profile = await service.getUser();
+      }
+      if (!profile && service && typeof service.loadFromStorage === 'function')
+      {
+        profile = await service.loadFromStorage();
+      }
+      if (!profile && service && typeof service.syncFromServer === 'function')
+      {
+        profile = await service.syncFromServer();
+      }
+
+      var normalizedRoles = this._normalizeProfileRoles(profile);
+      var hasSupervisorRole = normalizedRoles.some(function (role)
+      {
+        return role === 'supervisor' || role.indexOf('supervisor') !== -1;
+      });
+      var hasOperatorRole = normalizedRoles.some(function (role)
+      {
+        return role === 'operator' || role.indexOf('operator') !== -1;
+      });
+
+      this._roleFlags = {
+        isSupervisor: hasSupervisorRole || this._normalizeRoleFlag(profile && profile.isSupervisor),
+        isOperator: hasOperatorRole || this._normalizeRoleFlag(profile && profile.isOperator)
+      };
+
+      return this._roleFlags;
+    }
+
+    _normalizeProfileRoles(profile)
+    {
+      var roles = [];
+      if (profile && Array.isArray(profile.roles))
+      {
+        roles = profile.roles.slice();
+      }
+      if (profile && typeof profile.role === 'string')
+      {
+        roles.push(profile.role);
+      }
+      if (profile && typeof profile.primaryRole === 'string')
+      {
+        roles.push(profile.primaryRole);
+      }
+      return roles.map(function (role)
+      {
+        return String(role || '').trim().toLowerCase();
+      }).filter(function (role)
+      {
+        return !!role;
+      });
+    }
+
+    _normalizeRoleFlag(flag)
+    {
+      if (flag === undefined || flag === null)
+      {
+        return false;
+      }
+      if (typeof flag === 'string')
+      {
+        var normalized = flag.trim().toLowerCase();
+        return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+      }
+      return !!flag;
     }
   }
 

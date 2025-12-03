@@ -41,9 +41,9 @@
           el.removeAttribute(attr.name);
         }
       }
-      return container.innerHTML;
-    }
+    return container.innerHTML;
   }
+
   
   class JobHelp
   {
@@ -59,12 +59,16 @@
       if (!service || typeof service.show !== 'function') {
         return;
       }
+      var flags = null;
+      if (typeof service.resolveSessionRoleFlags === 'function')
+      {
+        flags = await service.resolveSessionRoleFlags();
+      }
       var content = this._serializeTemplate();
       service.show({
-        title: content.title,
-        html: content.html,
+        roleVariants: this._buildVariants(content),
         sanitizeFn: sanitizeHelpHtml
-      });
+      }, { roleFlags: flags });
     }
 
     _resolveService() {
@@ -102,6 +106,36 @@
       return {
         title: title || FALLBACK_CONTENT.title,
         html: html
+      };
+    }
+
+    _buildVariants(content)
+    {
+      var baseTitle = content.title || FALLBACK_CONTENT.title;
+      var baseHtml = content.html || FALLBACK_CONTENT.html;
+      return {
+        admin: {
+          title: baseTitle + '（管理者向け）',
+          html: '' +
+            '<p>オペレーター / スーパーバイザー向けの整理ポイントです。カテゴリやタグの粒度を統一し、共有用の説明文を整備してください。</p>' +
+            '<ul>' +
+              '<li>公開設定や権限を確認し、配布対象が適切かをチェックします。</li>' +
+              '<li>古い教材や重複を整理し、検索性を維持します。</li>' +
+              '<li>レビューが必要なアイテムにはメモや担当者を残し、更新サイクルを共有します。</li>' +
+            '</ul>' +
+            baseHtml
+        },
+        user: {
+          title: baseTitle + '（利用者向け）',
+          html: '' +
+            '<p>必要な教材や資料を見つけるためのヒントです。タグや検索を活用して素早く目的のコンテンツへ辿り着けます。</p>' +
+            '<ul>' +
+              '<li>タグ・キーワード検索で関連教材を絞り込みます。</li>' +
+              '<li>カードのプレビューから概要と添付ファイルを確認できます。</li>' +
+              '<li>よく使う教材にはメモを残し、後から探しやすくします。</li>' +
+            '</ul>' +
+            baseHtml
+        }
       };
     }
   }

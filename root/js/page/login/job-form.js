@@ -131,23 +131,47 @@
 		   } catch (_e) { return ''; }
 	   }
 
-     _decideRedirect(user, returnToRaw)
-     {
-       var info = user || {};
-       var safe = this._toSafeRelativePath(returnToRaw);
-       if (safe) { return safe; }
+    _decideRedirect(user, returnToRaw)
+    {
+      var info = user || {};
+      var safe = this._toSafeRelativePath(returnToRaw);
+      if (safe) { return safe; }
 
-       // 常にdashboard.html
-       return 'dashboard.html';
-     }
+      if (this._isDashboardDisabled(info)) {
+        return 'targets.html';
+      }
 
-	   _toSafeRelativePath(path)
-	   {
-		   if (typeof path !== 'string' || !path) { return ''; }
-		   if (/^[a-z]+:/i.test(path)) { return ''; }
-		   if (path.indexOf('//') !== -1) { return ''; }
-		   return path.replace(/^\/*/, '');
-	   }
+      return 'dashboard.html';
+    }
+
+    _toSafeRelativePath(path)
+    {
+      if (typeof path !== 'string' || !path) { return ''; }
+      if (/^[a-z]+:/i.test(path)) { return ''; }
+      if (path.indexOf('//') !== -1) { return ''; }
+      return path.replace(/^\/*/, '');
+    }
+
+    _isDashboardDisabled(user)
+    {
+      var value;
+      if (user && typeof user === 'object')
+      {
+        if (Object.prototype.hasOwnProperty.call(user, 'useDashboard'))
+        {
+          value = user.useDashboard;
+        }
+        else if (Object.prototype.hasOwnProperty.call(user, 'use_dashboard'))
+        {
+          value = user.use_dashboard;
+        }
+      }
+      if (typeof value === 'undefined')
+      {
+        return false;
+      }
+      return !(value === true || value === 1 || value === '1' || value === 'true');
+    }
 
      _refreshSessionUser()
      {

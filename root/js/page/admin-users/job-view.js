@@ -144,6 +144,13 @@
       if (typeof rawContentsFlag === 'undefined') {
         useContentsManagement = true;
       }
+      const rawDashboardFlag = (typeof raw.useDashboard !== 'undefined')
+        ? raw.useDashboard
+        : raw.use_dashboard;
+      let useDashboard = this._normalizeRoleFlag(rawDashboardFlag);
+      if (typeof rawDashboardFlag === 'undefined') {
+        useDashboard = true;
+      }
 
       const avatarUrl = this._resolveAvatarUrl(raw);
       const avatarInitial = this._resolveAvatarInitial(raw, displayName, userCode);
@@ -161,6 +168,7 @@
           isSupervisor,
           isOperator,
           useContentsManagement,
+          useDashboard,
           avatarUrl,
           avatarInitial,
           avatarTransform,
@@ -250,6 +258,7 @@
         const actionsHtml = this._renderRowActions(u);
         const selectableCell = this._renderSelectableUsersCell(u);
         const roleBadge = this._renderRoleBadge(u);
+        const dashboardAccess = this._renderDashboardStatus(u);
         const contentsAccess = this._renderContentsStatus(u);
         const nameCell = [
           '<div class="user-table__name">',
@@ -268,6 +277,7 @@
             `<td class="col--mail">${mailCell}</td>`,
             `<td class="col--organization">${this._esc(u.organization || '—')}</td>`,
             `<td class="col--role">${this._esc(roleText)}</td>`,
+            `<td class="col--dashboard">${dashboardAccess}</td>`,
             `<td class="col--contents">${contentsAccess}</td>`,
             `<td class="col--selectable">${selectableCell}</td>`,
             `<td class="col--actions user-table__actions">${actionsHtml}</td>`,
@@ -469,6 +479,13 @@
       return `<span class="user-table__contents-status" data-contents-access="${this._esc(status)}">${this._esc(label)}</span>`;
     }
 
+    _renderDashboardStatus(user) {
+      const enabled = this._isDashboardEnabled(user);
+      const label = enabled ? '利用可' : '利用不可';
+      const status = enabled ? 'enabled' : 'disabled';
+      return `<span class="user-table__contents-status user-table__dashboard-status" data-dashboard-access="${this._esc(status)}">${this._esc(label)}</span>`;
+    }
+
     _isContentsManagementEnabled(user) {
       if (!user) {
         return true;
@@ -476,6 +493,19 @@
       const value = (typeof user.useContentsManagement !== 'undefined')
         ? user.useContentsManagement
         : user.use_contents_management;
+      if (typeof value === 'undefined') {
+        return true;
+      }
+      return this._normalizeRoleFlag(value);
+    }
+
+    _isDashboardEnabled(user) {
+      if (!user) {
+        return true;
+      }
+      const value = (typeof user.useDashboard !== 'undefined')
+        ? user.useDashboard
+        : user.use_dashboard;
       if (typeof value === 'undefined') {
         return true;
       }

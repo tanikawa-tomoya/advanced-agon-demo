@@ -66,6 +66,7 @@ class Session extends Base
                 unset($this->session["isOperator"]);
                 unset($this->session["isSupervisor"]);
                 unset($this->session["useContentsManagement"]);
+                unset($this->session["useDashboard"]);
                 if ($userInfo["isSupervisor"] == 1) {
                         $this->session["isSupervisor"] = true;
                         $this->session["isOperator"] = true;
@@ -75,6 +76,9 @@ class Session extends Base
                 if (isset($userInfo['useContentsManagement']) && (int) $userInfo['useContentsManagement'] === 1) {
                         $this->session["useContentsManagement"] = true;
                 }
+                if (isset($userInfo['useDashboard']) && (int) $userInfo['useDashboard'] === 1) {
+                        $this->session["useDashboard"] = true;
+                }
                 $this->session["userCode"] = $userInfo["userCode"];
 
                 $claims = array(
@@ -82,8 +86,9 @@ class Session extends Base
                         'isSupervisor' => (int) $userInfo['isSupervisor'] === 1 ? 1 : 0,
                         'isOperator'   => (int) $userInfo['isOperator'] === 1 ? 1 : 0,
                         'useContentsManagement' => isset($userInfo['useContentsManagement']) && (int) $userInfo['useContentsManagement'] === 1 ? 1 : 0,
+                        'useDashboard' => isset($userInfo['useDashboard']) && (int) $userInfo['useDashboard'] === 1 ? 1 : 0,
                                                         );
-		$token = $this->issueJwt($claims);
+               $token = $this->issueJwt($claims);
 
 		$jwtPayload = null;
 		try {
@@ -111,6 +116,7 @@ class Session extends Base
                                                                 "isSupervisor" => (int) $userInfo["isSupervisor"],
                                                                 "isOperator"   => (int) $userInfo["isOperator"],
                                                                 "useContentsManagement" => isset($userInfo['useContentsManagement']) ? (int) $userInfo['useContentsManagement'] : 0,
+                                                                "useDashboard" => isset($userInfo['useDashboard']) ? (int) $userInfo['useDashboard'] : 0,
                                                                 "token"        => $token,
                                                                 "userId"       => (int) $userInfo["id"],
                                                                 );

@@ -50,15 +50,19 @@
       }
     }
 
-    open(event) {
+    async open(event) {
       if (event) {
         event.preventDefault();
       }
+      var flags = null;
+      if (this.pageInstance && this.pageInstance.helpModalService && typeof this.pageInstance.helpModalService.resolveSessionRoleFlags === 'function')
+      {
+        flags = await this.pageInstance.helpModalService.resolveSessionRoleFlags();
+      }
       this.pageInstance.helpModalService.show({
-        title: 'コンテンツアクセス管理のポイント',
-        html: this._serializeModalBody(),
+        roleVariants: this._buildVariants(),
         sanitizeFn: sanitizeHelpHtml
-      });
+      }, { roleFlags: flags });
     }
 
     close(event) {
@@ -82,6 +86,36 @@
       if (summary) { html += '<p>' + summary.innerHTML + '</p>'; }
       if (body) { html += body.innerHTML; }
       return html;
+    }
+
+    _buildVariants()
+    {
+      var html = this._serializeModalBody();
+      var title = 'コンテンツアクセス管理のポイント';
+      return {
+        admin: {
+          title: title + '（管理者向け）',
+          html: '' +
+            '<p>オペレーター / スーパーバイザー向けの権限管理ガイドです。閲覧・編集権限の付与と棚卸しを定期的に実施してください。</p>' +
+            '<ul>' +
+              '<li>役割ごとのアクセス範囲を整理し、最小権限で設定します。</li>' +
+              '<li>不要になった共有リンクやロールは早めに無効化し、ログを確認します。</li>' +
+              '<li>監査用に変更履歴や担当者メモを残し、トレーサビリティを確保します。</li>' +
+            '</ul>' +
+            html
+        },
+        user: {
+          title: title + '（利用者向け）',
+          html: '' +
+            '<p>コンテンツへのアクセス方法を確認したい方向けの説明です。必要な権限がない場合は管理者に依頼してください。</p>' +
+            '<ul>' +
+              '<li>自分が閲覧できるコンテンツの範囲を確認し、必要に応じて申請します。</li>' +
+              '<li>共有リンクの取り扱いに注意し、不明なリンクは開かず管理者へ報告します。</li>' +
+              '<li>閲覧だけで十分か、編集が必要かを明確にしてリクエストします。</li>' +
+            '</ul>' +
+            html
+        }
+      };
     }
   }
 

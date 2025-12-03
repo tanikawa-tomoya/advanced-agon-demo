@@ -6052,18 +6052,25 @@
   margin: 8px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .target-submission__content-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--surface-subtle);
+}
+
+.target-submission__content-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .target-submission__content-item-body {
@@ -6071,6 +6078,23 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  flex: 1;
+}
+
+.target-submission__content-item-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px 16px;
+  padding: 4px 2px 2px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.target-submission__content-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .target-submission__content-name {
@@ -6086,20 +6110,28 @@
 }
 
 .target-submission__content-remove {
-  border: none;
-  background: var(--surface);
-  color: var(--text-muted);
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(120, 206, 255, 0.5);
+  background: linear-gradient(135deg, rgba(45, 140, 255, 0.18), rgba(99, 236, 255, 0.18));
+  color: var(--text);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
+  box-shadow: 0 10px 22px rgba(5, 14, 28, 0.28);
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .target-submission__content-remove:hover,
 .target-submission__content-remove:focus-visible {
-  background: var(--surface-stronger);
-  color: var(--text);
+  background: linear-gradient(135deg, rgba(45, 140, 255, 0.3), rgba(99, 236, 255, 0.32));
+  color: #041021;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(5, 14, 28, 0.34);
 }
 
 .target-submission__content-picker {
@@ -8722,7 +8754,7 @@
 .target-detail__overview-columns {
   display: grid;
   gap: 24px;
-  margin-top: 16px;
+  margin-top: 2px;
   grid-template-columns: 1fr;
   align-items: start;
 }

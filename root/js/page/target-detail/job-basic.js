@@ -1034,7 +1034,10 @@
         body.appendChild(agreementsSection);
       }
 
-      var confirmationCard = this.renderBasicConfirmationCard(target);
+      var shouldDisplayConfirmation = !this.page || typeof this.page.shouldDisplaySection !== 'function'
+        ? true
+        : this.page.shouldDisplaySection('basicConfirmation');
+      var confirmationCard = shouldDisplayConfirmation ? this.renderBasicConfirmationCard(target) : null;
       if (confirmationCard)
       {
         body.appendChild(confirmationCard);
@@ -1076,20 +1079,6 @@
       var title = document.createElement('h2');
       title.textContent = '概要';
       header.appendChild(title);
-      if (this.canManageContent())
-      {
-        var actions = document.createElement('div');
-        actions.className = 'target-detail__section-help';
-        var editButton = this.createIconActionButton('edit', '概要を編集', 'edit-overview', !(target && target.targetCode));
-        var self = this;
-        editButton.addEventListener('click', function (event)
-        {
-          event.preventDefault();
-          self.openOverviewModal();
-        });
-        actions.appendChild(editButton);
-        header.appendChild(actions);
-      }
       card.appendChild(header);
 
       var content = document.createElement('div');
