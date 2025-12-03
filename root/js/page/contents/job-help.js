@@ -41,10 +41,10 @@
           el.removeAttribute(attr.name);
         }
       }
+    }
     return container.innerHTML;
   }
 
-  
   class JobHelp
   {
     constructor(pageInstance)
@@ -52,7 +52,7 @@
       this.pageInstance = pageInstance;
       this.template = document.getElementById(HELP_MODAL_ID);
     }
-    
+
     async run()
     {
       var service = this._resolveService();

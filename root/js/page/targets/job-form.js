@@ -33,6 +33,7 @@
         'displayCreator',
         'displayAudience',
         'displayChat',
+        'displayBbs',
         'displaySubmissions',
         'displayReviews',
         'displayBadges',

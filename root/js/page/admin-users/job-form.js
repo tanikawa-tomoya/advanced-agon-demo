@@ -47,7 +47,7 @@
         const requiresConfirm = this._isFormDirty();
         if (requiresConfirm) {
           const message = this.page.textConfig.formCancelConfirm
-            || '入力内容が保存されていません。モーダルを閉じますか？';
+            || '入力内容が保存されていません。編集画面を閉じますか？';
           const confirmed = await this.page.confirmDialogService.open(message, { type: 'warning' });
           if (!confirmed) {
             return;

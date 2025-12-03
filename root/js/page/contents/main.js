@@ -26,8 +26,13 @@
         isUploadingQueue: false,
         uploadModalSnapshot: [],
         profile: null,
+        slides: [],
+        slideCoverSelection: null,
+        activeSlideId: null,
+        activePageId: null,
+        slidePageSelection: null,
         activeEditItemId: null,
-        pwaDownloads: [],
+        pwaDownloads: []
       };
 
       // サービス（header, toast, loading-overlay, help-modal など）
@@ -47,13 +52,14 @@
       this.pdfModalService = null;
       this.downloadModalService = null;
       this.pwaDownloaderService = null;
-      this.contentsSelectModalService = null;
       this.targetSelectModalService = null;
       this.userSelectModalService = null;
+      this.slideModalService = null;
       this.buttonService = null;
       this.breadcrumbService = null;
       this.infoModalService = null;
       this.contentUploaderService = null;
+      this.contentsSelectModalService = null;
 
       this.contentsDataset = { usersContents: [], usersContentsProxy: [] };
 
@@ -95,15 +101,1060 @@
         this.renderBreadcrumbs();
         await this.initContentUploader();
         this.renderUploaderButtons();
-        this.renderFastDownloadButton();
         this.renderRefreshButton();
+        this.renderSlideToolbarButtons();
+        this.initSlides();
         this.updateUploadModal([]);
         this.updateEvent();
         await this.runInitialLoad();
+        await this.loadSlides();
         this.startAutoRefresh();
       } catch (err) {
         this.onError(err);
       }
+    }
+
+    renderSlideToolbarButtons()
+    {
+      var service = this.buttonService;
+      if (!service || typeof service.createActionButton !== 'function') {
+        return;
+      }
+      var selectors = this.selectorConfig || {};
+      this._replaceSlideButton(service, selectors.slideAddButton, 'expandable-icon-button/add', {
+        label: '追加',
+        ariaLabel: 'スライドを追加',
+        dataset: { slideAdd: 'true' }
+      });
+      this._replaceSlideButton(service, selectors.slideRefreshButton, 'expandable-icon-button/reload', {
+        label: this.textConfig.refreshButtonLabel || '再読み込み',
+        ariaLabel: this.textConfig.refreshButtonLabel || '再読み込み',
+        dataset: { slideRefresh: 'true' }
+      });
+    }
+
+    _replaceSlideButton(service, selector, buttonType, options)
+    {
+      if (!selector || !service) {
+        return;
+      }
+      var placeholder = document.querySelector(selector);
+      if (!placeholder || !placeholder.parentNode) {
+        return;
+      }
+      var button = service.createActionButton(buttonType, Object.assign({
+        attributes: {},
+        dataset: options && options.dataset ? Object.assign({}, options.dataset) : {}
+      }, options || {}));
+      if (!button) {
+        return;
+      }
+      if (placeholder.id) {
+        button.id = placeholder.id;
+      }
+      if (placeholder.name) {
+        button.name = placeholder.name;
+      }
+      var typeAttr = placeholder.getAttribute('type') || 'button';
+      button.setAttribute('type', typeAttr);
+      placeholder.parentNode.replaceChild(button, placeholder);
+    }
+
+    initSlides()
+    {
+      if (!Array.isArray(this.state.slides)) {
+        this.state.slides = [];
+      }
+      this.renderSlides();
+    }
+
+    generateSlideId(prefix)
+    {
+      var base = prefix || 'slide';
+      return base + '-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+    }
+
+    buildRoundActionButtonHtml(type, label, dataset, options)
+    {
+      var baseConfig = {
+        label: '',
+        srLabel: label || '',
+        srLabelClass: 'visually-hidden',
+        hoverLabel: label || '',
+        ariaLabel: label || '',
+        title: label || '',
+        baseClass: 'table-action-button table-action-button--round',
+        dataset: dataset || {},
+        attributes: { type: 'button' }
+      };
+      var config = Object.assign({}, baseConfig, options || {});
+      if (options && options.dataset) {
+        config.dataset = Object.assign({}, dataset || {}, options.dataset);
+      }
+      if (options && options.attributes) {
+        config.attributes = Object.assign({}, baseConfig.attributes, options.attributes);
+      }
+      return this.buildActionButtonHtml(type, config);
+    }
+
+    async loadSlides()
+    {
+      try
+      {
+        var result = await this.callSlideApi('SlideList', {});
+        var slides = this.normalizeSlideListResponse(result && result.slides);
+        this.state.slides = slides;
+        this.renderSlides();
+      }
+      catch (err)
+      {
+        this.onError(err);
+      }
+    }
+
+    normalizeSlideListResponse(list)
+    {
+      var slides = Array.isArray(list) ? list : [];
+      var normalized = [];
+      for (var i = 0; i < slides.length; i += 1)
+      {
+        var normalizedSlide = this.normalizeSlidePayload(slides[i]);
+        if (normalizedSlide)
+        {
+          normalized.push(normalizedSlide);
+        }
+      }
+      return normalized;
+    }
+
+    normalizeSlidePayload(payload, fallback)
+    {
+      if (!payload)
+      {
+        return null;
+      }
+      var pagesRaw = Array.isArray(payload.slides) ? payload.slides.slice() : [];
+      pagesRaw.sort(function (a, b)
+      {
+        var aOrder = (a && typeof a.displayOrder === 'number') ? a.displayOrder : 0;
+        var bOrder = (b && typeof b.displayOrder === 'number') ? b.displayOrder : 0;
+        return aOrder - bOrder;
+      });
+      var pages = this.normalizeSlidePagesFromApi(pagesRaw);
+      var cover = (fallback && fallback.cover) || this.resolveSlideCover(pages);
+      return {
+        id: payload.slideCode || payload.id || this.generateSlideId(),
+        title: payload.title || (fallback && fallback.title) || '無題のスライド',
+        description: payload.description || (fallback && fallback.description) || '',
+        cover: cover,
+        pages: pages,
+        isPublished: payload.isPublished === true || payload.isPublished === 1 || payload.isPublished === '1'
+      };
+    }
+
+    normalizeSlidePagesFromApi(pages)
+    {
+      var normalized = [];
+      var list = Array.isArray(pages) ? pages : [];
+      for (var i = 0; i < list.length; i += 1)
+      {
+        var normalizedPage = this.normalizeSlidePageFromApi(list[i], i);
+        if (normalizedPage)
+        {
+          normalized.push(normalizedPage);
+        }
+      }
+      return normalized;
+    }
+
+    normalizeSlidePageFromApi(page, index)
+    {
+      if (!page)
+      {
+        return null;
+      }
+      var image = this.buildPageImageFromContentCode(page.contentCode);
+      return {
+        id: page.slideCode || page.id || this.generateSlideId('page'),
+        description: page.caption || '',
+        image: image,
+        displayOrder: (typeof page.displayOrder === 'number') ? page.displayOrder : (index || 0)
+      };
+    }
+
+    buildPageImageFromContentCode(contentCode)
+    {
+      if (!contentCode)
+      {
+        return null;
+      }
+      var record = this.findContentRecordByCode(contentCode);
+      var base = record || { contentCode: contentCode, url: '', thumbnailUrl: '' };
+      return this.buildImageSelection(base);
+    }
+
+    findContentRecordByCode(contentCode)
+    {
+      var normalizedCode = this.normalizeDatasetKey ? this.normalizeDatasetKey(contentCode) : String(contentCode || '');
+      if (!normalizedCode)
+      {
+        return null;
+      }
+      var dataset = this.contentsDataset || {};
+      var lists = [];
+      if (Array.isArray(dataset.usersContents))
+      {
+        lists.push(dataset.usersContents);
+      }
+      if (Array.isArray(dataset.usersContentsProxy))
+      {
+        lists.push(dataset.usersContentsProxy);
+      }
+      for (var i = 0; i < lists.length; i += 1)
+      {
+        var list = lists[i];
+        for (var j = 0; j < list.length; j += 1)
+        {
+          var item = list[j];
+          var key = item && this.normalizeDatasetKey(item.contentCode || item.id);
+          if (key && key === normalizedCode)
+          {
+            return item;
+          }
+        }
+      }
+      return null;
+    }
+
+    resolveSlideCover(pages)
+    {
+      if (!Array.isArray(pages))
+      {
+        return null;
+      }
+      for (var i = 0; i < pages.length; i += 1)
+      {
+        var page = pages[i];
+        if (page && page.image && (page.image.thumbnailUrl || page.image.url))
+        {
+          return page.image;
+        }
+      }
+      return null;
+    }
+
+    buildSlideApiSlides(pages)
+    {
+      var source = Array.isArray(pages) ? pages : [];
+      var payload = [];
+      for (var i = 0; i < source.length; i += 1)
+      {
+        var page = source[i];
+        var image = page && page.image ? page.image : page;
+        var contentCode = image && (image.contentCode || image.id);
+        if (!contentCode)
+        {
+          continue;
+        }
+        payload.push({
+          contentCode: contentCode,
+          caption: page && page.description ? page.description : '',
+          displayOrder: payload.length
+        });
+      }
+      return payload;
+    }
+
+    async persistSlide(slide)
+    {
+      if (!slide || !slide.id)
+      {
+        return;
+      }
+      var slidesPayload = this.buildSlideApiSlides(slide.pages || []);
+      if (Array.isArray(slide.pages) && slide.pages.length && slidesPayload.length < slide.pages.length)
+      {
+        return;
+      }
+      var payload = {
+        slideCode: slide.id,
+        title: slide.title || '',
+        description: slide.description || '',
+        slides: slidesPayload,
+        isPublished: slide.isPublished === true || slide.isPublished === 1 || slide.isPublished === '1'
+      };
+      await this.callSlideApi('SlideUpdate', payload);
+    }
+
+    renderSlides()
+    {
+      var selectors = this.selectorConfig || {};
+      var tbody = selectors.slideList ? document.querySelector(selectors.slideList) : null;
+      var empty = selectors.slideEmpty ? document.querySelector(selectors.slideEmpty) : null;
+      var status = selectors.slideStatus ? document.querySelector(selectors.slideStatus) : null;
+      var slides = Array.isArray(this.state.slides) ? this.state.slides : [];
+
+      if (status) {
+        status.textContent = slides.length
+          ? slides.length + '件のスライドが見つかりました'
+          : (this.textConfig.slideEmpty || '登録済みのスライドがありません。');
+      }
+
+      if (tbody) {
+        tbody.innerHTML = '';
+      }
+      if (!slides.length) {
+        if (empty) {
+          empty.removeAttribute('hidden');
+        }
+        return;
+      }
+      if (empty) {
+        empty.setAttribute('hidden', 'hidden');
+      }
+      if (tbody) {
+        var rows = [];
+        for (var i = 0; i < slides.length; i += 1) {
+          rows.push(this.buildSlideRowHtml(slides[i]));
+        }
+        tbody.innerHTML = rows.join('');
+      }
+    }
+
+    buildSlideRowHtml(slide)
+    {
+      if (!slide) {
+        return '';
+      }
+      var id = slide.id || this.generateSlideId();
+      var title = this.escapeHtml(slide.title || '無題のスライド');
+      var description = this.escapeHtml(slide.description || '');
+      var cover = slide.cover || {};
+      var thumbUrl = cover.thumbnailUrl || cover.url || '';
+      var thumbHtml = thumbUrl
+        ? '<img src="' + this.escapeHtml(thumbUrl) + '" alt="' + title + '" />'
+        : '<span>未選択</span>';
+      var actions = [];
+      actions.push(this.buildRoundActionButtonHtml('round-popup/preview', 'プレビュー', { slidePreview: 'true', slideId: id }));
+      actions.push(this.buildRoundActionButtonHtml('round-popup/edit', '編集', { slideEdit: 'true', slideId: id }));
+      actions.push(this.buildRoundActionButtonHtml('round-popup/delete', '削除', { slideDelete: 'true', slideId: id }));
+      var actionsHtml = '<div class="slide-row__actions">' + actions.join('') + '</div>';
+      return ''
+        + '<tr>'
+        + '<td><div class="slide-row__thumb">' + thumbHtml + '</div></td>'
+        + '<td><div class="slide-row__title">' + title + '</div></td>'
+        + '<td><div class="slide-row__description">' + description + '</div></td>'
+        + '<td>' + actionsHtml + '</td>'
+        + '</tr>';
+    }
+
+    getSlideById(id)
+    {
+      var slides = Array.isArray(this.state.slides) ? this.state.slides : [];
+      for (var i = 0; i < slides.length; i += 1) {
+        if (slides[i] && slides[i].id === id) {
+          return slides[i];
+        }
+      }
+      return null;
+    }
+
+    getSlidePageById(slide, pageId)
+    {
+      if (!slide || !Array.isArray(slide.pages)) {
+        return null;
+      }
+      for (var i = 0; i < slide.pages.length; i += 1) {
+        if (slide.pages[i] && slide.pages[i].id === pageId) {
+          return slide.pages[i];
+        }
+      }
+      return null;
+    }
+
+    async deleteSlide(id)
+    {
+      if (!id)
+      {
+        return;
+      }
+      await this.callSlideApi('SlideDelete', { slideCode: id });
+      var slides = Array.isArray(this.state.slides) ? this.state.slides : [];
+      var filtered = [];
+      for (var i = 0; i < slides.length; i += 1) {
+        if (!slides[i] || slides[i].id === id) {
+          continue;
+        }
+        filtered.push(slides[i]);
+      }
+      this.state.slides = filtered;
+      if (this.state.activeSlideId === id) {
+        this.closeSlideEditor();
+      }
+      this.renderSlides();
+      this.toast(this.textConfig.slideDeleted || this.textConfig.deleted);
+    }
+
+    resetSlideForm()
+    {
+      var selectors = this.selectorConfig || {};
+      var form = selectors.slideForm ? document.querySelector(selectors.slideForm) : null;
+      if (form) {
+        var titleInput = form.querySelector('input[name="title"]');
+        var descriptionInput = form.querySelector('textarea[name="description"]');
+        if (titleInput) {
+          titleInput.value = '';
+        }
+        if (descriptionInput) {
+          descriptionInput.value = '';
+        }
+      }
+      this.setSlideCoverSelection(null);
+    }
+
+    toggleModalVisibility(modal, shouldOpen)
+    {
+      if (!modal) {
+        return;
+      }
+      if (shouldOpen) {
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        modal.removeAttribute('hidden');
+        if (document.body && document.body.classList) {
+          document.body.classList.add('is-modal-open');
+        }
+      }
+      else {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.setAttribute('hidden', 'hidden');
+        var stillOpen = document.querySelector('.screen-modal.is-open');
+        if (!stillOpen && document.body && document.body.classList) {
+          document.body.classList.remove('is-modal-open');
+        }
+      }
+    }
+
+    openContentEditModal(itemId)
+    {
+      var item = this.getItemById(itemId);
+      var selectors = this.selectorConfig || {};
+      var modal = selectors.editModal ? document.querySelector(selectors.editModal) : null;
+      if (!item || !modal)
+      {
+        return;
+      }
+      this.state.activeEditItemId = item.id;
+      this.fillContentEditForm(item);
+      var titleNode = modal.querySelector('#contents-edit-title');
+      var summaryNode = modal.querySelector('#contents-edit-summary');
+      if (titleNode)
+      {
+        titleNode.textContent = this.textConfig.editModalTitle || 'コンテンツ編集';
+      }
+      if (summaryNode)
+      {
+        summaryNode.textContent = this.textConfig.editModalSummary || 'タイトルや説明を編集します。';
+      }
+      this.toggleModalVisibility(modal, true);
+      var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
+      if (titleInput && typeof titleInput.focus === 'function')
+      {
+        try { titleInput.focus(); } catch (_err) { /* ignore */ }
+      }
+    }
+
+    closeContentEditModal()
+    {
+      var selectors = this.selectorConfig || {};
+      var modal = selectors.editModal ? document.querySelector(selectors.editModal) : null;
+      this.state.activeEditItemId = null;
+      this.setContentEditError('');
+      this.toggleModalVisibility(modal, false);
+    }
+
+    fillContentEditForm(item)
+    {
+      var selectors = this.selectorConfig || {};
+      var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
+      var descriptionInput = selectors.editDescriptionInput ? document.querySelector(selectors.editDescriptionInput) : null;
+      var createdAtInput = selectors.editCreatedAtInput ? document.querySelector(selectors.editCreatedAtInput) : null;
+      if (titleInput)
+      {
+        var rawTitle = (item && item.raw && item.raw.title) || item.title || item.fileName || '';
+        titleInput.value = rawTitle;
+      }
+      if (descriptionInput)
+      {
+        var rawDescription = (item && item.raw && item.raw.description) || '';
+        descriptionInput.value = rawDescription;
+      }
+      if (createdAtInput)
+      {
+        var createdAt = (item && item.raw && (item.raw.createdAt || item.raw.registeredAt || item.raw.updatedAt)) || '';
+        createdAtInput.value = this.formatDateInputValue(createdAt);
+      }
+      this.setContentEditError('');
+    }
+
+    setContentEditError(message)
+    {
+      var selectors = this.selectorConfig || {};
+      var errorNode = selectors.editErrorMessage ? document.querySelector(selectors.editErrorMessage) : null;
+      if (!errorNode)
+      {
+        return;
+      }
+      var text = String(message || '').trim();
+      if (text)
+      {
+        errorNode.textContent = text;
+        errorNode.removeAttribute('hidden');
+      }
+      else
+      {
+        errorNode.textContent = '';
+        errorNode.setAttribute('hidden', 'hidden');
+      }
+    }
+
+    formatDateInputValue(value)
+    {
+      if (!value)
+      {
+        return '';
+      }
+      var date = new Date(value);
+      if (isNaN(date.getTime()))
+      {
+        return '';
+      }
+      var y = date.getFullYear();
+      var m = ('0' + (date.getMonth() + 1)).slice(-2);
+      var d = ('0' + date.getDate()).slice(-2);
+      var hh = ('0' + date.getHours()).slice(-2);
+      var mm = ('0' + date.getMinutes()).slice(-2);
+      return y + '-' + m + '-' + d + 'T' + hh + ':' + mm;
+    }
+
+    normalizeDateInput(value)
+    {
+      var raw = String(value || '').trim();
+      if (!raw)
+      {
+        return '';
+      }
+      var date = new Date(raw);
+      if (isNaN(date.getTime()))
+      {
+        return null;
+      }
+      return date.toISOString();
+    }
+
+    getContentEditFormValues()
+    {
+      var selectors = this.selectorConfig || {};
+      var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
+      var descriptionInput = selectors.editDescriptionInput ? document.querySelector(selectors.editDescriptionInput) : null;
+      var createdAtInput = selectors.editCreatedAtInput ? document.querySelector(selectors.editCreatedAtInput) : null;
+      return {
+        title: titleInput ? String(titleInput.value || '').trim() : '',
+        description: descriptionInput ? String(descriptionInput.value || '').trim() : '',
+        createdAtRaw: createdAtInput ? createdAtInput.value : ''
+      };
+    }
+
+    async submitContentEditForm()
+    {
+      var id = this.state.activeEditItemId;
+      if (!id)
+      {
+        return;
+      }
+      var values = this.getContentEditFormValues();
+      if (!values.title)
+      {
+        this.setContentEditError(this.textConfig.editTitleRequired || 'タイトルを入力してください。');
+        return;
+      }
+      var normalizedCreatedAt = this.normalizeDateInput(values.createdAtRaw);
+      if (values.createdAtRaw && normalizedCreatedAt === null)
+      {
+        this.setContentEditError(this.textConfig.editInvalidDate || '作成日を正しく入力してください。');
+        return;
+      }
+      this.setContentEditError('');
+      try
+      {
+        this.loading(true, this.textConfig.loading);
+        await this.apiUpdateContent(id, {
+          title: values.title,
+          description: values.description,
+          createdAt: normalizedCreatedAt || values.createdAtRaw || ''
+        });
+        this.renderList(this.state.items);
+        this.toast(this.textConfig.editSaved || this.textConfig.saved);
+        this.closeContentEditModal();
+      }
+      catch (err)
+      {
+        this.setContentEditError(err && err.message ? err.message : (this.textConfig.error || 'エラーが発生しました'));
+      }
+      finally
+      {
+        this.dismissConfirmDialogs();
+        this.loading(false);
+      }
+    }
+
+    openSlideModal()
+    {
+      var selectors = this.selectorConfig || {};
+      var modal = selectors.slideModal ? document.querySelector(selectors.slideModal) : null;
+      if (!modal) {
+        return;
+      }
+      this.resetSlideForm();
+      this.toggleModalVisibility(modal, true);
+      var form = selectors.slideForm ? document.querySelector(selectors.slideForm) : null;
+      var titleInput = form ? form.querySelector('input[name="title"]') : null;
+      if (titleInput && typeof titleInput.focus === 'function') {
+        try { titleInput.focus(); } catch (_err) { /* ignore */ }
+      }
+    }
+
+    closeSlideModal()
+    {
+      var selectors = this.selectorConfig || {};
+      var modal = selectors.slideModal ? document.querySelector(selectors.slideModal) : null;
+      if (!modal) {
+        return;
+      }
+      this.toggleModalVisibility(modal, false);
+    }
+
+    buildImageSelection(content)
+    {
+      if (!content) {
+        return null;
+      }
+      var raw = content.raw || content || {};
+      var contentCode = content.contentCode
+        || raw.contentCode
+        || raw.content_code
+        || raw.contentId
+        || raw.contentID
+        || content.id
+        || this.generateSlideId('content');
+      var title = content.title || content.name || raw.title || raw.fileName || '';
+      var thumbnailUrl = this.buildContentImageUrl(raw, { variant: 'thumbnail' })
+        || content.thumbnailUrl
+        || content.thumbUrl
+        || content.url
+        || content.contentUrl
+        || raw.thumbnailUrl
+        || raw.thumbnailPath
+        || raw.thumbnail
+        || '';
+      var url = this.buildContentImageUrl(raw, null) || content.url || content.contentUrl || raw.url || raw.filePath || '';
+      return {
+        id: content.id || contentCode,
+        contentCode: contentCode,
+        title: title,
+        thumbnailUrl: thumbnailUrl,
+        url: url
+      };
+    }
+
+    setSlideCoverSelection(selection)
+    {
+      this.state.slideCoverSelection = selection || null;
+      var selectors = this.selectorConfig || {};
+      var preview = selectors.slideCoverPreview ? document.querySelector(selectors.slideCoverPreview) : null;
+      if (!preview) {
+        return;
+      }
+      if (selection && (selection.thumbnailUrl || selection.url)) {
+        var src = selection.thumbnailUrl || selection.url;
+        preview.innerHTML = '<img src="' + this.escapeHtml(src) + '" alt="選択したトップ画像" />';
+      }
+      else {
+        preview.textContent = '未選択';
+      }
+    }
+
+    selectSlideCoverFromContents()
+    {
+      var service = this.contentsSelectModalService || (this.services && this.services.contentsSelectModal);
+      var self = this;
+      if (!service || typeof service.open !== 'function') {
+        return;
+      }
+      service.open({
+        kind: 'image',
+        multiple: false,
+        onSelect: function (item) {
+          self.setSlideCoverSelection(self.buildImageSelection(item));
+        }
+      });
+    }
+
+    async createSlide(payload)
+    {
+      var cover = payload && payload.cover ? payload.cover : null;
+      var pagesSource = Array.isArray(payload && payload.pages) ? payload.pages : [];
+      if (!pagesSource.length && cover)
+      {
+        pagesSource = [{ image: cover, description: payload && payload.description ? payload.description : '' }];
+      }
+      var requestPayload = {
+        title: payload && payload.title ? payload.title : '無題のスライド',
+        description: payload && payload.description ? payload.description : '',
+        slides: this.buildSlideApiSlides(pagesSource),
+        isPublished: false
+      };
+      var result = await this.callSlideApi('SlideCreate', requestPayload);
+      var normalized = this.normalizeSlidePayload(result && result.slide, { cover: cover, title: requestPayload.title, description: requestPayload.description });
+      if (normalized)
+      {
+        this.state.slides.push(normalized);
+        this.renderSlides();
+        this.toast(this.textConfig.slideCreated || this.textConfig.saved);
+      }
+      return normalized;
+    }
+
+    openSlideEditor(slideId)
+    {
+      var slide = this.getSlideById(slideId);
+      if (!slide) {
+        return;
+      }
+      this.state.activeSlideId = slide.id;
+      this.state.activePageId = null;
+      this.state.slidePageSelection = null;
+      var selectors = this.selectorConfig || {};
+      var modal = selectors.slideEditModal ? document.querySelector(selectors.slideEditModal) : null;
+      var titleNode = selectors.slideEditTitle ? document.querySelector(selectors.slideEditTitle) : null;
+      var descriptionNode = selectors.slideEditDescription ? document.querySelector(selectors.slideEditDescription) : null;
+      if (titleNode) {
+        titleNode.textContent = slide.title || 'スライド編集';
+      }
+      if (descriptionNode) {
+        descriptionNode.textContent = slide.description || '';
+      }
+      this.renderSlidePages(slide);
+      this.resetSlidePageEditor();
+      this.toggleModalVisibility(modal, true);
+    }
+
+    closeSlideEditor()
+    {
+      var selectors = this.selectorConfig || {};
+      var modal = selectors.slideEditModal ? document.querySelector(selectors.slideEditModal) : null;
+      this.resetSlidePageEditor();
+      this.state.activeSlideId = null;
+      this.state.activePageId = null;
+      this.state.slidePageSelection = null;
+      this.toggleModalVisibility(modal, false);
+    }
+
+    renderSlidePages(slide)
+    {
+      var selectors = this.selectorConfig || {};
+      var tbody = selectors.slidePagesList ? document.querySelector(selectors.slidePagesList) : null;
+      var empty = selectors.slidePagesEmpty ? document.querySelector(selectors.slidePagesEmpty) : null;
+      var pages = slide && Array.isArray(slide.pages) ? slide.pages : [];
+
+      if (tbody) {
+        tbody.innerHTML = '';
+      }
+      if (!pages.length) {
+        if (empty) {
+          empty.removeAttribute('hidden');
+        }
+        return;
+      }
+      if (empty) {
+        empty.setAttribute('hidden', 'hidden');
+      }
+      if (tbody) {
+        var rows = [];
+        for (var i = 0; i < pages.length; i += 1) {
+          rows.push(this.buildSlidePageRowHtml(slide, pages[i], i, pages.length));
+        }
+        tbody.innerHTML = rows.join('');
+      }
+    }
+
+    buildSlidePageRowHtml(slide, page, index, total)
+    {
+      if (!page) {
+        return '';
+      }
+      var slideId = slide && slide.id ? slide.id : '';
+      var pageId = page.id || this.generateSlideId('page');
+      var image = page.image || {};
+      var thumb = image.thumbnailUrl || image.url || '';
+      var thumbHtml = thumb
+        ? '<img src="' + this.escapeHtml(thumb) + '" alt="ページ画像" />'
+        : '<span>未選択</span>';
+      var description = this.escapeHtml(page.description || '');
+      var upDisabled = index <= 0;
+      var downDisabled = (typeof total === 'number' && index >= total - 1);
+      var actions = [];
+      actions.push(this.buildRoundActionButtonHtml('round-popup/preview', 'プレビュー', {
+        slidePagePreview: 'true',
+        slideId: slideId,
+        slidePageId: pageId
+      }));
+      actions.push(this.buildRoundActionButtonHtml('round-popup/up', '上へ', {
+        slidePageUp: 'true',
+        slideId: slideId,
+        slidePageId: pageId
+      }, { disabled: upDisabled, attributes: { 'aria-disabled': upDisabled ? 'true' : null } }));
+      actions.push(this.buildRoundActionButtonHtml('round-popup/down', '下へ', {
+        slidePageDown: 'true',
+        slideId: slideId,
+        slidePageId: pageId
+      }, { disabled: downDisabled, attributes: { 'aria-disabled': downDisabled ? 'true' : null } }));
+      actions.push(this.buildRoundActionButtonHtml('round-popup/edit', '編集', {
+        slidePageEdit: 'true',
+        slideId: slideId,
+        slidePageId: pageId
+      }));
+      actions.push(this.buildRoundActionButtonHtml('round-popup/delete', '削除', {
+        slidePageDelete: 'true',
+        slideId: slideId,
+        slidePageId: pageId
+      }));
+      var actionsHtml = '<div class="slide-page-actions">' + actions.join('') + '</div>';
+      return ''
+        + '<tr>'
+        + '<td><div class="slide-page-row__thumb">' + thumbHtml + '</div></td>'
+        + '<td>' + description + '</td>'
+        + '<td>' + actionsHtml + '</td>'
+        + '</tr>';
+    }
+
+    addSlidePage(slideId)
+    {
+      var slide = this.getSlideById(slideId || this.state.activeSlideId);
+      if (!slide) {
+        return;
+      }
+      var page = {
+        id: this.generateSlideId('page'),
+        description: '',
+        image: null
+      };
+      slide.pages = Array.isArray(slide.pages) ? slide.pages : [];
+      slide.pages.push(page);
+      this.renderSlidePages(slide);
+      this.openSlidePageEditor(slide.id, page.id);
+    }
+
+    async moveSlidePage(slideId, pageId, direction)
+    {
+      var slide = this.getSlideById(slideId || this.state.activeSlideId);
+      if (!slide || !Array.isArray(slide.pages)) {
+        return;
+      }
+      var pages = slide.pages;
+      var index = -1;
+      for (var i = 0; i < pages.length; i += 1) {
+        if (pages[i] && pages[i].id === pageId) {
+          index = i;
+          break;
+        }
+      }
+      if (index < 0) {
+        return;
+      }
+      var targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= pages.length) {
+        return;
+      }
+      var tmp = pages[targetIndex];
+      pages[targetIndex] = pages[index];
+      pages[index] = tmp;
+      this.renderSlidePages(slide);
+      await this.persistSlide(slide);
+      this.toast(this.textConfig.slidePageReordered || this.textConfig.saved);
+    }
+
+    async deleteSlidePage(slideId, pageId)
+    {
+      var slide = this.getSlideById(slideId || this.state.activeSlideId);
+      if (!slide || !Array.isArray(slide.pages)) {
+        return;
+      }
+      var filtered = [];
+      for (var i = 0; i < slide.pages.length; i += 1) {
+        var page = slide.pages[i];
+        if (page && page.id === pageId) {
+          continue;
+        }
+        filtered.push(page);
+      }
+      slide.pages = filtered;
+      if (this.state.activePageId === pageId) {
+        this.resetSlidePageEditor();
+      }
+      this.renderSlidePages(slide);
+      await this.persistSlide(slide);
+      this.toast(this.textConfig.slidePageDeleted || this.textConfig.deleted);
+    }
+
+    resetSlidePageEditor()
+    {
+      var selectors = this.selectorConfig || {};
+      var modal = selectors.slidePageModal ? document.querySelector(selectors.slidePageModal) : null;
+      var editor = selectors.slidePageEditor ? document.querySelector(selectors.slidePageEditor) : null;
+      var descriptionInput = selectors.slidePageDescriptionInput ? document.querySelector(selectors.slidePageDescriptionInput) : null;
+      if (descriptionInput) {
+        descriptionInput.value = '';
+      }
+      this.state.activePageId = null;
+      this.state.slidePageSelection = null;
+      this.updateSlidePagePreview();
+      if (modal) {
+        this.toggleModalVisibility(modal, false);
+      }
+      else if (editor) {
+        editor.setAttribute('hidden', 'hidden');
+      }
+    }
+
+    openSlidePageEditor(slideId, pageId)
+    {
+      var slide = this.getSlideById(slideId || this.state.activeSlideId);
+      if (!slide || !Array.isArray(slide.pages)) {
+        return;
+      }
+      var target = this.getSlidePageById(slide, pageId);
+      if (!target) {
+        return;
+      }
+      this.state.activeSlideId = slide.id;
+      this.state.activePageId = target.id;
+      this.state.slidePageSelection = target.image || null;
+      var selectors = this.selectorConfig || {};
+      var modal = selectors.slidePageModal ? document.querySelector(selectors.slidePageModal) : null;
+      var editor = selectors.slidePageEditor ? document.querySelector(selectors.slidePageEditor) : null;
+      var descriptionInput = selectors.slidePageDescriptionInput ? document.querySelector(selectors.slidePageDescriptionInput) : null;
+      if (descriptionInput) {
+        descriptionInput.value = target.description || '';
+      }
+      this.updateSlidePagePreview();
+      if (modal) {
+        this.toggleModalVisibility(modal, true);
+      }
+      else if (editor) {
+        editor.removeAttribute('hidden');
+      }
+    }
+
+    updateSlidePagePreview()
+    {
+      var selectors = this.selectorConfig || {};
+      var preview = selectors.slidePagePreview ? document.querySelector(selectors.slidePagePreview) : null;
+      if (!preview) {
+        return;
+      }
+      var selection = this.state.slidePageSelection;
+      if (selection && (selection.thumbnailUrl || selection.url)) {
+        var src = selection.thumbnailUrl || selection.url;
+        preview.innerHTML = '<img src="' + this.escapeHtml(src) + '" alt="選択したページ画像" />';
+      }
+      else {
+        preview.textContent = '画像が未選択です';
+      }
+    }
+
+    selectSlidePageContent()
+    {
+      var service = this.contentsSelectModalService || (this.services && this.services.contentsSelectModal);
+      var self = this;
+      if (!service || typeof service.open !== 'function') {
+        return;
+      }
+      service.open({
+        kind: 'image',
+        multiple: false,
+        onSelect: function (item) {
+          self.state.slidePageSelection = self.buildImageSelection(item);
+          self.updateSlidePagePreview();
+        }
+      });
+    }
+
+    previewSlide(slideId)
+    {
+      var slide = this.getSlideById(slideId || this.state.activeSlideId);
+      if (!slide || !Array.isArray(slide.pages) || !slide.pages.length) {
+        this.toast(this.textConfig.previewUnavailable);
+        return;
+      }
+      var service = this.slideModalService || (this.services && this.services.slideModal);
+      if (!service || typeof service.showSlide !== 'function') {
+        return;
+      }
+      service.showSlide(slide, { startIndex: 0 });
+    }
+
+    previewSlidePage(slideId, pageId)
+    {
+      var slide = this.getSlideById(slideId || this.state.activeSlideId);
+      if (!slide) {
+        return;
+      }
+      var page = this.getSlidePageById(slide, pageId);
+      var image = page && page.image ? page.image : null;
+      if (!image) {
+        this.toast(this.textConfig.previewUnavailable);
+        return;
+      }
+      var src = image.url || image.thumbnailUrl || '';
+      if (!src) {
+        this.toast(this.textConfig.previewUnavailable);
+        return;
+      }
+      var service = this.imageModalService || (this.services && this.services.imageModal);
+      if (!service || typeof service.show !== 'function') {
+        return;
+      }
+      var caption = (page && page.description) || slide.description || slide.title || '';
+      service.show(src, { alt: caption, caption: caption });
+    }
+
+    async saveSlidePage()
+    {
+      var slide = this.getSlideById(this.state.activeSlideId);
+      if (!slide || !Array.isArray(slide.pages)) {
+        return;
+      }
+      var page = this.getSlidePageById(slide, this.state.activePageId);
+      if (!page) {
+        return;
+      }
+      var selectors = this.selectorConfig || {};
+      var descriptionInput = selectors.slidePageDescriptionInput ? document.querySelector(selectors.slidePageDescriptionInput) : null;
+      page.description = descriptionInput ? descriptionInput.value : page.description;
+      page.image = this.state.slidePageSelection;
+      if (!page.image || !(page.image.contentCode || page.image.id)) {
+        this.toast('画像を選択してください');
+        return;
+      }
+      if (!slide.cover && page.image) {
+        slide.cover = page.image;
+      }
+      this.renderSlidePages(slide);
+      this.resetSlidePageEditor();
+      await this.persistSlide(slide);
+      this.toast(this.textConfig.slidePageSaved || this.textConfig.saved);
     }
     
     initConfig()
@@ -202,6 +1253,12 @@
         visibilityShown: 'コンテンツを表示しました',
         youtubeDownloadUnavailable: 'YouTube動画はダウンロードできません。',
         refreshButtonLabel: '再読み込み',
+        slideCreated: 'スライドを作成しました',
+        slideDeleted: 'スライドを削除しました',
+        slidePageSaved: 'ページを保存しました',
+        slidePageDeleted: 'ページを削除しました',
+        slidePageReordered: 'ページの順序を変更しました',
+        slideEmpty: '登録済みのスライドがありません。',
         error: '処理中にエラーが発生しました'
       });
 
@@ -292,7 +1349,34 @@
         uploadModalProgressBar: '[data-cp-upload-modal-progress-bar]',
         uploadModalList: '[data-cp-upload-modal-list]',
         uploadModalEmpty: '[data-cp-upload-modal-empty]',
-        uploadModalCompleteButton: '[data-cp-upload-modal-complete]'
+        uploadModalCompleteButton: '[data-cp-upload-modal-complete]',
+
+        // スライド作成
+        slideList: '[data-slide-list]',
+        slideEmpty: '[data-slide-empty]',
+        slideStatus: '[data-slide-status]',
+        slideAddButton: '[data-slide-add]',
+        slideRefreshButton: '[data-slide-refresh]',
+        slideModal: '[data-slide-modal]',
+        slideModalClose: '[data-slide-modal-close]',
+        slideForm: '[data-slide-form]',
+        slideCoverPreview: '[data-slide-cover-preview]',
+        slideCoverSelectButton: '[data-slide-cover-select]',
+        slideEditModal: '[data-slide-edit-modal]',
+        slideEditTitle: '[data-slide-edit-title]',
+        slideEditDescription: '[data-slide-edit-description]',
+        slidePagesList: '[data-slide-pages-list]',
+        slidePagesEmpty: '[data-slide-pages-empty]',
+        slidePageModal: '[data-slide-page-modal]',
+        slidePageModalClose: '[data-slide-page-modal-close]',
+        slidePageEditor: '[data-slide-page-editor]',
+        slidePageForm: '[data-slide-page-form]',
+        slidePagePreview: '[data-slide-page-image-preview]',
+        slidePageDescriptionInput: '[data-slide-page-description]',
+        slidePageSelectButton: '[data-slide-page-select]',
+        slidePageCancelButton: '[data-slide-page-cancel]',
+        slidePageAddButton: '[data-slide-page-add]',
+        slideEditCloseButton: '[data-slide-edit-close]'
       });
 
       // API (必要に応じて差し替え)
@@ -345,7 +1429,8 @@
           file: { type: 'ContentUpload', field: 'file', label: 'ファイル' }
         },
         youtubePrefix: 'content-youtube-',
-        youtubeSuffix: '.json'
+        youtubeSuffix: '.json',
+        slideRequestType: 'ContentsSlide'
       });
 
       var fastRequestType = dataset.fastDownloadRequestType || 'FastDownload';
@@ -549,27 +1634,28 @@
 
     async initServices()
     {
-      const scripts = [
-        { src: '/js/service-app/header/main.js' },
-        { src: '/js/service-app/toast/main.js' },
-        { src: '/js/service-app/loading/main.js' },
-        { src: '/js/service-app/help-modal/main.js' },
-        { src: '/js/service-app/info-modal/main.js' },
-        { src: '/js/service-app/button/main.js' },
-        { src: '/js/service-app/confirm-dialog/main.js' },
-        { src: '/js/service-app/target-select-modal/main.js' },
-        { src: '/js/service-app/breadcrumb/main.js' },
-        { src: '/js/service-app/audio-modal/main.js' },
-        { src: '/js/service-app/video-modal/main.js' },
-        { src: '/js/service-app/youtube-video-modal/main.js' },
-        { src: '/js/service-app/image-modal/main.js' },
-        { src: '/js/service-app/pdf-modal/main.js' },
-        { src: '/js/service-app/download-modal/main.js' },
-        { src: '/js/service-app/pwa-downloader/main.js' },
-        { src: '/js/service-app/contents-select-modal/main.js' },
-        { src: '/js/service-app/user-select-modal/main.js' }
-      ];
-      await window.Utils.loadScriptsSync(scripts);
+        const scripts = [
+          { src: '/js/service-app/header/main.js' },
+          { src: '/js/service-app/toast/main.js' },
+          { src: '/js/service-app/loading/main.js' },
+          { src: '/js/service-app/help-modal/main.js' },
+          { src: '/js/service-app/info-modal/main.js' },
+          { src: '/js/service-app/button/main.js' },
+          { src: '/js/service-app/confirm-dialog/main.js' },
+          { src: '/js/service-app/target-select-modal/main.js' },
+          { src: '/js/service-app/breadcrumb/main.js' },
+          { src: '/js/service-app/audio-modal/main.js' },
+          { src: '/js/service-app/video-modal/main.js' },
+          { src: '/js/service-app/youtube-video-modal/main.js' },
+          { src: '/js/service-app/image-modal/main.js' },
+          { src: '/js/service-app/slide-modal/main.js' },
+          { src: '/js/service-app/pdf-modal/main.js' },
+          { src: '/js/service-app/download-modal/main.js' },
+          { src: '/js/service-app/pwa-downloader/main.js' },
+          { src: '/js/service-app/contents-select-modal/main.js' },
+          { src: '/js/service-app/user-select-modal/main.js' }
+        ];
+        await window.Utils.loadScriptsSync(scripts);
 
       this.headerService = new window.Services.Header();
       this.toastService = new window.Services.Toast();
@@ -605,6 +1691,7 @@
       });
       this.youtubeVideoModalService = new window.Services.YoutubeVideoModal({ autoplay: false });
       this.imageModalService = new window.Services.ImageModal();
+      this.slideModalService = new window.Services.SlideModal();
       this.pdfModalService = new window.Services.PdfModal({
         showDownload: true,
         showOpenInNewTab: true
@@ -623,13 +1710,10 @@
       this.contentsSelectModalService = new window.Services.ContentsSelectModal({
         endpoint: this.apiConfig.endpoint,
         requestType: this.apiConfig.requestType,
+        listType: 'ContentList',
         token: this.apiConfig.token,
         multiple: false,
-        text: {
-          modalTitle: this.textConfig.submitSelectTitle,
-          modalDescription: this.textConfig.submitSelectDescription,
-          applyLabel: this.textConfig.submitButtonLabel
-        }
+        zIndex: 1200
       });
 
       this.services = {
@@ -641,16 +1725,17 @@
         button: this.buttonService,
         confirmDialog: this.confirmDialogService,
         targetSelectModal: this.targetSelectModalService,
-        pwaDownloader: this.pwaDownloaderService,
-        contentsSelectModal: this.contentsSelectModalService,
-        userSelectModal: this.userSelectModalService,
         breadcrumb: this.breadcrumbService,
         audioModal: this.audioModalService,
         videoModal: this.videoModalService,
         youtubeVideoModal: this.youtubeVideoModalService,
         imageModal: this.imageModalService,
+        slideModal: this.slideModalService,
         pdfModal: this.pdfModalService,
-        downloadModal: this.downloadModalService
+        downloadModal: this.downloadModalService,
+        pwaDownloader: this.pwaDownloaderService,
+        contentsSelectModal: this.contentsSelectModalService,
+        userSelectModal: this.userSelectModalService
       };
 
       await Promise.all([
@@ -662,16 +1747,17 @@
         this.buttonService.boot(),
         this.confirmDialogService.boot(),
         this.targetSelectModalService.boot(),
-        this.pwaDownloaderService.boot(),
-        this.contentsSelectModalService.boot(),
-        this.userSelectModalService.boot(),
         this.breadcrumbService.boot(breadcrumbContainer),
         this.audioModalService.boot(),
         this.videoModalService.boot(),
         this.youtubeVideoModalService.boot(),
         this.imageModalService.boot(),
+        this.slideModalService.boot(),
         this.pdfModalService.boot(),
-        this.downloadModalService.boot()
+        this.downloadModalService.boot(),
+        this.pwaDownloaderService.boot(),
+        this.contentsSelectModalService.boot(),
+        this.userSelectModalService.boot()
       ]);
     }
 
@@ -981,6 +2067,18 @@
           }
         });
 
+      $(document)
+        .off('click.contents', selectors.fastDownloadButton)
+        .on('click.contents', selectors.fastDownloadButton, async function (e) {
+          e.preventDefault();
+          try {
+            var id = this && this.getAttribute ? this.getAttribute('data-id') : null;
+            await self.startFastDownload(id);
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
       // 更新（一覧再取得）
       $(document)
         .off('click.contents', selectors.refreshButton)
@@ -1015,6 +2113,247 @@
             if (PaginationRefresh) {
               await new PaginationRefresh(self).run({ page: targetPage });
             }
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライド作成タブ - 追加
+      $(document)
+        .off('click.contents', selectors.slideAddButton)
+        .on('click.contents', selectors.slideAddButton, function (e) {
+          e.preventDefault();
+          try {
+            self.openSlideModal();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライド作成タブ - 再読み込み
+      $(document)
+        .off('click.contents', selectors.slideRefreshButton)
+        .on('click.contents', selectors.slideRefreshButton, async function (e) {
+          e.preventDefault();
+          try {
+            await self.loadSlides();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライド作成モーダル クローズ
+      $(document)
+        .off('click.contents', selectors.slideModalClose)
+        .on('click.contents', selectors.slideModalClose, function (e) {
+          e.preventDefault();
+          try {
+            self.closeSlideModal();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライド作成モーダル 保存
+      $(document)
+        .off('submit.contents', selectors.slideForm)
+        .on('submit.contents', selectors.slideForm, async function (e) {
+          e.preventDefault();
+          try {
+            var title = $(this).find('input[name="title"]').val() || '';
+            var description = $(this).find('textarea[name="description"]').val() || '';
+            await self.createSlide({
+              title: title,
+              description: description,
+              cover: self.state.slideCoverSelection
+            });
+            self.closeSlideModal();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライドのトップ画像選択
+      $(document)
+        .off('click.contents', selectors.slideCoverSelectButton)
+        .on('click.contents', selectors.slideCoverSelectButton, function (e) {
+          e.preventDefault();
+          try {
+            self.selectSlideCoverFromContents();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライド プレビュー
+      $(document)
+        .off('click.contents', '[data-slide-preview]')
+        .on('click.contents', '[data-slide-preview]', function (e) {
+          e.preventDefault();
+          try {
+            var slideId = $(this).attr('data-slide-id');
+            self.previewSlide(slideId);
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライド 編集
+      $(document)
+        .off('click.contents', '[data-slide-edit]')
+        .on('click.contents', '[data-slide-edit]', function (e) {
+          e.preventDefault();
+          try {
+            var slideId = $(this).attr('data-slide-id');
+            self.openSlideEditor(slideId);
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライド 削除
+      $(document)
+        .off('click.contents', '[data-slide-delete]')
+        .on('click.contents', '[data-slide-delete]', async function (e) {
+          e.preventDefault();
+          try {
+            var slideId = $(this).attr('data-slide-id');
+            var confirmMessage = self.textConfig.deleteConfirm || '削除しますか？';
+            if (window.confirm(confirmMessage)) {
+              await self.deleteSlide(slideId);
+            }
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライド編集モーダル閉じる
+      $(document)
+        .off('click.contents', selectors.slideEditCloseButton)
+        .on('click.contents', selectors.slideEditCloseButton, function (e) {
+          e.preventDefault();
+          try {
+            self.closeSlideEditor();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライドページ追加
+      $(document)
+        .off('click.contents', selectors.slidePageAddButton)
+        .on('click.contents', selectors.slidePageAddButton, function (e) {
+          e.preventDefault();
+          try {
+            self.addSlidePage();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライドページ移動・編集・削除
+      $(document)
+        .off('click.contents', '[data-slide-page-up]')
+        .on('click.contents', '[data-slide-page-up]', async function (e) {
+          e.preventDefault();
+          try {
+            var slideId = $(this).attr('data-slide-id');
+            var pageId = $(this).attr('data-slide-page-id');
+            await self.moveSlidePage(slideId, pageId, 'up');
+          } catch (err) {
+            self.onError(err);
+          }
+        })
+        .off('click.contents', '[data-slide-page-down]')
+        .on('click.contents', '[data-slide-page-down]', async function (e) {
+          e.preventDefault();
+          try {
+            var slideIdDown = $(this).attr('data-slide-id');
+            var pageIdDown = $(this).attr('data-slide-page-id');
+            await self.moveSlidePage(slideIdDown, pageIdDown, 'down');
+          } catch (err) {
+            self.onError(err);
+          }
+        })
+        .off('click.contents', '[data-slide-page-edit]')
+        .on('click.contents', '[data-slide-page-edit]', function (e) {
+          e.preventDefault();
+          try {
+            var editSlideId = $(this).attr('data-slide-id');
+            var editPageId = $(this).attr('data-slide-page-id');
+            self.openSlidePageEditor(editSlideId, editPageId);
+          } catch (err) {
+            self.onError(err);
+          }
+        })
+        .off('click.contents', '[data-slide-page-preview]')
+        .on('click.contents', '[data-slide-page-preview]', function (e) {
+          e.preventDefault();
+          try {
+            var previewSlideId = $(this).attr('data-slide-id');
+            var previewPageId = $(this).attr('data-slide-page-id');
+            self.previewSlidePage(previewSlideId, previewPageId);
+          } catch (err) {
+            self.onError(err);
+          }
+        })
+        .off('click.contents', '[data-slide-page-delete]')
+        .on('click.contents', '[data-slide-page-delete]', async function (e) {
+          e.preventDefault();
+          try {
+            var deleteSlideId = $(this).attr('data-slide-id');
+            var deletePageId = $(this).attr('data-slide-page-id');
+            var confirmMsg = self.textConfig.deleteConfirm || '削除しますか？';
+            if (window.confirm(confirmMsg)) {
+              await self.deleteSlidePage(deleteSlideId, deletePageId);
+            }
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライドページ画像選択
+      $(document)
+        .off('click.contents', selectors.slidePageSelectButton)
+        .on('click.contents', selectors.slidePageSelectButton, function (e) {
+          e.preventDefault();
+          try {
+            self.selectSlidePageContent();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライドページ編集キャンセル
+      $(document)
+        .off('click.contents', selectors.slidePageCancelButton)
+        .on('click.contents', selectors.slidePageCancelButton, function (e) {
+          e.preventDefault();
+          try {
+            self.resetSlidePageEditor();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      $(document)
+        .off('click.contents', selectors.slidePageModalClose)
+        .on('click.contents', selectors.slidePageModalClose, function (e) {
+          e.preventDefault();
+          try {
+            self.resetSlidePageEditor();
+          } catch (err) {
+            self.onError(err);
+          }
+        });
+
+      // スライドページ編集保存
+      $(document)
+        .off('submit.contents', selectors.slidePageForm)
+        .on('submit.contents', selectors.slidePageForm, async function (e) {
+          e.preventDefault();
+          try {
+            await self.saveSlidePage();
           } catch (err) {
             self.onError(err);
           }
@@ -1094,18 +2433,6 @@
             var source = $(this).attr('data-bitrate-source');
             var proxyIndex = $(this).attr('data-bitrate-proxy-index');
             await runItemJob('bitrate', { id: id, source: source, proxyIndex: proxyIndex });
-          } catch (err) {
-            self.onError(err);
-          }
-        });
-
-      $(document)
-        .off('click.contents', selectors.fastDownloadButton)
-        .on('click.contents', selectors.fastDownloadButton, async function (e) {
-          e.preventDefault();
-          try {
-            var id = this && this.getAttribute ? this.getAttribute('data-id') : null;
-            await self.startFastDownload(id);
           } catch (err) {
             self.onError(err);
           }
@@ -1558,6 +2885,32 @@
       }
       var config = this.fastDownloadConfig || {};
       var requestType = config.requestType || (this.apiConfig && this.apiConfig.requestType) || 'FastDownload';
+      var response = await window.Utils.requestApi(requestType, type, payload || {}, overrides);
+      if (!response)
+      {
+        throw new Error(this.textConfig.error);
+      }
+      var statusRaw = typeof response.status === 'string' ? response.status : '';
+      var status = statusRaw.toUpperCase();
+      if (status && status !== 'OK')
+      {
+        var message = response.response || response.result || response.reason || this.textConfig.error;
+        throw new Error(message);
+      }
+      if (Object.prototype.hasOwnProperty.call(response, 'result'))
+      {
+        return response.result;
+      }
+      return response;
+    }
+
+    async callSlideApi(type, payload, overrides)
+    {
+      if (!(window.Utils && typeof window.Utils.requestApi === 'function'))
+      {
+        throw new Error('APIクライアントが初期化されていません。');
+      }
+      var requestType = (this.apiConfig && this.apiConfig.slideRequestType) || 'ContentsSlide';
       var response = await window.Utils.requestApi(requestType, type, payload || {}, overrides);
       if (!response)
       {
@@ -2673,11 +4026,11 @@
      * 一覧取得（検索・ページング対応）
      * @param {Object} params {query, page, pageSize}
     */
-      async apiFetchList(params) {
-        var listTypes = this.apiConfig.listTypes || [];
-        var requests = [];
-        for (var i = 0; i < listTypes.length; i += 1)
-        {
+    async apiFetchList(params) {
+      var listTypes = this.apiConfig.listTypes || [];
+      var requests = [];
+      for (var i = 0; i < listTypes.length; i += 1)
+      {
         requests.push(this.fetchMediaList(listTypes[i]));
       }
       var responses = await Promise.all(requests);
@@ -2699,219 +4052,16 @@
       {
         return (b.updatedAtValue || 0) - (a.updatedAtValue || 0);
       });
-        var filtered = this.filterItems(aggregate, params || {});
-        var paginated = this.paginateItems(filtered, params && params.page, params && params.pageSize);
-        return {
-          items: paginated.items,
-          page: paginated.page,
-          total: paginated.total,
-          pageSize: paginated.pageSize,
-          totalPages: paginated.totalPages
-        };
-      }
-
-      toggleModalVisibility(modal, visible)
-      {
-        if (!modal)
-        {
-          return;
-        }
-        var body = document.body;
-        if (visible)
-        {
-          modal.classList.add('is-open');
-          modal.setAttribute('aria-hidden', 'false');
-          modal.removeAttribute('hidden');
-          if (body && body.classList && !body.classList.contains('is-modal-open'))
-          {
-            body.classList.add('is-modal-open');
-          }
-        }
-        else
-        {
-          modal.classList.remove('is-open');
-          modal.setAttribute('aria-hidden', 'true');
-          modal.setAttribute('hidden', 'hidden');
-          var stillOpen = document.querySelector('.screen-modal.is-open');
-          if (!stillOpen && body && body.classList)
-          {
-            body.classList.remove('is-modal-open');
-          }
-        }
-      }
-
-      openContentEditModal(itemId)
-      {
-        var item = this.getItemById(itemId);
-        var selectors = this.selectorConfig || {};
-        var modal = selectors.editModal ? document.querySelector(selectors.editModal) : null;
-        if (!item || !modal)
-        {
-          return;
-        }
-        this.state.activeEditItemId = item.id;
-        this.fillContentEditForm(item);
-        var titleNode = modal.querySelector('#contents-edit-title');
-        var summaryNode = modal.querySelector('#contents-edit-summary');
-        if (titleNode)
-        {
-          titleNode.textContent = this.textConfig.editModalTitle || 'コンテンツ編集';
-        }
-        if (summaryNode)
-        {
-          summaryNode.textContent = this.textConfig.editModalSummary || 'タイトルや説明を編集します。';
-        }
-        this.toggleModalVisibility(modal, true);
-        var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
-        if (titleInput && typeof titleInput.focus === 'function')
-        {
-          try { titleInput.focus(); } catch (_err) { /* ignore */ }
-        }
-      }
-
-      closeContentEditModal()
-      {
-        var selectors = this.selectorConfig || {};
-        var modal = selectors.editModal ? document.querySelector(selectors.editModal) : null;
-        this.state.activeEditItemId = null;
-        this.setContentEditError('');
-        this.toggleModalVisibility(modal, false);
-      }
-
-      fillContentEditForm(item)
-      {
-        var selectors = this.selectorConfig || {};
-        var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
-        var descriptionInput = selectors.editDescriptionInput ? document.querySelector(selectors.editDescriptionInput) : null;
-        var createdAtInput = selectors.editCreatedAtInput ? document.querySelector(selectors.editCreatedAtInput) : null;
-        if (titleInput)
-        {
-          var rawTitle = (item && item.raw && item.raw.title) || item.title || item.fileName || '';
-          titleInput.value = rawTitle;
-        }
-        if (descriptionInput)
-        {
-          var rawDescription = (item && item.raw && item.raw.description) || '';
-          descriptionInput.value = rawDescription;
-        }
-        if (createdAtInput)
-        {
-          var createdAt = (item && item.raw && (item.raw.createdAt || item.raw.registeredAt || item.raw.updatedAt)) || '';
-          createdAtInput.value = this.formatDateInputValue(createdAt);
-        }
-        this.setContentEditError('');
-      }
-
-      setContentEditError(message)
-      {
-        var selectors = this.selectorConfig || {};
-        var errorNode = selectors.editErrorMessage ? document.querySelector(selectors.editErrorMessage) : null;
-        if (!errorNode)
-        {
-          return;
-        }
-        var text = String(message || '').trim();
-        if (text)
-        {
-          errorNode.textContent = text;
-          errorNode.removeAttribute('hidden');
-        }
-        else
-        {
-          errorNode.textContent = '';
-          errorNode.setAttribute('hidden', 'hidden');
-        }
-      }
-
-      formatDateInputValue(value)
-      {
-        if (!value)
-        {
-          return '';
-        }
-        var date = new Date(value);
-        if (isNaN(date.getTime()))
-        {
-          return '';
-        }
-        var y = date.getFullYear();
-        var m = ('0' + (date.getMonth() + 1)).slice(-2);
-        var d = ('0' + date.getDate()).slice(-2);
-        var hh = ('0' + date.getHours()).slice(-2);
-        var mm = ('0' + date.getMinutes()).slice(-2);
-        return y + '-' + m + '-' + d + 'T' + hh + ':' + mm;
-      }
-
-      normalizeDateInput(value)
-      {
-        var raw = String(value || '').trim();
-        if (!raw)
-        {
-          return '';
-        }
-        var date = new Date(raw);
-        if (isNaN(date.getTime()))
-        {
-          return null;
-        }
-        return date.toISOString();
-      }
-
-      getContentEditFormValues()
-      {
-        var selectors = this.selectorConfig || {};
-        var titleInput = selectors.editTitleInput ? document.querySelector(selectors.editTitleInput) : null;
-        var descriptionInput = selectors.editDescriptionInput ? document.querySelector(selectors.editDescriptionInput) : null;
-        var createdAtInput = selectors.editCreatedAtInput ? document.querySelector(selectors.editCreatedAtInput) : null;
-        return {
-          title: titleInput ? String(titleInput.value || '').trim() : '',
-          description: descriptionInput ? String(descriptionInput.value || '').trim() : '',
-          createdAtRaw: createdAtInput ? createdAtInput.value : ''
-        };
-      }
-
-      async submitContentEditForm()
-      {
-        var id = this.state.activeEditItemId;
-        if (!id)
-        {
-          return;
-        }
-        var values = this.getContentEditFormValues();
-        if (!values.title)
-        {
-          this.setContentEditError(this.textConfig.editTitleRequired || 'タイトルを入力してください。');
-          return;
-        }
-        var normalizedCreatedAt = this.normalizeDateInput(values.createdAtRaw);
-        if (values.createdAtRaw && normalizedCreatedAt === null)
-        {
-          this.setContentEditError(this.textConfig.editInvalidDate || '作成日を正しく入力してください。');
-          return;
-        }
-        this.setContentEditError('');
-        try
-        {
-          this.loading(true, this.textConfig.loading);
-          await this.apiUpdateContent(id, {
-            title: values.title,
-            description: values.description,
-            createdAt: normalizedCreatedAt || values.createdAtRaw || ''
-          });
-          this.renderList(this.state.items);
-          this.toast(this.textConfig.editSaved || this.textConfig.saved);
-          this.closeContentEditModal();
-        }
-        catch (err)
-        {
-          this.setContentEditError(err && err.message ? err.message : (this.textConfig.error || 'エラーが発生しました'));
-        }
-        finally
-        {
-          this.dismissConfirmDialogs();
-          this.loading(false);
-        }
-      }
+      var filtered = this.filterItems(aggregate, params || {});
+      var paginated = this.paginateItems(filtered, params && params.page, params && params.pageSize);
+      return {
+        items: paginated.items,
+        page: paginated.page,
+        total: paginated.total,
+        pageSize: paginated.pageSize,
+        totalPages: paginated.totalPages
+      };
+    }
 
     /**
      * 単体削除
@@ -3324,78 +4474,6 @@
       }
     }
 
-    async requestSubmissionCreate(payload)
-    {
-      if (!(window.Utils && typeof window.Utils.requestApi === 'function'))
-      {
-        throw new Error('APIクライアントが初期化されていません。');
-      }
-      var response = await window.Utils.requestApi('TargetManagementSubmissions', 'TargetSubmissionCreate', payload || {});
-      if (!response)
-      {
-        throw new Error(this.textConfig.submitError || this.textConfig.error);
-      }
-      var status = typeof response.status === 'string' ? response.status.toUpperCase() : '';
-      if (status !== 'OK')
-      {
-        var message = response.response || response.result || response.reason || this.textConfig.submitError || this.textConfig.error;
-        var error = new Error(message);
-        if (response.reason)
-        {
-          error.code = response.reason;
-        }
-        throw error;
-      }
-      return response.result || null;
-    }
-
-    async ensureContentDeletable(item)
-    {
-      var contentCode = this.resolveContentCodeFromItem(item);
-      if (!contentCode)
-      {
-        return;
-      }
-      var payload = await this.apiFetchUsageList(contentCode);
-      var list = (payload && payload.items) || [];
-      var usageItems = this.normalizeUsageItems(list);
-      var protectedTypes = ['guidance', 'reference', 'submission', 'review'];
-      var typeLabels = this.textConfig.usageTypeLabels || {};
-      var usedPlaces = [];
-      var usedLookup = {};
-
-      for (var i = 0; i < usageItems.length; i += 1)
-      {
-        var entry = usageItems[i];
-        if (!entry)
-        {
-          continue;
-        }
-        var usageTypeRaw = entry.usageType || '';
-        var usageType = String(usageTypeRaw).toLowerCase();
-        if (protectedTypes.indexOf(usageType) === -1)
-        {
-          continue;
-        }
-        var targetTitle = entry.targetName || entry.targetCode || 'ターゲット';
-        var usageLabel = typeLabels[usageType] || usageTypeRaw || usageType || '-';
-        var key = targetTitle + '|' + usageLabel;
-        if (usedLookup[key])
-        {
-          continue;
-        }
-        usedLookup[key] = true;
-        usedPlaces.push('「' + targetTitle + '」の' + usageLabel);
-      }
-
-      if (!usedPlaces.length)
-      {
-        return;
-      }
-      var message = 'このコンテンツは' + usedPlaces.join('、') + 'で使用されているため削除できません。';
-      throw new Error(message);
-    }
-
     async openUserSelectModalForDelegation()
     {
       var service = this.userSelectModalService || (this.services && this.services.userSelectModal);
@@ -3510,6 +4588,78 @@
       }
     }
 
+    async requestSubmissionCreate(payload)
+    {
+      if (!(window.Utils && typeof window.Utils.requestApi === 'function'))
+      {
+        throw new Error('APIクライアントが初期化されていません。');
+      }
+      var response = await window.Utils.requestApi('TargetManagementSubmissions', 'TargetSubmissionCreate', payload || {});
+      if (!response)
+      {
+        throw new Error(this.textConfig.submitError || this.textConfig.error);
+      }
+      var status = typeof response.status === 'string' ? response.status.toUpperCase() : '';
+      if (status !== 'OK')
+      {
+        var message = response.response || response.result || response.reason || this.textConfig.submitError || this.textConfig.error;
+        var error = new Error(message);
+        if (response.reason)
+        {
+          error.code = response.reason;
+        }
+        throw error;
+      }
+      return response.result || null;
+    }
+
+    async ensureContentDeletable(item)
+    {
+      var contentCode = this.resolveContentCodeFromItem(item);
+      if (!contentCode)
+      {
+        return;
+      }
+      var payload = await this.apiFetchUsageList(contentCode);
+      var list = (payload && payload.items) || [];
+      var usageItems = this.normalizeUsageItems(list);
+      var protectedTypes = ['guidance', 'reference', 'submission', 'review'];
+      var typeLabels = this.textConfig.usageTypeLabels || {};
+      var usedPlaces = [];
+      var usedLookup = {};
+
+      for (var i = 0; i < usageItems.length; i += 1)
+      {
+        var entry = usageItems[i];
+        if (!entry)
+        {
+          continue;
+        }
+        var usageTypeRaw = entry.usageType || '';
+        var usageType = String(usageTypeRaw).toLowerCase();
+        if (protectedTypes.indexOf(usageType) === -1)
+        {
+          continue;
+        }
+        var targetTitle = entry.targetName || entry.targetCode || 'ターゲット';
+        var usageLabel = typeLabels[usageType] || usageTypeRaw || usageType || '-';
+        var key = targetTitle + '|' + usageLabel;
+        if (usedLookup[key])
+        {
+          continue;
+        }
+        usedLookup[key] = true;
+        usedPlaces.push('「' + targetTitle + '」の' + usageLabel);
+      }
+
+      if (!usedPlaces.length)
+      {
+        return;
+      }
+      var message = 'このコンテンツは' + usedPlaces.join('、') + 'で使用されているため削除できません。';
+      throw new Error(message);
+    }
+
     async openUsageList(id)
     {
       if (!id)
@@ -3536,7 +4686,6 @@
       }
       finally
       {
-        this.dismissConfirmDialogs();
         this.loading(false);
       }
     }
@@ -3718,7 +4867,7 @@
       {
         var statusText = resolvedTotal
           ? (startIndex <= endIndex
-            ? (startIndex + '～' + endIndex + '件を表示（全' + resolvedTotal + '件）')
+            ? (startIndex + '〜' + endIndex + '件を表示（全' + resolvedTotal + '件）')
             : '表示できるコンテンツがありません')
           : '表示できるコンテンツがありません';
         status.textContent = statusText;
@@ -3857,10 +5006,10 @@
       var categoryLabel = this.escapeHtml(categoryRaw);
       var sizeLabel = this.formatBytes(item.size);
       var visibilityLabel = item && item.visibilityLabel ? item.visibilityLabel : (isVisible ? '表示' : '非表示');
-      var fileNameRaw = item.fileName || (item.raw && item.raw.fileName) || '';
-      var fileName = fileNameRaw ? this.escapeHtml(fileNameRaw) : '';
       var durationLabel = this.resolveDurationLabel(item);
       var visibilityLabelSafe = this.escapeHtml(visibilityLabel);
+      var fileNameRaw = item.fileName || (item.raw && item.raw.fileName) || '';
+      var fileName = fileNameRaw ? this.escapeHtml(fileNameRaw) : '';
       var metaParts = [];
       if (visibilityLabelSafe)
       {
@@ -4082,7 +5231,6 @@
         + submitButtonHtml
         + usageButtonHtml
         + proxyButtonHtml
-        + fastDownloadButtonHtml
         + visibilityToggleHtml
         + downloadButtonHtml
         + deleteButtonHtml
@@ -4615,18 +5763,18 @@
           '</td>' +
           '<td class="content-item__cell content-item__cell--actions">' +
             '<div class="content-item__actions">' +
-              openButtonHtml +
-              editButtonHtml +
-              submitButtonHtml +
-              usageButtonHtml +
-              proxyButtonHtml +
-              fastDownloadButtonHtml +
-              downloadButtonHtml +
-              delegateButtonHtml +
-              deleteButtonHtml +
-            '</div>' +
-          '</td>' +
-        '</tr>';
+            openButtonHtml +
+            editButtonHtml +
+            submitButtonHtml +
+            usageButtonHtml +
+            proxyButtonHtml +
+            fastDownloadButtonHtml +
+            downloadButtonHtml +
+            delegateButtonHtml +
+            deleteButtonHtml +
+          '</div>' +
+        '</td>' +
+      '</tr>';
     }
 
     buildPreviewContent(item, view)
@@ -5460,7 +6608,7 @@
 
     buildContentImageUrl(record, options)
     {
-      if (!record || !record.filePath)
+      if (!record)
       {
         return '';
       }
@@ -5473,9 +6621,12 @@
       }
 
       var normalizedPath = String(targetPath || '');
-      if (/^https?:\/\//i.test(normalizedPath) || normalizedPath.indexOf('/') === 0)
+      if (normalizedPath)
       {
-        return normalizedPath;
+        if (/^https?:\/\//i.test(normalizedPath) || normalizedPath.indexOf('/') === 0)
+        {
+          return normalizedPath;
+        }
       }
 
       if (!record.contentCode)
@@ -6175,7 +7326,6 @@
       }
       finally
       {
-        this.dismissConfirmDialogs();
         this.loading(false);
       }
     }

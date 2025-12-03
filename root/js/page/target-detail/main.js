@@ -135,10 +135,14 @@
         '.target-bbs__message-delete',
         '.target-bbs__composer-send'
       ]
-    },    
+    },
+    {
+      role: 'submit',
+      selectors: ['.target-detail__submission-add']
+    },
     {
       role: 'manage',
-      selectors: ['.target-detail__submission-add', '.target-detail__submission-action--edit', '.target-detail__submission-action--delete']
+      selectors: ['.target-detail__submission-action--edit', '.target-detail__submission-action--delete']
     },
     {
       role: 'all',
@@ -1479,6 +1483,9 @@
     {
       var canManage = !!(flags && (flags.isSupervisor || flags.isOperator));
       var canManageTargets = !!(flags && flags.canManageTargets);
+      var canSubmit = typeof this.canSubmitTargetContent === 'function'
+        ? this.canSubmitTargetContent()
+        : canManage;
       var root = this.root || document;
       for (var i = 0; i < ACTION_VISIBILITY_RULES.length; i += 1)
       {
@@ -1487,7 +1494,9 @@
           ? true
           : rule.role === 'manage-targets'
             ? canManageTargets
-            : canManage;
+            : rule.role === 'submit'
+              ? canSubmit
+              : canManage;
         this.applyVisibilityToSelectors(root, rule.selectors, allow);
       }
     }
@@ -1729,6 +1738,56 @@
       var participants = Array.isArray(target.participants) ? target.participants : [];
       target.participants = participants;
       return participants;
+    }
+
+    isTargetParticipantUser()
+    {
+      var target = this.state && this.state.target;
+      var profile = this.state && this.state.profile;
+      var userCode = profile && (profile.userCode || profile.user_code || profile.code || '');
+      if (!target || !userCode)
+      {
+        return false;
+      }
+      var normalizedUserCode = String(userCode).trim().toLowerCase();
+      if (!normalizedUserCode)
+      {
+        return false;
+      }
+      var candidates = Array.isArray(target.participants) ? target.participants : [];
+      for (var i = 0; i < candidates.length; i += 1)
+      {
+        var entry = candidates[i];
+        if (!entry)
+        {
+          continue;
+        }
+        var entryCode = (entry.userCode || entry.code || '').trim().toLowerCase();
+        if (!entryCode)
+        {
+          continue;
+        }
+        var status = typeof entry.status === 'string' ? entry.status.toLowerCase() : '';
+        var isActive = entry.isActive !== false && entry.active !== false && status !== 'inactive';
+        if (!isActive)
+        {
+          continue;
+        }
+        if (entryCode === normalizedUserCode)
+        {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    canSubmitTargetContent()
+    {
+      if (this.canManageTargetContent())
+      {
+        return true;
+      }
+      return this.isTargetParticipantUser();
     }
 
     cacheElements()
@@ -2478,7 +2537,7 @@
     openPageHelp(trigger)
     {
       trigger.setAttribute('aria-expanded', 'true');
- 
+
       this.lastHelpTrigger = trigger || this.refs.helpButton || this.lastHelpTrigger;
       var alias = this.targetAlias || this.resolveTargetAlias();
       var detailLabel = alias + '詳細';
@@ -2631,15 +2690,15 @@
       }
       var priorityLabel = normalizeText(raw.priorityLabel);
       var priorityKeyRaw = normalizeText(raw.priority || raw.priorityKey || '');
-        var priorityKey = priorityKeyRaw ? priorityKeyRaw.toLowerCase() : '';
-        if (!priorityLabel && priorityKeyRaw) {
-          priorityLabel = priorityKeyRaw;
-        }
-        var createdByDisplayName = normalizeText(raw.createdByDisplayName || raw.ownerDisplayName || '');
-        var createdByUserCode = normalizeText(raw.createdByUserCode || raw.ownerUserCode || '');
-        var creatorAvatar = resolveCreatorAvatarData(raw, createdByUserCode);
-        var creatorInitialSource = createdByDisplayName || createdByUserCode || raw.ownerDisplayName || raw.ownerUserCode || '';
-        var assignedUsersRaw = [];
+      var priorityKey = priorityKeyRaw ? priorityKeyRaw.toLowerCase() : '';
+      if (!priorityLabel && priorityKeyRaw) {
+        priorityLabel = priorityKeyRaw;
+      }
+      var createdByDisplayName = normalizeText(raw.createdByDisplayName || raw.ownerDisplayName || '');
+      var createdByUserCode = normalizeText(raw.createdByUserCode || raw.ownerUserCode || '');
+      var creatorAvatar = resolveCreatorAvatarData(raw, createdByUserCode);
+      var creatorInitialSource = createdByDisplayName || createdByUserCode || raw.ownerDisplayName || raw.ownerUserCode || '';
+      var assignedUsersRaw = [];
       if (Array.isArray(raw.assignedUsers))
       {
         assignedUsersRaw = raw.assignedUsers.slice();
@@ -2664,31 +2723,33 @@
       {
         participantsRaw = raw.participants.slice();
       }
-        else if (typeof raw.participants === 'string')
-        {
-          participantsRaw = splitDelimitedValues(raw.participants);
-        }
-        var creatorEntry = null;
-        if (createdByDisplayName || createdByUserCode)
-        {
-          creatorEntry = {
-            displayName: createdByDisplayName || createdByUserCode,
-            userCode: createdByUserCode || createdByDisplayName || '',
-            isOperator: true,
-            isActive: raw && raw.createdByIsActive !== false,
-            role: { key: 'operator', name: 'creator' },
-            source: 'creator'
-          };
-        }
-        var participants = this.normalizeTargetParticipantList(participantsRaw);
-        var assignedUsers = this.normalizeTargetParticipantList(assignedUsersRaw);
-        var creatorList = creatorEntry ? [creatorEntry] : [];
-        participants = this.mergeTargetParticipantDirectory(participants, creatorList);
-        assignedUsers = this.mergeTargetParticipantDirectory(assignedUsers, creatorList);
-        if (!assignedUsers.length && participants.length)
-        {
-          assignedUsers = participants.slice();
-        }
+      else if (typeof raw.participants === 'string')
+      {
+        participantsRaw = splitDelimitedValues(raw.participants);
+      }
+
+      var creatorEntry = null;
+      if (createdByDisplayName || createdByUserCode)
+      {
+        creatorEntry = {
+          displayName: createdByDisplayName || createdByUserCode,
+          userCode: createdByUserCode || createdByDisplayName || '',
+          isOperator: true,
+          isActive: raw && raw.createdByIsActive !== false,
+          role: { key: 'operator', name: 'creator' },
+          source: 'creator'
+        };
+      }
+
+      var participants = this.normalizeTargetParticipantList(participantsRaw);
+      var assignedUsers = this.normalizeTargetParticipantList(assignedUsersRaw);
+      var creatorList = creatorEntry ? [creatorEntry] : [];
+      participants = this.mergeTargetParticipantDirectory(participants, creatorList);
+      assignedUsers = this.mergeTargetParticipantDirectory(assignedUsers, creatorList);
+      if (!assignedUsers.length && participants.length)
+      {
+        assignedUsers = participants.slice();
+      }
 
       var imageUrl = normalizeText(
         raw.imageUrl
@@ -2705,10 +2766,10 @@
 
       var displayFlags = this.normalizeDisplayFlags(raw);
 
-        var target = {
-          targetCode: raw.targetCode || raw.code || 'target-unknown',
-          title: raw.title || raw.name || 'ターゲット詳細',
-          description: raw.description || raw.summary || '',
+      var target = {
+        targetCode: raw.targetCode || raw.code || 'target-unknown',
+        title: raw.title || raw.name || 'ターゲット詳細',
+        description: raw.description || raw.summary || '',
         imageUrl: imageUrl,
         status: statusKey || 'unknown',
         statusLabel: statusLabel || '—',
@@ -2716,6 +2777,8 @@
         priorityLabel: priorityLabel || '—',
         createdAtDisplay: raw.createdAtDisplay || raw.createdAt || '',
         updatedAtDisplay: raw.updatedAtDisplay || raw.updatedAt || '',
+        startDateDisplay: raw.startDateDisplay || raw.startDate || raw.start_date || raw.beginDate || raw.beginAt || raw.startAt || '',
+        endDateDisplay: raw.endDateDisplay || raw.endDate || raw.end_date || raw.finishDate || raw.finishAt || raw.endAt || '',
         dueDateDisplay: raw.dueDateDisplay || raw.dueDate || '',
         audienceScope: normalizeAudienceScope(raw.audienceScope || raw.assignmentScope || (raw.assignAll ? 'all' : '')),
         assignedUsers: assignedUsers,
@@ -2734,29 +2797,27 @@
         agreements: this.normalizeAgreements(raw.agreements),
         basicInfoConfirmation: this.normalizeBasicInfoConfirmation(raw.basicInfoConfirmation),
         basicInfoConfirmations: this.normalizeBasicInfoConfirmations(
-          raw.basicInfoConfirmations,
-          raw.basicInfoConfirmation,
-          raw.basicInfoConfirmationStatus
+          raw.targetBasicInfoConfirmations || raw.basicInfoConfirmations
         ),
         displayFlags: displayFlags
       };
 
-        var chatParticipants = Array.isArray(raw.chatParticipants)
-          ? dedupeChatParticipants(
-            raw.chatParticipants.map(function (participant) { return normalizeChatParticipantData(participant); }).filter(Boolean)
-          )
-          : [];
-        var bbsParticipants = Array.isArray(raw.bbsParticipants)
-          ? dedupeBbsParticipants(
-            raw.bbsParticipants.map(function (participant) { return normalizeBbsParticipantData(participant); }).filter(Boolean)
-          )
-          : [];
+      var chatParticipants = Array.isArray(raw.chatParticipants)
+        ? dedupeChatParticipants(
+          raw.chatParticipants.map(function (participant) { return normalizeChatParticipantData(participant); }).filter(Boolean)
+        )
+        : [];
+      var bbsParticipants = Array.isArray(raw.bbsParticipants)
+        ? dedupeBbsParticipants(
+          raw.bbsParticipants.map(function (participant) { return normalizeBbsParticipantData(participant); }).filter(Boolean)
+        )
+        : [];
 
-        target.chatParticipants = chatParticipants;
-        target.bbsParticipants = bbsParticipants;
-        target.participants = participants;
-        return target;
-      }
+      target.chatParticipants = chatParticipants;
+      target.bbsParticipants = bbsParticipants;
+      target.participants = participants;
+      return target;
+    }
 
     normalizeBooleanFlag(value, defaultValue)
     {

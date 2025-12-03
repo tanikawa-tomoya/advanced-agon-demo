@@ -139,7 +139,7 @@
         '<p>権限に応じて表示・編集できる項目が変わります。操作できない項目は管理者に連絡してください。</p>';
     }
 
-  _topicTitle(topic) {
+    _topicTitle(topic) {
       var alias = this._targetAlias();
       if (topic === 'form') return alias + '管理 - フォーム';
       if (topic === 'list') return alias + '管理 - 一覧';
@@ -163,8 +163,8 @@
           '<ul>' +
             '<li>検索ボックスで絞り込みできます。</li>' +
             '<li>フィルタ変更で自動再検索します。</li>' +
-          '<li>ページングで前後ページに移動できます。</li>' +
-        '</ul>';
+            '<li>ページングで前後ページに移動できます。</li>' +
+          '</ul>';
       }
       return '' +
         '<h3>' + alias + '管理について</h3>' +

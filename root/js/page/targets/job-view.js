@@ -205,15 +205,25 @@
         'data-colCreatorDisplay="' + this._esc(it.creator && (it.creator.display || '')) + '"',
         'data-colDescription="' + this._esc(it.description) + '"'
       ];
+      var period = this._formatPeriod(it.startDate, it.endDate);
       return '' +
         '<tr ' + attrs.join(' ') + '>' +
           '<td class="target-table__image-cell">' + this._renderImageCell(it) + '</td>' +
           '<td class="target-table__status-cell">' + this._renderStatus(it) + '</td>' +
-          '<td>' + this._esc(it.dueDate || it.createdAt) + '</td>' +
+          '<td>' + this._esc(period || '—') + '</td>' +
           '<td class="row-actions">' +
             this._renderRowActions(it) +
           '</td>' +
         '</tr>';
+    }
+
+    _formatPeriod(startDate, endDate) {
+      var start = this._normalizeText(startDate);
+      var end = this._normalizeText(endDate);
+      if (!start && !end) return '';
+      if (!start) return '～' + end;
+      if (!end) return start + '～';
+      return start + '～' + end;
     }
 
     _renderCreatorCell(creator, creatorKey) {
@@ -382,7 +392,7 @@
       }
       var assignAll = this._resolveAssignAll(raw);
       var creators = this._normalizeCreators(raw);
-      var creator = creators.length ? creators[0] : this._normalizeCreator(raw);
+      var creator = this._normalizeCreator(raw);
       var imageUrl = this._resolveImageUrl(raw);
       return {
         id: id,
@@ -408,17 +418,30 @@
     _normalizeCreators(raw) {
       if (!raw || typeof raw !== 'object') return [];
       var list = [];
-      var arrays = [
-        raw.assignedUsers,
-        raw.assignedUserList,
-        raw.audienceUsers,
-        raw.targetUsers,
-        raw.users,
-        raw.creators,
-        raw.creatorUsers,
-        raw.owners,
-        raw.assignees
-      ];
+      var arrays = [];
+      function pushSource(source) {
+        if (Array.isArray(source)) {
+          arrays.push(source);
+          return;
+        }
+        if (source && typeof source === 'object') {
+          arrays.push([source]);
+          return;
+        }
+        if (typeof source === 'string' || typeof source === 'number') {
+          arrays.push([source]);
+        }
+      }
+
+      pushSource(raw.targetUsers);
+      pushSource(raw.targetUser);
+      pushSource(raw.audienceUsers);
+      pushSource(raw.audience);
+      pushSource(raw.assignedUsers);
+      pushSource(raw.assignees);
+      pushSource(raw.users);
+      pushSource(raw.members);
+
       for (var i = 0; i < arrays.length; i++) {
         var current = arrays[i];
         if (!Array.isArray(current)) continue;
@@ -435,10 +458,6 @@
             list.push(normalized);
           }
         }
-      }
-      if (!list.length) {
-        var fallback = this._normalizeCreator(raw);
-        if (fallback) list.push(fallback);
       }
       return list;
     }
@@ -664,17 +683,14 @@
         raw.createdBy && raw.createdBy.displayName,
         raw.ownerDisplayName,
         raw.ownerName,
-        raw.owner,
-        raw.assignedUserDisplayName,
-        raw.assignedUser
+        raw.owner
       ]);
       var code = this._pickFirstString([
         raw.createdByUserCode,
         raw.createdByCode,
         raw.createdBy && raw.createdBy.userCode,
         raw.ownerUserCode,
-        raw.ownerCode,
-        raw.assignedUserCode
+        raw.ownerCode
       ]);
       var avatarUrl = this._resolveCreatorAvatarUrl(raw);
       var alt = this._pickFirstString([
@@ -688,8 +704,7 @@
         raw.createdBy && raw.createdBy.role,
         raw.ownerRoleLabel,
         raw.ownerRole,
-        raw.owner && raw.owner.role,
-        raw.assignedUserRole
+        raw.owner && raw.owner.role
       ]);
       var tooltip = this._pickFirstString([
         raw.createdByTooltip,
@@ -700,10 +715,6 @@
         raw.ownerDescription,
         raw.ownerNote,
         raw.ownerMemo,
-        raw.assignedUserTooltip,
-        raw.assignedUserDescription,
-        raw.assignedUserNote,
-        raw.assignedUserMemo,
         raw.tooltip,
         raw.description,
         raw.note,
@@ -905,7 +916,7 @@
           fallbackKey = variantMap[fallbackKey] || fallbackKey;
         }
         var labelMap = this._getStatusLabelMap();
-        var fallbackLabel = statusLabel || statusKey || '―';
+        var fallbackLabel = statusLabel || statusKey || '—';
         if (!statusLabel && labelMap && Object.prototype.hasOwnProperty.call(labelMap, fallbackKey)) {
           fallbackLabel = labelMap[fallbackKey];
         }

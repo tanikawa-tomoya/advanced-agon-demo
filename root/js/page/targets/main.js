@@ -339,7 +339,7 @@
           loadError: ds.textLoadError || '読み込みに失敗しました',
           saveError: ds.textSaveError || '保存に失敗しました',
           deleteConfirm: ds.textDeleteConfirm || '削除してよろしいですか？',
-          formCloseConfirm: ds.textFormCloseConfirm || '入力内容が保存されていません。モーダルを閉じますか？'
+          formCloseConfirm: ds.textFormCloseConfirm || '入力内容が保存されていません。編集画面を閉じますか？'
         }
       };
 
@@ -807,7 +807,7 @@
       {
         var message = (this.textConfig && this.textConfig.formCloseConfirm)
           ? this.textConfig.formCloseConfirm
-          : '入力内容が保存されていません。モーダルを閉じますか？';
+          : '入力内容が保存されていません。編集画面を閉じますか？';
         if (this.confirmDialogService && typeof this.confirmDialogService.open === 'function')
         {
           shouldClose = await this.confirmDialogService.open(message, { type: 'warning' });
@@ -965,6 +965,7 @@
         'displayCreator',
         'displayAudience',
         'displayChat',
+        'displayBbs',
         'displaySubmissions',
         'displayReviews',
         'displayBadges',

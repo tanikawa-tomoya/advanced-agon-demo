@@ -289,7 +289,7 @@
         formSummaryCreate: '氏名・ユーザーコード・メールアドレスは必須です。初期パスワードは任意で設定できます。',
         formSummaryEdit: 'ユーザーコード: {userCode}',
         formNoChanges: '変更された項目がありません。',
-        formCancelConfirm: '入力内容が保存されていません。モーダルを閉じますか？',
+        formCancelConfirm: '入力内容が保存されていません。編集画面を閉じますか？',
         formCancel: 'キャンセル',
         formErrorRequired: '必須項目を入力してください。',
         formErrorUserCodeLength: 'ユーザーコードは4文字以上で入力してください。',

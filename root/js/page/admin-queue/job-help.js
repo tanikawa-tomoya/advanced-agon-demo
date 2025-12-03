@@ -2,6 +2,36 @@
 (function (window, document) {
   'use strict';
 
+  function sanitizeHelpHtml(html)
+  {
+    if (typeof html !== 'string') { return ''; }
+    var container = document.createElement('div');
+    container.innerHTML = html;
+    var forbidden = container.querySelectorAll('script, style, iframe, object, embed');
+    for (var i = 0; i < forbidden.length; i += 1)
+    {
+      var node = forbidden[i];
+      if (node && node.parentNode) { node.parentNode.removeChild(node); }
+    }
+    var elements = container.querySelectorAll('*');
+    for (var j = 0; j < elements.length; j += 1)
+    {
+      var el = elements[j];
+      var attrs = el.attributes;
+      for (var k = attrs.length - 1; k >= 0; k -= 1)
+      {
+        var attr = attrs[k];
+        var name = attr.name.toLowerCase();
+        if (name.indexOf('on') === 0) { el.removeAttribute(attr.name); continue; }
+        if ((name === 'href' || name === 'src') && /\s*javascript:/i.test(attr.value || ''))
+        {
+          el.removeAttribute(attr.name);
+        }
+      }
+    }
+    return container.innerHTML;
+  }
+
   class JobHelp {
     constructor(page) {
       this.page = page;
