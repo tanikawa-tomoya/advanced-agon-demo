@@ -315,6 +315,7 @@
       this.contentLibraryOwner = '';
       this.isLoadingContentLibrary = false;
       this.loadingContentOwner = '';
+      this.isReordering = false;
     }
 
     async render()
@@ -602,30 +603,6 @@
       var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
       var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
       var candidates = participants.concat(assignedUsers);
-      var creatorCount = 0;
-
-      var appendCreatorCandidate = function (label, displayName, userCode)
-      {
-        var name = displayName == null ? '' : String(displayName).trim();
-        var code = userCode == null ? '' : String(userCode).trim();
-        if (!name && !code)
-        {
-          return;
-        }
-        var identity = name || code;
-        candidates.push({
-          displayName: identity,
-          userCode: code || identity,
-          isOperator: true,
-          isActive: true,
-          role: { key: 'operator', name: label || 'operator' },
-          source: label || 'operator'
-        });
-        creatorCount += 1;
-      };
-
-      appendCreatorCandidate('creator', target && target.createdByDisplayName, target && target.createdByUserCode);
-      appendCreatorCandidate('owner', target && target.ownerDisplayName, target && target.ownerUserCode);
 
       var stats = {
         raw: candidates.length,
@@ -822,7 +799,6 @@
       window.console.log('[target-reference] normalized author candidates', {
         participants: participants.length,
         assignedUsers: assignedUsers.length,
-        creators: creatorCount,
         normalized: normalizedList.length,
         details: stats
       });
@@ -1238,6 +1214,7 @@
         {
           continue;
         }
+        normalized._originalIndex = i;
         map[normalized.materialCode] = normalized;
       }
       var items = Object.keys(map).map(function (key)
@@ -1246,6 +1223,24 @@
       });
       items.sort(function (a, b)
       {
+        var positionA = Number.isFinite(a.position) ? a.position : Number.POSITIVE_INFINITY;
+        var positionB = Number.isFinite(b.position) ? b.position : Number.POSITIVE_INFINITY;
+        if (positionA !== positionB)
+        {
+          return positionA - positionB;
+        }
+        var indexA = Number.isFinite(a._originalIndex) ? a._originalIndex : Number.POSITIVE_INFINITY;
+        var indexB = Number.isFinite(b._originalIndex) ? b._originalIndex : Number.POSITIVE_INFINITY;
+        if (indexA !== indexB)
+        {
+          return indexA - indexB;
+        }
+        var createdA = Number.isFinite(a.createdAtValue) ? a.createdAtValue : 0;
+        var createdB = Number.isFinite(b.createdAtValue) ? b.createdAtValue : 0;
+        if (createdA !== createdB)
+        {
+          return createdB - createdA;
+        }
         return (b.updatedAtValue || 0) - (a.updatedAtValue || 0);
       });
       return items;
@@ -1345,6 +1340,17 @@
         previewImage = previewSourceUrl;
       }
 
+      var positionValue = null;
+      var rawPosition = raw.position;
+      var parsedPosition = Number(rawPosition);
+      if (Number.isFinite(parsedPosition) && parsedPosition >= 0)
+      {
+        positionValue = parsedPosition;
+      }
+
+      var createdSource = raw.createdAt || raw.uploadedAt || raw.createdAtDisplay || '';
+      var createdAtValue = parseTimestamp(createdSource);
+
       var bitrateValue = Number(raw.bitrate);
       if (!Number.isFinite(bitrateValue))
       {
@@ -1357,6 +1363,7 @@
 
       return {
         materialCode: code,
+        position: positionValue,
         title: title,
         description: raw.description || raw.summary || '',
         category: category,
@@ -1379,6 +1386,7 @@
         sizeDisplay: sizeDisplay,
         updatedAtDisplay: updatedDisplay || updatedSource || '更新日不明',
         updatedAtValue: parseTimestamp(updatedSource),
+        createdAtValue: createdAtValue,
         downloadUrl: raw.downloadUrl || raw.url || '',
         linkUrl: raw.linkUrl || raw.previewUrl || raw.viewUrl || '',
         embedUrl: raw.embedUrl || '',
@@ -1418,6 +1426,18 @@
       });
     }
 
+    getMaterialIndex(item)
+    {
+      if (!item || !Array.isArray(this.state.items))
+      {
+        return -1;
+      }
+      return this.state.items.findIndex(function (entry)
+      {
+        return entry && entry.materialCode === item.materialCode;
+      });
+    }
+
     renderList()
     {
       if (!this.refs.list)
@@ -1449,7 +1469,6 @@
       thead.innerHTML = '' +
         '<tr>' +
         '<th scope="col">サムネイル</th>' +
-        '<th scope="col">登録者</th>' +
         '<th scope="col">資料</th>' +
         '<th scope="col">更新日</th>' +
         '<th scope="col" class="target-reference__actions-header">操作</th>' +
@@ -1458,21 +1477,21 @@
 
       var tbody = document.createElement('tbody');
       var self = this;
+      var totalItems = this.state.items.length;
       items.forEach(function (item)
       {
-        tbody.appendChild(self.createTableRow(item));
+        tbody.appendChild(self.createTableRow(item, totalItems));
       });
       table.appendChild(tbody);
       this.refs.list.appendChild(table);
       this.bindOwnerPopovers(table);
     }
 
-    createTableRow(item)
+    createTableRow(item, totalCount)
     {
       var row = document.createElement('tr');
 
       row.appendChild(this.createThumbnailCell(item));
-      row.appendChild(this.createOwnerCell(item));
 
       var infoCell = document.createElement('td');
       infoCell.className = 'target-reference__info-cell';
@@ -1551,6 +1570,39 @@
 
       if (this.canManage)
       {
+        var itemIndex = this.getMaterialIndex(item);
+        var isFirst = itemIndex <= 0;
+        var isLast = totalCount != null && itemIndex === totalCount - 1;
+        if (itemIndex === -1)
+        {
+          isFirst = true;
+          isLast = true;
+        }
+
+        var upButton = this.createRoundButton('up', '上に移動', 'target-reference__action target-reference__move-up', {
+          hoverLabel: '上に移動',
+          title: '上に移動'
+        });
+        upButton.disabled = isFirst;
+        upButton.addEventListener('click', (event) =>
+        {
+          event.preventDefault();
+          this.moveMaterial(item, -1);
+        });
+        actions.appendChild(upButton);
+
+        var downButton = this.createRoundButton('down', '下に移動', 'target-reference__action target-reference__move-down', {
+          hoverLabel: '下に移動',
+          title: '下に移動'
+        });
+        downButton.disabled = isLast;
+        downButton.addEventListener('click', (event) =>
+        {
+          event.preventDefault();
+          this.moveMaterial(item, 1);
+        });
+        actions.appendChild(downButton);
+
         var editButton = this.createRoundButton('edit', '編集', 'target-reference__action target-reference__edit', {
           hoverLabel: '資料を編集',
           title: '資料を編集'
@@ -1576,6 +1628,89 @@
 
       row.appendChild(actions);
       return row;
+    }
+
+    async moveMaterial(item, delta)
+    {
+      if (!item || !Array.isArray(this.state.items) || this.isReordering)
+      {
+        return;
+      }
+      var ordered = this.normalizeMaterials(this.state.items.slice());
+      var currentIndex = ordered.findIndex(function (entry)
+      {
+        return entry && entry.materialCode === item.materialCode;
+      });
+      var targetIndex = currentIndex + delta;
+      if (currentIndex === -1 || targetIndex < 0 || targetIndex >= ordered.length)
+      {
+        return;
+      }
+      this.isReordering = true;
+      var moving = ordered.splice(currentIndex, 1)[0];
+      ordered.splice(targetIndex, 0, moving);
+      var changes = [];
+      ordered.forEach(function (entry, index)
+      {
+        var newPosition = index + 1;
+        if (!Number.isFinite(entry.position) || entry.position !== newPosition)
+        {
+          entry.position = newPosition;
+          changes.push({ materialCode: entry.materialCode, position: newPosition });
+        }
+      });
+      var normalized = this.normalizeMaterials(ordered);
+      this.state.items = normalized;
+      if (Array.isArray(this.page.state.references))
+      {
+        this.page.state.references = normalized.slice();
+      }
+      this.renderList();
+      try
+      {
+        await this.persistMaterialPositions(changes);
+        await this.reloadReferencesFromServer();
+      }
+      catch (error)
+      {
+        window.console.error('[target-detail] failed to update reference order', error);
+        this.setFeedback('資料の並び替えに失敗しました。', 'error');
+        try
+        {
+          await this.reloadReferencesFromServer();
+        }
+        catch (refreshError)
+        {
+          window.console.warn('[target-detail] reference reload failed after reorder', refreshError);
+        }
+      }
+      finally
+      {
+        this.isReordering = false;
+      }
+    }
+
+    async persistMaterialPositions(changes)
+    {
+      if (!Array.isArray(changes) || !changes.length)
+      {
+        return;
+      }
+      this.setFeedback('資料の並び順を更新しています…', 'info');
+      for (var i = 0; i < changes.length; i += 1)
+      {
+        var change = changes[i];
+        if (!change || !change.materialCode || !Number.isFinite(change.position))
+        {
+          continue;
+        }
+        await this.page.callApi('TargetReferenceUpdate', {
+          targetCode: this.page.state.targetCode,
+          materialCode: change.materialCode,
+          position: change.position
+        }, { requestType: 'TargetManagementReferences' });
+      }
+      this.setFeedback('資料の並び順を更新しました。', 'success');
     }
 
     createThumbnailCell(item)

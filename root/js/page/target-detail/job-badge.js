@@ -1821,8 +1821,9 @@
       }
       var target = this.page && this.page.state ? this.page.state.target : null;
       var participants = target && Array.isArray(target.participants) ? target.participants : [];
-      var assignments = participants.length ? participants : (target && Array.isArray(target.assignedUsers) ? target.assignedUsers : []);
-      var normalizedAssignments = dedupeEligibleUsers(assignments);
+      var assignments = target && Array.isArray(target.assignedUsers) ? target.assignedUsers : [];
+      var combinedAssignments = participants.concat(assignments);
+      var normalizedAssignments = dedupeEligibleUsers(combinedAssignments);
       this.state.eligibleUsers = normalizedAssignments;
       return this.state.eligibleUsers;
     }
@@ -1835,8 +1836,9 @@
       }
       var target = this.page && this.page.state ? this.page.state.target : null;
       var participants = target && Array.isArray(target.participants) ? target.participants : [];
-      var assignments = participants.length ? participants : (target && Array.isArray(target.assignedUsers) ? target.assignedUsers : []);
-      var operators = filterOperatorAssignments(assignments);
+      var assignments = target && Array.isArray(target.assignedUsers) ? target.assignedUsers : [];
+      var combinedAssignments = participants.concat(assignments);
+      var operators = filterOperatorAssignments(combinedAssignments);
       var normalizedOperators = dedupeEligibleUsers(operators);
       this.state.awarderCandidates = normalizedOperators;
       return this.state.awarderCandidates;

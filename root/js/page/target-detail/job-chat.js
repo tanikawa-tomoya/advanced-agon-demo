@@ -1589,10 +1589,17 @@
         }
         return;
       }
-      var participants = Array.isArray(this.state.participants) ? this.state.participants : [];
+      var target = this.page && this.page.state ? this.page.state.target : null;
+      var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
+      var creatorCode = normalizeText((target && (target.createdByUserCode || target.ownerUserCode)) || '');
+      var profile = this.page && this.page.state ? this.page.state.profile : null;
+      var viewerCode = normalizeText(profile && (profile.userCode || profile.user_code || profile.code));
+      var isCreatorViewer = creatorCode && viewerCode && creatorCode === viewerCode;
+      var candidates = participants.concat(assignedUsers);
       var availableUsers = [];
       var participantMap = Object.create(null);
-      participants.forEach(function (participant)
+      candidates.forEach(function (participant)
       {
         if (!participant)
         {
@@ -1603,6 +1610,18 @@
         if (!key || participantMap[key])
         {
           return;
+        }
+        var normalizedCode = code.toLowerCase();
+        if (creatorCode)
+        {
+          if (isCreatorViewer && normalizedCode === creatorCode)
+          {
+            return;
+          }
+          if (!isCreatorViewer && normalizedCode !== creatorCode)
+          {
+            return;
+          }
         }
         if (!code)
         {

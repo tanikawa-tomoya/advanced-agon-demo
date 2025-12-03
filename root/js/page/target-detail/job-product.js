@@ -605,7 +605,9 @@
     getAuthorCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
+      var candidates = participants.concat(assignedUsers);
 
       var seen = Object.create(null);
       var normalizeFlag = function (value)
