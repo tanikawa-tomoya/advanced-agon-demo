@@ -17,6 +17,7 @@ class TargetManagementTargets extends Base
                 'displayCreator',
                 'displayAudience',
                 'displayChat',
+                'displayBbs',
                 'displaySubmissions',
                 'displayReviews',
                 'displayBadges',
@@ -1815,6 +1816,7 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
                                          'displayCreator' => $displayFlags['displayCreator'],
                                          'displayAudience' => $displayFlags['displayAudience'],
                                          'displayChat' => $displayFlags['displayChat'],
+                                         'displayBbs' => $displayFlags['displayBbs'],
                                          'displaySubmissions' => $displayFlags['displaySubmissions'],
                                          'displayReviews' => $displayFlags['displayReviews'],
                                          'displayBadges' => $displayFlags['displayBadges'],
@@ -2055,7 +2057,7 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
 		$stmt->execute(array($targetCode));
 		while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 			$title = isset($row['title']) ? trim((string)$row['title']) : '';
-                   $subject = $title !== '' ? '資料「' . $title . '」' : '資料';
+			$subject = $title !== '' ? '資料「' . $title . '」' : '資料';
 			$owner = $this->resolveActivityActorSummary(
 														isset($row['ownerUserCode']) ? $row['ownerUserCode'] : null,
 														isset($row['ownerDisplayName']) ? $row['ownerDisplayName'] : null
@@ -2270,9 +2272,9 @@ $chatData = TargetManagementUtil::fetchTargetChatData($row['targetCode'], $viewe
                 $targetAlias = $this->getTargetAlias();
                 $map = array(
                                          'target' => $targetAlias,
-                                        'agreement' => '規約',
-                                        'guidance' => 'ガイダンスコンテンツ',
-                                        'reference' => '資料',
+					 'agreement' => '規約',
+					 'guidance' => 'ガイダンスコンテンツ',
+					 'reference' => '資料',
 					 'schedule' => 'スケジュール',
 					 'submission' => '提出',
 					 'review' => 'レビュー',

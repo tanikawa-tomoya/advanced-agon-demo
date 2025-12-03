@@ -578,7 +578,7 @@ class User extends Base
 			}
 		}
 
-                $baseDir = $this->dataBasePath . "/userdata/" . $userInfo["id"];
+		$baseDir = $this->dataBasePath . "/userdata/" . $userInfo["id"];
 
                 $userCodeChanged = false;
                 $previousUserCode = isset($userInfo['userCode']) ? (string) $userInfo['userCode'] : '';
@@ -1676,7 +1676,7 @@ class User extends Base
                 }
 
                $value = $this->params[$columnName];
-               $isRoleFlag = ($columnName == "isSupervisor" || $columnName == "isOperator");
+                $isRoleFlag = ($columnName == "isSupervisor" || $columnName == "isOperator");
                $isBooleanFlag = $isRoleFlag || $columnName == "useContentsManagement" || $columnName == "useDashboard";
 	  	  
 		if ($value == "serverTime") {

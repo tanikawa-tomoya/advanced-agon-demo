@@ -88,7 +88,7 @@ class Session extends Base
                         'useContentsManagement' => isset($userInfo['useContentsManagement']) && (int) $userInfo['useContentsManagement'] === 1 ? 1 : 0,
                         'useDashboard' => isset($userInfo['useDashboard']) && (int) $userInfo['useDashboard'] === 1 ? 1 : 0,
                                                         );
-               $token = $this->issueJwt($claims);
+		$token = $this->issueJwt($claims);
 
 		$jwtPayload = null;
 		try {

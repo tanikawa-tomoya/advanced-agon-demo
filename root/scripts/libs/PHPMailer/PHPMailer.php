@@ -3828,7 +3828,7 @@ class PHPMailer
             'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'xltx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
             'potx' => 'application/vnd.openxmlformats-officedocument.presentationml.template',
-            'ppsx' => 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+            'ppsx' => 'application/vnd.openxmlformats-officedocument.presentationml.slide',
             'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
             'sldx' => 'application/vnd.openxmlformats-officedocument.presentationml.slide',
             'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

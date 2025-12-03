@@ -342,8 +342,8 @@ class Queue extends Base
             $this->response = array(
                                                                         'message' => 'このジョブタイプは手動実行に対応していません。',
                                                                         'jobId' => $jobId,
-                                                                       'jobType' => $jobType,
-                                                                       );
+									'jobType' => $jobType,
+									);
             return;
         }
 

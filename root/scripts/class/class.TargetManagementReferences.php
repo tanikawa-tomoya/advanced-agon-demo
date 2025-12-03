@@ -177,9 +177,9 @@ class TargetManagementReferences extends Base
                 if (isset($this->params['linkUrl'])) {
                         try {
                                 $linkValue = Util::normalizeOptionalUrl($this->params['linkUrl'], 512);
-                       } catch (UrlNormalizationException $exception) {
-                               $rawLink = (string)$this->params['linkUrl'];
-                               $sanitizedLink = str_replace(array("\r", "\n"), ' ', $rawLink);
+			} catch (UrlNormalizationException $exception) {
+				$rawLink = (string)$this->params['linkUrl'];
+				$sanitizedLink = str_replace(array("\r", "\n"), ' ', $rawLink);
 				if (function_exists('mb_substr')) {
 					$sanitizedLink = mb_substr($sanitizedLink, 0, 512);
 				} else {
@@ -269,7 +269,7 @@ class TargetManagementReferences extends Base
                 // so inserts/updates must go through the target connection.
                 $pdo = $this->getPDOTarget();
 
-               try {
+		try {
                         $pdo->beginTransaction();
 
                         $stmt = $pdo->prepare(
@@ -392,9 +392,9 @@ class TargetManagementReferences extends Base
                 if (array_key_exists('linkUrl', $this->params)) {
                         try {
                                 $linkValue = Util::normalizeOptionalUrl($this->params['linkUrl'], 512);
-                       } catch (UrlNormalizationException $exception) {
-                               $rawLink = (string)$this->params['linkUrl'];
-                               $sanitizedLink = str_replace(array("\r", "\n"), ' ', $rawLink);
+			} catch (UrlNormalizationException $exception) {
+				$rawLink = (string)$this->params['linkUrl'];
+				$sanitizedLink = str_replace(array("\r", "\n"), ' ', $rawLink);
 				if (function_exists('mb_substr')) {
 					$sanitizedLink = mb_substr($sanitizedLink, 0, 512);
 				} else {
@@ -450,7 +450,7 @@ class TargetManagementReferences extends Base
                                         $this->errorReason = 'forbidden';
                                         return;
                                 }
-                       }
+			}
 		}
 
 		$contentCode = isset($material['contentCode']) ? $material['contentCode'] : null;
@@ -483,9 +483,9 @@ class TargetManagementReferences extends Base
 		}
 
 		$now = new DateTime('now');
-                $timestamp = $now->format('Y-m-d H:i:s');
+		$timestamp = $now->format('Y-m-d H:i:s');
 
-                $pdo = $this->getPDOTarget();
+		$pdo = $this->getPDOTarget();
                 try {
                         $pdo->beginTransaction();
 

@@ -27,9 +27,10 @@ class Base
 
 	protected $authPayload;
 
-	protected $pdoQueue;
-	protected $pdoTarget;
-	protected $pdoContents;
+        protected $pdoQueue;
+        protected $pdoTarget;
+        protected $pdoContents;
+        protected $pdoSlide;
 
 	protected $loginUserId = null;
 	protected $loginUserIdResolved = false;
@@ -181,9 +182,9 @@ class Base
                         if ($this->siteTitle === null) {
                                 $stmt = $this->getPDOCommon()->prepare("SELECT value FROM siteSettings WHERE key = ?");
                                 $stmt->execute(array("siteTitle"));
-                               $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                               if ($row && isset($row['value']) && $row['value'] !== '') {
-                                       $this->siteTitle = $row['value'];
+				$row = $stmt->fetch(PDO::FETCH_ASSOC);
+				if ($row && isset($row['value']) && $row['value'] !== '') {
+					$this->siteTitle = $row['value'];
 				} else {
 					$this->siteTitle = 'MARMO HUB';
 				}
@@ -1981,6 +1982,28 @@ class Base
                 }
 
                 return $this->pdoContents;
+        }
+
+
+        protected function getPDOSlide()
+        {
+                if (isset($this->pdoSlide) == false) {
+                        $dbPath = $this->dataPath('/db/slide.sqlite');
+                        if (is_file($dbPath) === false) {
+                                throw new \RuntimeException('slide.sqlite is missing: ' . $dbPath);
+                        }
+
+                        $this->pdoSlide = $this->getSQLiteConnection(
+                                $dbPath,
+                                [
+                                        'attributes' => [
+                                                PDO::ATTR_STATEMENT_CLASS => ['LoggedPDOStatement', [$this]],
+                                        ],
+                                ]
+                        );
+                }
+
+                return $this->pdoSlide;
         }
         // protected method
 

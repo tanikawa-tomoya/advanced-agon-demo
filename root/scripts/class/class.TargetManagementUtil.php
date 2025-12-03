@@ -11,12 +11,12 @@ class TargetManagementUtil
                         return array();
                 }
 
-$stmt = $pdoTarget->prepare(
-'SELECT m.*, u.displayName AS ownerDisplayName FROM targetReferenceMaterials m '
-. 'LEFT JOIN common.user u ON m.ownerUserCode = u.userCode '
-. 'WHERE m.targetCode = ? AND (m.isDeleted IS NULL OR m.isDeleted = 0) '
-. 'ORDER BY CASE WHEN m.position IS NULL THEN 1 ELSE 0 END ASC, m.position ASC, m.createdAt DESC, m.id DESC'
-);
+                $stmt = $pdoTarget->prepare(
+                                                                        'SELECT m.*, u.displayName AS ownerDisplayName FROM targetReferenceMaterials m '
+                                                                        . 'LEFT JOIN common.user u ON m.ownerUserCode = u.userCode '
+                                                                        . 'WHERE m.targetCode = ? AND (m.isDeleted IS NULL OR m.isDeleted = 0) '
+                                                                        . 'ORDER BY CASE WHEN m.position IS NULL THEN 1 ELSE 0 END ASC, m.position ASC, m.createdAt DESC, m.id DESC'
+                                                                        );
                 $stmt->execute(array($targetCode));
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -270,12 +270,11 @@ $stmt = $pdoTarget->prepare(
 			}
 		}
 
-return array(
- 'materialCode' => $materialCode,
- 'targetCode' => isset($row['targetCode']) ? $row['targetCode'] : null,
- 'position' => (isset($row['position']) && is_numeric($row['position'])) ? (int)$row['position'] : null,
- 'title' => isset($row['title']) ? $row['title'] : null,
- 'description' => isset($row['description']) ? $row['description'] : null,
+		return array(
+					 'materialCode' => $materialCode,
+					 'targetCode' => isset($row['targetCode']) ? $row['targetCode'] : null,
+					 'title' => isset($row['title']) ? $row['title'] : null,
+                                         'description' => isset($row['description']) ? $row['description'] : null,
                                          'startDate' => $startDate,
                                          'endDate' => $endDate,
                                          'category' => $category,
@@ -572,6 +571,7 @@ return array(
                 return array(
                                          'materialCode' => $materialCode,
                                          'targetCode' => isset($row['targetCode']) ? $row['targetCode'] : null,
+                                         'position' => (isset($row['position']) && is_numeric($row['position'])) ? (int)$row['position'] : null,
                                          'title' => isset($row['title']) ? $row['title'] : null,
                                          'description' => isset($row['description']) ? $row['description'] : null,
                                          'startDate' => $startDate,
@@ -1604,82 +1604,82 @@ return array(
 		return $result;
 		}
 		
-       public static function fetchActiveTargetByCode($targetCode, $loginUserCode, $pdoTarget, $userInfo, $pdoCommon)
-       {
-               $stmt = $pdoTarget->prepare('SELECT * FROM targets WHERE targetCode = ? AND (isDeleted IS NULL OR isDeleted = 0) LIMIT 1');
-               $stmt->execute(array($targetCode));
-               $row = $stmt->fetch(PDO::FETCH_ASSOC);
-               if ($row == false) {
-                       return null;
-               }
+        public static function fetchActiveTargetByCode($targetCode, $loginUserCode, $pdoTarget, $userInfo, $pdoCommon)
+        {
+                $stmt = $pdoTarget->prepare('SELECT * FROM targets WHERE targetCode = ? AND (isDeleted IS NULL OR isDeleted = 0) LIMIT 1');
+                $stmt->execute(array($targetCode));
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+		if ($row == false) {
+			return null;
+		}
 
-               if (!empty($_SESSION['isSupervisor'])) {
-                       return $row;
-               }
+		if (!empty($_SESSION['isSupervisor'])) {
+			return $row;			
+		}
 
-               if ($loginUserCode === null || $loginUserCode === '') {
-                       return null;
-               }
+                if ($loginUserCode === null || $loginUserCode === '') {
+                        return null;
+                }
 
-               if (isset($row['createdByUserCode']) && $row['createdByUserCode'] === $loginUserCode) {
-                       return $row;
-               }
+                if (isset($row['createdByUserCode']) && $row['createdByUserCode'] === $loginUserCode) {
+                        return $row;
+                }
 
-               if (isset($row['assignedUserCode']) && $row['assignedUserCode'] === $loginUserCode) {
-                       return $row;
-               }
+                if (isset($row['assignedUserCode']) && $row['assignedUserCode'] === $loginUserCode) {
+                        return $row;
+                }
 
-               if (TargetManagementUtil::isTargetAssignedToUser($targetCode, $loginUserCode, $pdoTarget)) {
-                       return $row;
-               }
+                if (TargetManagementUtil::isTargetAssignedToUser($targetCode, $loginUserCode, $pdoTarget)) {
+                        return $row;
+                }
 
-               if (TargetManagementUtil::isTargetParticipatedByUser($targetCode, $loginUserCode, $pdoTarget)) {
-                       return $row;
-               }
+                if (TargetManagementUtil::isTargetParticipatedByUser($targetCode, $loginUserCode, $pdoTarget)) {
+                        return $row;
+                }
 
-               return null;
-       }
+                return null;
+        }
 
-       public static function isTargetAssignedToUser($targetCode, $userCode, $pdoTarget)
-       {
-               if ($targetCode === null || $targetCode === '' || $userCode === null || $userCode === '') {
-                       return false;
-               }
+        public static function isTargetAssignedToUser($targetCode, $userCode, $pdoTarget)
+        {
+		if ($targetCode === null || $targetCode === '' || $userCode === null || $userCode === '') {
+			return false;
+		}
 
-               $stmt = $pdoTarget->prepare('SELECT 1 FROM targetAssignedUsers WHERE targetCode = ? AND userCode = ? LIMIT 1');
-               $stmt->execute(array($targetCode, $userCode));
+                $stmt = $pdoTarget->prepare('SELECT 1 FROM targetAssignedUsers WHERE targetCode = ? AND userCode = ? LIMIT 1');
+                $stmt->execute(array($targetCode, $userCode));
 
-               return $stmt->fetchColumn() !== false;
-       }
+                return $stmt->fetchColumn() !== false;
+        }
 
-       public static function isTargetParticipatedByUser($targetCode, $userCode, $pdoTarget)
-       {
-               if ($targetCode === null || $targetCode === '' || $userCode === null || $userCode === '') {
-                       return false;
-               }
+        public static function isTargetParticipatedByUser($targetCode, $userCode, $pdoTarget)
+        {
+                if ($targetCode === null || $targetCode === '' || $userCode === null || $userCode === '') {
+                        return false;
+                }
 
-               $bbsMemberSql = 'SELECT 1 '
-                       . 'FROM targetBbsThreadMembers members '
-                       . 'INNER JOIN targetBbsThreads threads ON members.threadCode = threads.threadCode '
-                       . 'WHERE threads.targetCode = ? AND members.userCode = ? '
-                       . 'LIMIT 1';
-               $bbsMemberStmt = $pdoTarget->prepare($bbsMemberSql);
-               $bbsMemberStmt->execute(array($targetCode, $userCode));
+                $bbsMemberSql = 'SELECT 1 '
+                        . 'FROM targetBbsThreadMembers members '
+                        . 'INNER JOIN targetBbsThreads threads ON members.threadCode = threads.threadCode '
+                        . 'WHERE threads.targetCode = ? AND members.userCode = ? '
+                        . 'LIMIT 1';
+                $bbsMemberStmt = $pdoTarget->prepare($bbsMemberSql);
+                $bbsMemberStmt->execute(array($targetCode, $userCode));
 
-               if ($bbsMemberStmt->fetchColumn() !== false) {
-                       return true;
-               }
+                if ($bbsMemberStmt->fetchColumn() !== false) {
+                        return true;
+                }
 
-               $chatMemberSql = 'SELECT 1 '
-                       . 'FROM targetChatThreadMembers members '
-                       . 'INNER JOIN targetChatThreads threads ON members.threadCode = threads.threadCode '
-                       . 'WHERE threads.targetCode = ? AND members.userCode = ? '
-                       . 'LIMIT 1';
-               $chatMemberStmt = $pdoTarget->prepare($chatMemberSql);
-               $chatMemberStmt->execute(array($targetCode, $userCode));
+                $chatMemberSql = 'SELECT 1 '
+                        . 'FROM targetChatThreadMembers members '
+                        . 'INNER JOIN targetChatThreads threads ON members.threadCode = threads.threadCode '
+                        . 'WHERE threads.targetCode = ? AND members.userCode = ? '
+                        . 'LIMIT 1';
+                $chatMemberStmt = $pdoTarget->prepare($chatMemberSql);
+                $chatMemberStmt->execute(array($targetCode, $userCode));
 
-               return $chatMemberStmt->fetchColumn() !== false;
-       }
+                return $chatMemberStmt->fetchColumn() !== false;
+        }
 }
 
 ?>

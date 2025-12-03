@@ -681,7 +681,7 @@ class TargetManagementProducts extends Base
                         . 'ccb.clipTimes AS clipTimesJson, ccb.updatedAt AS clipUpdatedAt'
                         . $baseSql
                         . ' ORDER BY COALESCE(ucp.updatedAt, ucp.createdAt) DESC, ucp.contentCode ASC'
-                        . ' LIMIT ? OFFSET ?';
+			. ' LIMIT ? OFFSET ?';
 
 		$selectParams = array_merge($countParams, array($perPage, $offset));
 		$stmt = $pdo->prepare($selectSql);
@@ -880,7 +880,7 @@ class TargetManagementProducts extends Base
 			return null;
 		}
 
-                $materialRow = array(
+		$materialRow = array(
                                                          'materialCode' => $contentCode,
                                                          'targetCode' => null,
                                                          'contentCode' => $contentCode,
@@ -890,16 +890,16 @@ class TargetManagementProducts extends Base
                                                          'linkUrl' => null,
                                                          'downloadUrl' => null,
                                                          'fileName' => isset($row['fileName']) ? $row['fileName'] : null,
-                                                         'fileSize' => isset($row['fileSize']) ? $row['fileSize'] : null,
-                                                         'ownerUserCode' => isset($row['userCode']) ? $row['userCode'] : null,
-                                                         'ownerDisplayName' => isset($row['ownerDisplayName']) ? $row['ownerDisplayName'] : null,
-                                                         'createdAt' => isset($row['createdAt']) ? $row['createdAt'] : null,
-                                                         'updatedAt' => isset($row['updatedAt']) ? $row['updatedAt'] : null,
-                                                         'clipTimesJson' => isset($row['clipTimesJson']) ? $row['clipTimesJson'] : null,
-                                                         'clipUpdatedAt' => isset($row['clipUpdatedAt']) ? $row['clipUpdatedAt'] : null,
-                                                         );
+							 'fileSize' => isset($row['fileSize']) ? $row['fileSize'] : null,
+							 'ownerUserCode' => isset($row['userCode']) ? $row['userCode'] : null,
+							 'ownerDisplayName' => isset($row['ownerDisplayName']) ? $row['ownerDisplayName'] : null,
+							 'createdAt' => isset($row['createdAt']) ? $row['createdAt'] : null,
+							 'updatedAt' => isset($row['updatedAt']) ? $row['updatedAt'] : null,
+							 'clipTimesJson' => isset($row['clipTimesJson']) ? $row['clipTimesJson'] : null,
+							 'clipUpdatedAt' => isset($row['clipUpdatedAt']) ? $row['clipUpdatedAt'] : null,
+							 );
 
-                $contentRow = array(
+		$contentRow = array(
                                                         'contentCode' => $contentCode,
                                                         'contentType' => isset($row['contentType']) ? $row['contentType'] : null,
                                                         'fileName' => isset($row['fileName']) ? $row['fileName'] : null,
@@ -907,9 +907,9 @@ class TargetManagementProducts extends Base
                                                         'filePath' => isset($row['filePath']) ? $row['filePath'] : null,
                                                         'mimeType' => isset($row['mimeType']) ? $row['mimeType'] : null,
                                                         'fileSize' => isset($row['fileSize']) ? $row['fileSize'] : null,
-                                                        'clipTimesJson' => isset($row['clipTimesJson']) ? $row['clipTimesJson'] : null,
-                                                        'clipUpdatedAt' => isset($row['clipUpdatedAt']) ? $row['clipUpdatedAt'] : null,
-                                                        );
+							'clipTimesJson' => isset($row['clipTimesJson']) ? $row['clipTimesJson'] : null,
+							'clipUpdatedAt' => isset($row['clipUpdatedAt']) ? $row['clipUpdatedAt'] : null,
+							);
 
                 $payload = TargetManagementUtil::buildProductMaterialPayload($materialRow, $this->siteId, $contentRow);
 		if ($payload != null) {

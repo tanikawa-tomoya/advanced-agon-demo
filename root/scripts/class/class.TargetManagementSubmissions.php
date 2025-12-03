@@ -831,17 +831,17 @@ class TargetManagementSubmissions extends Base
                         $code = isset($row['contentCode']) ? $row['contentCode'] : null;
                         $detail = ($code !== null && array_key_exists($code, $contentDetails)) ? $contentDetails[$code] : array();
 
-                $contents[] = array(
-                                                                       'contentCode' => $code,
-                                                                       'contentType' => isset($row['contentType']) ? $row['contentType'] : (array_key_exists('contentType', $detail) ? $detail['contentType'] : null),
-                                                                       'userCode' => array_key_exists('userCode', $detail) ? $detail['userCode'] : null,
-                                                                       'contentId' => array_key_exists('id', $detail) ? (int)$detail['id'] : null,
-                                                                       'fileName' => array_key_exists('fileName', $detail) ? $detail['fileName'] : null,
-                                                                       'description' => array_key_exists('description', $detail) ? $detail['description'] : null,
-                                                                       'filePath' => array_key_exists('filePath', $detail) ? $detail['filePath'] : null,
-                                                                       'mimeType' => array_key_exists('mimeType', $detail) ? $detail['mimeType'] : null,
-                                                                       'fileSize' => array_key_exists('fileSize', $detail) && $detail['fileSize'] !== null ? (int)$detail['fileSize'] : null,
-                                                                       'duration' => array_key_exists('duration', $detail) && $detail['duration'] !== null ? (int)$detail['duration'] : null,
+                        $contents[] = array(
+                                                                   'contentCode' => $code,
+                                                                   'contentType' => isset($row['contentType']) ? $row['contentType'] : (array_key_exists('contentType', $detail) ? $detail['contentType'] : null),
+                                                                   'userCode' => array_key_exists('userCode', $detail) ? $detail['userCode'] : null,
+                                                                   'contentId' => array_key_exists('id', $detail) ? (int)$detail['id'] : null,
+                                                                   'fileName' => array_key_exists('fileName', $detail) ? $detail['fileName'] : null,
+                                                                   'description' => array_key_exists('description', $detail) ? $detail['description'] : null,
+                                                                   'filePath' => array_key_exists('filePath', $detail) ? $detail['filePath'] : null,
+                                                                   'mimeType' => array_key_exists('mimeType', $detail) ? $detail['mimeType'] : null,
+                                                                   'fileSize' => array_key_exists('fileSize', $detail) && $detail['fileSize'] !== null ? (int)$detail['fileSize'] : null,
+                                                                   'duration' => array_key_exists('duration', $detail) && $detail['duration'] !== null ? (int)$detail['duration'] : null,
                                                                    'bitrate' => array_key_exists('bitrate', $detail) && $detail['bitrate'] !== null ? (int)$detail['bitrate'] : null,
                                                                    'width' => array_key_exists('width', $detail) && $detail['width'] !== null ? (int)$detail['width'] : null,
                                                                    'height' => array_key_exists('height', $detail) && $detail['height'] !== null ? (int)$detail['height'] : null,
