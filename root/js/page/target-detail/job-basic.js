@@ -4608,28 +4608,6 @@
       var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
       var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
       var candidates = participants.concat(assignedUsers);
-
-      var appendCreatorCandidate = function (label, displayName, userCode)
-      {
-        var name = displayName == null ? '' : String(displayName).trim();
-        var code = userCode == null ? '' : String(userCode).trim();
-        if (!name && !code)
-        {
-          return;
-        }
-        var identity = name || code;
-        candidates.push({
-          displayName: identity,
-          userCode: code || identity,
-          isOperator: true,
-          isActive: true,
-          role: { key: 'operator', name: label || 'operator' },
-          source: label || 'operator'
-        });
-      };
-
-      appendCreatorCandidate('creator', target && target.createdByDisplayName, target && target.createdByUserCode);
-      appendCreatorCandidate('owner', target && target.ownerDisplayName, target && target.ownerUserCode);
       var normalizeFlag = function (value)
       {
         if (typeof value === 'string')
