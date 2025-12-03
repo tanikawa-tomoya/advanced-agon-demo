@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>阿含宗デモサイト | コンテンツ管理</title>
+    <title>CASTORY | コンテンツ管理</title>
     <link rel="shortcut icon" href="image/favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,7 +23,7 @@
   </head>
   <body>
     <header class="site-header">
-      <a class="site-header__logo" href="/index" data-logo-label="阿含宗デモサイト">阿含宗デモサイト</a>
+      <a class="site-header__logo" href="/index" data-logo-label="CASTORY">CASTORY</a>
       <button
         class="site-header__menu-toggle"
         type="button"
@@ -95,6 +95,17 @@
                 >
                   YouTube動画
                 </button>
+                <button
+                  type="button"
+                  class="tabs__tab"
+                  id="content-library-tab-create-slide"
+                  data-cp-tab="slides"
+                  aria-selected="false"
+                  aria-controls="content-library-panel-create-slide"
+                  tabindex="-1"
+                >
+                  スライド作成
+                </button>
               </div>
             </div>
             <div
@@ -122,7 +133,7 @@
                       data-cp-filter-date-from
                       aria-label="作成日 (開始)"
                     />
-                    <span class="content-library__filter-separator" aria-hidden="true">～</span>
+                    <span class="content-library__filter-separator" aria-hidden="true">〜</span>
                     <label class="visually-hidden" for="content-library-filter-date-to">作成日（終了）</label>
                     <input
                       type="date"
@@ -195,7 +206,7 @@
                       data-cp-pagination-prev
                       aria-label="前のページ"
                     >
-                      <span aria-hidden="true">&lt;</span>
+                      <span aria-hidden="true">‹</span>
                       <span class="visually-hidden">前へ</span>
                     </button>
                     <div class="content-library__pagination-pages" data-cp-pagination-pages></div>
@@ -206,7 +217,7 @@
                       data-cp-pagination-next
                       aria-label="次のページ"
                     >
-                      <span aria-hidden="true">&gt;</span>
+                      <span aria-hidden="true">›</span>
                       <span class="visually-hidden">次へ</span>
                     </button>
                   </div>
@@ -272,6 +283,42 @@
                 </form>
               </section>
             </div>
+            <div
+              class="tabs__panel"
+              id="content-library-panel-create-slide"
+              data-cp-panel="slides"
+              role="tabpanel"
+              aria-labelledby="content-library-tab-create-slide"
+              hidden="hidden"
+            >
+              <section class="content-library__section content-library__section--slides" aria-labelledby="content-slide-title">
+                <div class="content-library__list-header content-library__controls" data-slide-toolbar>
+                  <div class="content-library__filter-group content-library__filter-group--compact">
+                    <h2 class="content-library__section-title" id="content-slide-title">スライド作成</h2>
+                  </div>
+                  <div class="content-library__toolbar" data-slide-toolbar-actions>
+                    <button type="button" class="btn btn--primary" data-slide-add>追加</button>
+                    <button type="button" class="btn btn--secondary" data-slide-refresh>再読み込み</button>
+                  </div>
+                </div>
+                <p class="content-library__status" data-slide-status role="status" aria-live="polite"></p>
+                <p class="content-library__empty" data-slide-empty hidden>登録済みのスライドがありません。</p>
+                <div class="content-library__table-wrapper" data-slide-table-wrapper role="region" aria-label="スライド一覧 (リスト表示)">
+                  <table class="content-library__table content-slide-table">
+                    <caption class="visually-hidden">作成済みスライド一覧</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" class="content-library__table-header content-library__table-header--preview">トップ画像</th>
+                        <th scope="col" class="content-library__table-header">タイトル</th>
+                        <th scope="col" class="content-library__table-header">説明</th>
+                        <th scope="col" class="content-library__table-header content-library__table-header--actions">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody data-slide-list></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       </section>
@@ -335,6 +382,134 @@
           </div>
         </section>
       </div>
+    </div>
+    <div
+      class="screen-modal"
+      id="contents-slide-modal"
+      data-slide-modal
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contents-slide-modal-title"
+      aria-describedby="contents-slide-modal-summary"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="screen-modal__overlay" data-slide-modal-close aria-hidden="true"></div>
+      <section class="screen-modal__content" role="document">
+        <header class="screen-modal__header">
+          <h2 class="screen-modal__title" id="contents-slide-modal-title">スライドを追加</h2>
+          <p class="screen-modal__summary" id="contents-slide-modal-summary">トップ画像、タイトル、説明を入力してスライドの枠を作成します。</p>
+        </header>
+        <div class="screen-modal__body">
+          <form class="slide-form" data-slide-form>
+            <div class="slide-form__row">
+              <label class="slide-form__label" for="contents-slide-cover">トップ画像</label>
+              <div class="slide-form__field-group">
+                <div class="slide-form__preview" data-slide-cover-preview>未選択</div>
+                <div class="slide-form__actions">
+                  <button type="button" class="btn btn--ghost" data-slide-cover-select>コンテンツ管理から選択</button>
+                </div>
+              </div>
+            </div>
+            <div class="slide-form__row">
+              <label class="slide-form__label" for="contents-slide-title">タイトル</label>
+              <input id="contents-slide-title" type="text" class="user-management__input" name="title" maxlength="120" placeholder="例: 新規オンボーディング" />
+            </div>
+            <div class="slide-form__row">
+              <label class="slide-form__label" for="contents-slide-description">説明</label>
+              <textarea id="contents-slide-description" class="user-management__input" name="description" rows="3" placeholder="概要を入力してください"></textarea>
+            </div>
+            <div class="screen-modal__footer slide-form__footer">
+              <button type="button" class="btn btn--ghost" data-slide-modal-close>キャンセル</button>
+              <button type="submit" class="btn btn--primary">保存して作成</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+    <div
+      class="screen-modal screen-modal--preview slide-editor-modal"
+      id="contents-slide-edit-modal"
+      data-slide-edit-modal
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contents-slide-edit-title"
+      aria-describedby="contents-slide-edit-summary"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="screen-modal__overlay" data-slide-edit-close aria-hidden="true"></div>
+      <section class="screen-modal__content" role="document">
+        <header class="screen-modal__header">
+          <div class="screen-modal__meta">
+            <p class="screen-modal__summary" id="contents-slide-edit-summary">スライドのページ構成を編集します。</p>
+          </div>
+          <div class="screen-modal__meta">
+            <h2 class="screen-modal__title" id="contents-slide-edit-title" data-slide-edit-title>スライド編集</h2>
+            <p class="screen-modal__summary" data-slide-edit-description></p>
+          </div>
+        </header>
+        <div class="screen-modal__body slide-editor__body">
+          <div class="slide-editor__actions">
+            <button type="button" class="btn btn--primary" data-slide-page-add>ページを追加</button>
+            <button type="button" class="btn btn--ghost" data-slide-edit-close>閉じる</button>
+          </div>
+          <div class="content-library__table-wrapper slide-editor__table-wrapper" role="region" aria-label="スライドページ一覧">
+            <table class="content-library__table slide-editor__table">
+              <thead>
+                <tr>
+                  <th scope="col" class="content-library__table-header content-library__table-header--preview">画像</th>
+                  <th scope="col" class="content-library__table-header">説明</th>
+                  <th scope="col" class="content-library__table-header content-library__table-header--actions">操作</th>
+                </tr>
+              </thead>
+              <tbody data-slide-pages-list></tbody>
+            </table>
+            <p class="content-library__empty" data-slide-pages-empty hidden>ページがまだ追加されていません。</p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div
+      class="screen-modal"
+      id="contents-slide-page-modal"
+      data-slide-page-modal
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contents-slide-page-modal-title"
+      aria-describedby="contents-slide-page-modal-summary"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="screen-modal__overlay" data-slide-page-modal-close aria-hidden="true"></div>
+      <section class="screen-modal__content" role="document" data-slide-page-editor>
+        <header class="screen-modal__header">
+          <h2 class="screen-modal__title" id="contents-slide-page-modal-title">ページ編集</h2>
+          <p class="screen-modal__summary" id="contents-slide-page-modal-summary">画像と説明を設定してください。</p>
+        </header>
+        <div class="screen-modal__body">
+          <form class="slide-page-editor__form" data-slide-page-form>
+            <div class="slide-page-editor__row">
+              <div class="slide-page-editor__preview" data-slide-page-image-preview>画像が未選択です</div>
+              <button type="button" class="btn btn--ghost" data-slide-page-select>コンテンツ管理から画像コンテンツを選択</button>
+            </div>
+            <div class="slide-page-editor__row">
+              <label class="slide-form__label" for="slide-page-description">説明</label>
+              <textarea
+                id="slide-page-description"
+                class="user-management__input"
+                data-slide-page-description
+                rows="3"
+                placeholder="スライドの説明を入力"
+              ></textarea>
+            </div>
+            <div class="slide-page-editor__footer">
+              <button type="button" class="btn btn--ghost" data-slide-page-cancel>キャンセル</button>
+              <button type="submit" class="btn btn--primary">保存</button>
+            </div>
+          </form>
+        </div>
+      </section>
     </div>
     <div
       class="screen-modal"
