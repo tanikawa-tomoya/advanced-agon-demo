@@ -423,7 +423,12 @@
   });
 
   const ACTION_BUTTON_ALIASES = Object.freeze({
-    run: 'execute'
+    run: 'execute',
+    'round-popup/preview': 'preview',
+    'round-popup/edit': 'edit',
+    'round-popup/delete': 'delete',
+    'round-popup/up': 'up',
+    'round-popup/down': 'down'
   });
 
   const EYE_ICON_HTML = [

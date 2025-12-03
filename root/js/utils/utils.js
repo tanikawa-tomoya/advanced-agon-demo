@@ -272,20 +272,39 @@
 
     var fd = new FormData();
 
-    if (input && typeof input === 'object')
-    {
-      Object.keys(input).forEach(function (key)
+      if (input && typeof input === 'object')
       {
-        var value = input[key];
-
-        if (typeof value === 'undefined' || value === null)
+        Object.keys(input).forEach(function (key)
         {
-          return;
-        }
+          var value = input[key];
 
-        fd.append(key, value);
-      });
-    }
+          if (typeof value === 'undefined' || value === null)
+          {
+            return;
+          }
+
+          if (value instanceof Blob)
+          {
+            fd.append(key, value);
+            return;
+          }
+
+          if (typeof value === 'object')
+          {
+            try
+            {
+              fd.append(key, JSON.stringify(value));
+              return;
+            }
+            catch (e)
+            {
+              // fall through to append as-is
+            }
+          }
+
+          fd.append(key, value);
+        });
+      }
 
     return fd;
   };

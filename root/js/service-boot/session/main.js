@@ -146,6 +146,15 @@
       {
         return false;
       }
+      var normalizedReason = this._general.normalizeReason(err.reason);
+      if (!normalizedReason && err.payload)
+      {
+        normalizedReason = this._general.resolvePayloadReason(err.payload);
+      }
+      if (normalizedReason === 'server key missing' || normalizedReason === 'server_key_missing')
+      {
+        return true;
+      }
       if (err.__sessionAllowSilent === true)
       {
         return true;
@@ -206,33 +215,29 @@
         return false;
       }
 
+      var reason = this._general.normalizeReason(payload.reason);
+      if (!reason)
+      {
+        reason = this._general.normalizeReason(payload.error);
+      }
+      if (!reason && payload.result && typeof payload.result === 'object')
+      {
+        reason = this._general.normalizeReason(payload.result.reason);
+        if (!reason)
+        {
+          reason = this._general.normalizeReason(payload.result.error);
+        }
+      }
+
+      if (reason === 'server key missing' || reason === 'server_key_missing')
+      {
+        return true;
+      }
+
       var source = this._general.normalizeReason(payload.source);
       if (source !== 'cookie')
       {
         return false;
-      }
-
-      var reason = '';
-      var pickReason = function (value)
-      {
-        if (reason)
-        {
-          return;
-        }
-        reason = this._general.normalizeReason(value);
-      }.bind(this);
-
-      pickReason(payload.reason);
-      pickReason(payload.error);
-      pickReason(payload.response);
-      pickReason(payload.code);
-
-      if (!reason && payload.result && typeof payload.result === 'object')
-      {
-        pickReason(payload.result.reason);
-        pickReason(payload.result.error);
-        pickReason(payload.result.response);
-        pickReason(payload.result.code);
       }
 
       return reason === 'signature_mismatch';
@@ -244,7 +249,7 @@
       {
         return;
       }
-      
+
       var storage = window.sessionStorage;
       if (!storage || typeof storage.setItem !== 'function')
       {

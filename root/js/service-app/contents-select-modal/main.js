@@ -78,7 +78,7 @@
         createdAtLabel: '作成日',
         createdFromLabel: '作成日（開始）',
         createdToLabel: '作成日（終了）',
-        createdRangeSeparator: '～',
+        createdRangeSeparator: '〜',
         kindLabel: '種別',
         viewListLabel: 'リスト',
         viewPanelLabel: 'パネル',

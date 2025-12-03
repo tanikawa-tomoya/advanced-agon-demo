@@ -3,7 +3,6 @@
 (function () {
         'use strict';
 
-        var SESSION_EXPIRED_REASONS = Object.freeze(['login_required', 'session_expired', 'unauthorized']);
         var THEME_STORAGE_KEY = 'site-theme-preset';
         var THEME_DEFAULT = 'classic';
 
@@ -27,7 +26,8 @@
     var pageName = detectPageName();
     var className = kebabToPascal(pageName);
     var base = '/js/page/' + pageName;
-    var loginGuard = createLoginGuard(pageName);
+    var loginGuardService = await initLoginGuardService();
+    var loginGuard = loginGuardService.createGuard(pageName);
 
     var sessionReady = await prepareSessionContext()
         .then(function (user) {
@@ -280,6 +280,45 @@
     return footerServiceReady;
   }
 
+  var loginGuardServiceReady = null;
+
+  async function initLoginGuardService()
+  {
+    if (loginGuardServiceReady) {
+      return loginGuardServiceReady;
+    }
+
+    loginGuardServiceReady = await window.Utils.loadScriptsSync([
+      '/js/service-boot/login-guard/main.js'
+    ]).then(function () {
+      window.Services = window.Services || {};
+      var LoginGuardConstructor = window.Services && window.Services.LoginGuard;
+      if (typeof LoginGuardConstructor !== 'function') {
+        throw new Error('LoginGuard service constructor is not available');
+      }
+      var instance = window.Services.loginGuardInstance;
+      if (!instance) {
+        var config = resolveLoginGuardConfig();
+        instance = new LoginGuardConstructor(config);
+        window.Services.loginGuardInstance = instance;
+      }
+      return instance;
+    }).catch(function (err) {
+      loginGuardServiceReady = null;
+      throw err;
+    });
+
+    return loginGuardServiceReady;
+  }
+
+  function resolveLoginGuardConfig()
+  {
+    if (window.LoginGuardConfig && typeof window.LoginGuardConfig === 'object') {
+      return Object.assign({}, window.LoginGuardConfig);
+    }
+    return {};
+  }
+
   var sessionServiceReady = null;
 
   async function initSessionService()
@@ -333,245 +372,6 @@
       if (!hydrate) { return null; }
       return Promise.resolve(hydrate.call(service));
     });
-  }
-
-  function createLoginGuard(pageName)
-  {
-    var requireSupervisor = isAdminPage(pageName);
-    var requireLogin = isProtectedPage() || requireSupervisor;
-    var onLoginPage = isLoginPage();
-    var redirected = false;
-
-    function shouldEnforce()
-    {
-      return requireLogin && !onLoginPage && !redirected;
-    }
-
-    function shouldBlock(user)
-    {
-      if (!requireSupervisor)
-      {
-        return false;
-      }
-      return !isSupervisorUser(user);
-    }
-
-    function redirect()
-    {
-      if (!shouldEnforce())
-      {
-        return;
-      }
-      redirected = true;
-      redirectToLogin();
-    }
-
-    return {
-      handleHydratedUser: function (user) {
-        if (shouldBlock(user))
-        {
-          redirect();
-        }
-      },
-      handleHydrationError: function () {},
-      handleRemoteUser: function (user) {
-        if (!user || shouldBlock(user))
-        {
-          redirect();
-        }
-      },
-      handleRemoteError: function (err) {
-        if (isUnauthorizedSessionError(err))
-        {
-          redirect();
-        }
-      }
-    };
-  }
-
-  function isProtectedPage()
-  {
-    var body = document.body || null;
-    if (!body)
-    {
-      return false;
-    }
-    var dataset = body.dataset || {};
-    if (dataset && typeof dataset.requireLogin === 'string')
-    {
-      var normalized = dataset.requireLogin.trim().toLowerCase();
-      if (!normalized || normalized === 'true')
-      {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  function isLoginPage()
-  {
-    var path = (window.location && window.location.pathname) || '';
-    var normalized = path.replace(/\/+/g, '/').toLowerCase();
-    return normalized === '/login.html' || normalized === '/login';
-  }
-
-  function isAdminPage(pageName)
-  {
-    var normalized = (pageName || '').replace(/^\/+|\/+$/g, '').toLowerCase();
-    if (normalized)
-    {
-      return normalized.indexOf('admin-') === 0;
-    }
-    var path = (window.location && window.location.pathname) || '';
-    var name = path.split('/').pop() || '';
-    return name.toLowerCase().indexOf('admin-') === 0;
-  }
-
-  function redirectToLogin()
-  {
-    try
-    {
-      if (!isLoginPage())
-      {
-        window.location.href = '/login.html';
-      }
-    }
-    catch (err)
-    {
-      try { console.error('[ENTRYPOINT] failed to redirect to login', err); } catch (_e) {}
-    }
-  }
-
-  function normalizeReasonValue(value)
-  {
-    if (typeof value === 'string')
-    {
-      return value.trim().toLowerCase();
-    }
-    return '';
-  }
-
-  function resolveReasonFromError(err)
-  {
-    if (!err || typeof err !== 'object')
-    {
-      return '';
-    }
-    if (typeof err.reason === 'string' && err.reason)
-    {
-      return normalizeReasonValue(err.reason);
-    }
-    if (typeof err.code === 'string' && err.code)
-    {
-      return normalizeReasonValue(err.code);
-    }
-    if (err.payload && typeof err.payload === 'object')
-    {
-      if (typeof err.payload.reason === 'string' && err.payload.reason)
-      {
-        return normalizeReasonValue(err.payload.reason);
-      }
-      if (err.payload.result && typeof err.payload.result.reason === 'string' && err.payload.result.reason)
-      {
-        return normalizeReasonValue(err.payload.result.reason);
-      }
-    }
-    return '';
-  }
-
-  function isUnauthorizedSessionError(err)
-  {
-    if (!err || typeof err !== 'object')
-    {
-      return false;
-    }
-    if (err.__sessionExpired === true)
-    {
-      return true;
-    }
-    var reason = resolveReasonFromError(err);
-    if (reason && SESSION_EXPIRED_REASONS.indexOf(reason) !== -1)
-    {
-      return true;
-    }
-    var status = err.status;
-    if (typeof status === 'undefined' && err.response)
-    {
-      status = err.response.status;
-    }
-    if (typeof status === 'number' && status === 401)
-    {
-      return true;
-    }
-    var message = (err.message || '').toLowerCase();
-    if (!message)
-    {
-      return false;
-    }
-    if (message.indexOf('unauthorized') !== -1 || message.indexOf('login') !== -1)
-    {
-      return true;
-    }
-    if (message.indexOf('session') !== -1 && message.indexOf('expired') !== -1)
-    {
-      return true;
-    }
-    return false;
-  }
-
-  function isSupervisorUser(user)
-  {
-    if (!user || typeof user !== 'object')
-    {
-      return false;
-    }
-    if (user.isSupervisor === 1 || user.isSupervisor === true || user.isSupervisor === '1')
-    {
-      return true;
-    }
-    if (user.supervisor === 1 || user.supervisor === true || user.supervisor === '1')
-    {
-      return true;
-    }
-
-    var roles = [];
-    var appendRole = function (value)
-    {
-      if (!value)
-      {
-        return;
-      }
-      if (Array.isArray(value))
-      {
-        roles = roles.concat(value);
-        return;
-      }
-      if (typeof value === 'string')
-      {
-        roles = roles.concat(value.split(/[\s,|\/]+/));
-      }
-    };
-
-    appendRole(user.role);
-    appendRole(user.roleName);
-    appendRole(user.roleLabel);
-    appendRole(user.roles);
-
-    for (var i = 0; i < roles.length; i++)
-    {
-      var role = roles[i];
-      var normalized = String(role || '').trim().toLowerCase();
-      if (!normalized)
-      {
-        continue;
-      }
-      if (normalized === 'supervisor' || normalized.indexOf('supervisor') !== -1)
-      {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   function bootstrapThemeFromCache()

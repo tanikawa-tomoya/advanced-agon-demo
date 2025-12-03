@@ -156,7 +156,6 @@
 
     _normalizeContent(content, cfg) {
       if (content == null) return { title: '', text: '' };
-      if (typeof content === 'string') return { title: '', text: String(content) };
 
       // roleVariants がある場合はユーザー属性に応じて振り分け
       var selected = this._selectRoleVariant(content, cfg);

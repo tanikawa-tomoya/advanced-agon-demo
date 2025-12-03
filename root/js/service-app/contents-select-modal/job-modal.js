@@ -617,7 +617,7 @@
       createdFromInput.className = 'contents-select-modal__input contents-select-modal__input--date';
       createdFromInput.setAttribute('aria-label', text.createdFromLabel || text.createdAtLabel);
       var createdSeparator = createElement('span', 'contents-select-modal__range-separator');
-      createdSeparator.textContent = text.createdRangeSeparator || '～';
+      createdSeparator.textContent = text.createdRangeSeparator || '〜';
       var createdToInput = document.createElement('input');
       createdToInput.type = 'date';
       createdToInput.className = 'contents-select-modal__input contents-select-modal__input--date';
