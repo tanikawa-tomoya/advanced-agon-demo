@@ -342,7 +342,7 @@
 
       var empty = document.createElement('div');
       empty.className = 'target-reference__empty';
-      empty.textContent = 'このターゲットに共有された資料はまだありません。';
+      empty.textContent = '共有された資料はまだありません。';
       this.refs.empty = empty;
       section.appendChild(empty);
 
@@ -1432,7 +1432,7 @@
         {
           var message = this.state.items.length
             ? '条件に一致する資料はありません。'
-            : 'このターゲットに共有された資料はまだありません。';
+            : '共有された資料はまだありません。';
           this.refs.empty.textContent = message;
           this.refs.empty.hidden = false;
         }

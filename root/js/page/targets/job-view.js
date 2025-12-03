@@ -926,11 +926,12 @@
 
     _renderRowActions(item) {
       var buttons = [];
+      var alias = this._targetAlias();
       buttons.push(this._renderActionButton('detail', {
         item: item,
         action: 'view-target',
         label: '詳細',
-        hoverLabel: 'ターゲットの詳細を表示',
+        hoverLabel: alias + 'の詳細を表示',
         ariaLabel: this._composeActionAriaLabel('詳細', item),
         variant: 'detail'
       }));
@@ -939,7 +940,7 @@
           item: item,
           action: 'edit-target',
           label: '編集',
-          hoverLabel: 'ターゲットを編集',
+          hoverLabel: alias + 'を編集',
           ariaLabel: this._composeActionAriaLabel('編集', item),
           variant: 'edit'
         }));
@@ -947,7 +948,7 @@
           item: item,
           action: 'delete-target',
           label: '削除',
-          hoverLabel: 'ターゲットを削除',
+          hoverLabel: alias + 'を削除',
           ariaLabel: this._composeActionAriaLabel('削除', item),
           variant: 'delete'
         }));
@@ -1044,19 +1045,31 @@
 
     _composeActionAriaLabel(actionText, item) {
       var target = this._describeTarget(item);
-      if (!target) return 'ターゲットを' + actionText;
+      if (!target) return this._targetAlias() + 'を' + actionText;
       return target + 'を' + actionText;
     }
 
     _describeTarget(item) {
+      var alias = this._targetAlias();
       if (!item) return '';
       if (item.title) {
-        return 'ターゲット「' + item.title + '」';
+        return alias + '「' + item.title + '」';
       }
       if (item.id != null && item.id !== '') {
-        return 'ターゲット #' + item.id;
+        return alias + ' #' + item.id;
       }
       return '';
+    }
+
+    _targetAlias()
+    {
+      var alias = '';
+      if (this.page && typeof this.page.resolveTargetAlias === 'function')
+      {
+        alias = this.page.targetAlias || this.page.resolveTargetAlias();
+      }
+      alias = String(alias || '').trim();
+      return alias || 'ターゲット';
     }
 
     _resolveStatusKey(raw) {

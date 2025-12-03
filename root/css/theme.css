@@ -1250,6 +1250,7 @@ body.is-modal-open {
   align-items: center;
   font-size: 0.85rem;
   color: var(--text-muted);
+  margin-top: 16px;
   padding: 0 8px;
 }
 
@@ -4273,6 +4274,49 @@ body.is-modal-open {
   gap: 12px 16px;
 }
 
+.admin-users__column-controls {
+  margin: 12px 0 4px;
+  gap: 10px 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-users__column-selector-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.admin-users__column-options {
+  display: flex;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-users__column-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-users__column-toggle:hover,
+.admin-users__column-toggle:focus-within {
+  background: rgba(120, 206, 255, 0.12);
+  border-color: color-mix(in srgb, var(--accent, #2d8cff) 38%, transparent);
+}
+
+.admin-users__column-toggle input[type="checkbox"] {
+  accent-color: var(--accent, #2d8cff);
+}
+
 @media (min-width: 769px) {
   .admin-users__filter {
     display: flex;
@@ -4415,6 +4459,10 @@ body.is-modal-open {
 
 .user-table td {
   color: var(--text);
+}
+
+.user-table__column-hidden {
+  display: none;
 }
 
 .user-table__name {

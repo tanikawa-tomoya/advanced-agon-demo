@@ -550,7 +550,7 @@
 
       var empty = document.createElement('div');
       empty.className = 'target-reference__empty';
-      empty.textContent = 'このターゲットへのお知らせはまだありません。';
+      empty.textContent = 'お知らせはまだありません。';
       this.refs.empty = empty;
       section.appendChild(empty);
 

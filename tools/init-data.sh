@@ -602,6 +602,7 @@ INSERT OR REPLACE INTO siteSettings (key, value) VALUES
     ('bounceMail', '${bounce_mail}'),
     ('hostname', '${computed_hostname}'),
     ('siteTitle', '${SITE_TITLE}'),
+    ('targetAlias', 'ターゲット'),
     ('siteTheme', 'classic'),
     ('codex-auto-pull', '1'),
     ('latest-code-update', '0');

@@ -30,6 +30,7 @@
       this.detailPagePath = 'target-detail.html';
       this.userSelectModalService = null;
       this._formModalTrigger = null;
+      this.targetAlias = '';
       this.statusLabelConfig = {
         elementTag: 'span',
         baseClass: ['target-status', 'target-detail__badge'],
@@ -85,6 +86,7 @@
       this.state.sessionUser = sessionUser;
 
       this.initConfig();
+      this.targetAlias = this.resolveTargetAlias();
 
       // 1) service-app（正）だけを同期ロード
       const jsList = [
@@ -154,8 +156,9 @@
       ]);
 
       // 4) 設定・参照取得・イベント定義
-      this._renderBreadcrumbs();
+      await this._renderBreadcrumbs();
       this.cacheElements();
+      await this.applyTargetAliasTexts();
       this.renderNewButton();
       await this.applyTargetActionVisibility();
       this.ui = {
@@ -170,16 +173,131 @@
       return this;
     }
 
-    _renderBreadcrumbs()
+    async _renderBreadcrumbs()
     {
       if (!this.breadcrumbService)
       {
         return;
       }
-      this.breadcrumbService.render([
-        { label: 'ダッシュボード', href: 'dashboard.html' },
-        { label: 'ターゲット管理' }
-      ]);
+      var managementLabel = await this._resolveTargetManagementLabel();
+      var profile = this.state && this.state.sessionUser;
+      var items = [
+        { label: managementLabel }
+      ];
+      if (this._isDashboardEnabled(profile))
+      {
+        items.unshift({ label: 'ダッシュボード', href: 'dashboard.html' });
+      }
+      this.breadcrumbService.render(items);
+    }
+
+    resolveTargetAlias()
+    {
+      var alias = '';
+      var settings = (window.siteSettings || window.SiteSettings || {});
+      if (settings && typeof settings.targetAlias === 'string')
+      {
+        alias = settings.targetAlias;
+      }
+      if (!alias)
+      {
+        var body = document.body || {};
+        var ds = body.dataset || {};
+        alias = ds.targetAlias || ds.targetalias || '';
+      }
+      alias = String(alias || '').trim();
+      return alias || 'ターゲット';
+    }
+
+    async applyTargetAliasTexts()
+    {
+      var alias = this.targetAlias || this.resolveTargetAlias();
+      var managementLabel = await this._resolveTargetManagementLabel();
+      var detailLabel = alias + '詳細';
+      var root = this.root || document;
+
+      var introTitle = root.querySelector('.screen-intro__title');
+      if (introTitle)
+      {
+        introTitle.textContent = managementLabel;
+      }
+
+      var helpButton = root.querySelector('[data-targets-help]');
+      if (helpButton)
+      {
+        var helpLabel = managementLabel + 'のヘルプを開く';
+        helpButton.setAttribute('aria-label', helpLabel);
+        var hiddenHelpText = helpButton.querySelector('.visually-hidden');
+        if (hiddenHelpText)
+        {
+          hiddenHelpText.textContent = managementLabel + 'のヘルプ';
+        }
+      }
+
+      var formTitle = root.querySelector('#targets-form-title');
+      if (formTitle)
+      {
+        formTitle.textContent = alias + '追加 / 編集';
+      }
+      var formSummary = root.querySelector('#targets-form-summary');
+      if (formSummary)
+      {
+        formSummary.textContent = alias + 'の基本情報を追加または編集して保存します。';
+      }
+      var formClose = root.querySelector('.targets__form-modal-close');
+      if (formClose)
+      {
+        formClose.setAttribute('aria-label', alias + 'フォームを閉じる');
+      }
+      var displayDesc = root.querySelector('.targets__display-settings-desc');
+      if (displayDesc)
+      {
+        displayDesc.textContent = detailLabel + 'に表示するセクションを切り替えます。';
+      }
+    }
+
+    async _resolveTargetManagementLabel()
+    {
+      var flags = this.state && this.state.roleFlags;
+      if (!flags)
+      {
+        flags = await this.resolveSessionRoleFlags();
+      }
+      if (!flags)
+      {
+        flags = { isSupervisor: false, isOperator: false };
+      }
+      this.state.roleFlags = flags;
+
+      var alias = this.targetAlias || this.resolveTargetAlias();
+      var managementLabel = alias + '管理';
+      var listLabel = alias + '一覧';
+      return (flags.isSupervisor || flags.isOperator) ? managementLabel : listLabel;
+    }
+
+    _isDashboardEnabled(profile)
+    {
+      if (!profile)
+      {
+        return true;
+      }
+      var value = (typeof profile.useDashboard !== 'undefined')
+        ? profile.useDashboard
+        : profile.use_dashboard;
+      if (typeof value === 'undefined')
+      {
+        return true;
+      }
+      if (value === true || value === 1 || value === '1')
+      {
+        return true;
+      }
+      if (typeof value === 'string')
+      {
+        var normalized = value.toLowerCase();
+        return normalized === 'true' || normalized === 'yes' || normalized === 'on';
+      }
+      return false;
     }
 
     // 旧 config.js → ここに統合（login の textConfig/selectorConfig 風にもアクセス可）
