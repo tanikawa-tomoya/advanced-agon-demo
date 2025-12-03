@@ -2668,8 +2668,23 @@
         {
           participantsRaw = splitDelimitedValues(raw.participants);
         }
+        var creatorEntry = null;
+        if (createdByDisplayName || createdByUserCode)
+        {
+          creatorEntry = {
+            displayName: createdByDisplayName || createdByUserCode,
+            userCode: createdByUserCode || createdByDisplayName || '',
+            isOperator: true,
+            isActive: raw && raw.createdByIsActive !== false,
+            role: { key: 'operator', name: 'creator' },
+            source: 'creator'
+          };
+        }
         var participants = this.normalizeTargetParticipantList(participantsRaw);
         var assignedUsers = this.normalizeTargetParticipantList(assignedUsersRaw);
+        var creatorList = creatorEntry ? [creatorEntry] : [];
+        participants = this.mergeTargetParticipantDirectory(participants, creatorList);
+        assignedUsers = this.mergeTargetParticipantDirectory(assignedUsers, creatorList);
         if (!assignedUsers.length && participants.length)
         {
           assignedUsers = participants.slice();
