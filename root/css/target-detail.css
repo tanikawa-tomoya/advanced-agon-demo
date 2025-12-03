@@ -8605,6 +8605,55 @@
   gap: 10px;
 }
 
+.target-detail__survey-preview-quadrant {
+  gap: 12px;
+}
+
+.target-detail__survey-quadrant-axes {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+}
+
+.target-detail__survey-quadrant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.target-detail__survey-quadrant-cell {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.target-detail__survey-quadrant-cell-heading {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.target-detail__survey-quadrant-description {
+  margin: 0;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.target-detail__survey-quadrant-description p {
+  margin: 0;
+}
+
+.target-detail__survey-quadrant-input {
+  min-height: 48px;
+  resize: vertical;
+}
+
 .target-detail__survey-preview-choice {
   display: flex;
   align-items: center;
