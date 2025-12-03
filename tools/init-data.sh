@@ -776,6 +776,7 @@ CREATE TABLE IF NOT EXISTS targetReferenceMaterials (
     ownerUserCode VARCHAR(32),
     createdAt VARCHAR(32),
     updatedAt VARCHAR(32),
+    position INTEGER,
     displayOrder INTEGER DEFAULT 0,
     isDeleted INTEGER DEFAULT 0
 );
@@ -995,6 +996,7 @@ CREATE TABLE IF NOT EXISTS targetSurvey (
     content TEXT NOT NULL,
     startAt VARCHAR(32) NOT NULL,
     endAt VARCHAR(32) NOT NULL,
+    isGuestMode INTEGER NOT NULL DEFAULT 0,
     createdByUserCode VARCHAR(32),
     createdAt VARCHAR(32) DEFAULT (datetime('now','localtime')),
     updatedAt VARCHAR(32) DEFAULT (datetime('now','localtime')),
@@ -1009,6 +1011,7 @@ CREATE TABLE IF NOT EXISTS targetSurveyItem (
     description TEXT,
     kind VARCHAR(32) NOT NULL,
     position INTEGER DEFAULT 0,
+    isRequired INTEGER NOT NULL DEFAULT 0,
     createdAt VARCHAR(32) DEFAULT (datetime('now','localtime')),
     updatedAt VARCHAR(32) DEFAULT (datetime('now','localtime')),
     isDeleted INTEGER DEFAULT 0,
@@ -1042,7 +1045,6 @@ CREATE TABLE IF NOT EXISTS targetSurveyResponses (
     respondedAt VARCHAR(32) NOT NULL,
     createdAt VARCHAR(32) DEFAULT (datetime('now','localtime')),
     updatedAt VARCHAR(32) DEFAULT (datetime('now','localtime')),
-    UNIQUE(targetSurveyId, userCode),
     FOREIGN KEY (targetSurveyId) REFERENCES targetSurvey(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_targetSurveyResponses_survey ON targetSurveyResponses(targetSurveyId);
@@ -2253,7 +2255,7 @@ SQL
 INSERT OR REPLACE INTO targetReferenceMaterials (
     materialCode, targetCode, contentsId, contentCode, title, description, category,
     linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt,
-    displayOrder, isDeleted
+    position, displayOrder, isDeleted
 )
 VALUES (
     '${doc_material_code}',
@@ -2270,6 +2272,7 @@ VALUES (
     '${creator}',
     datetime('now','localtime'),
     datetime('now','localtime'),
+    1,
     0,
     0
 ), (
@@ -2287,6 +2290,7 @@ VALUES (
     '${creator}',
     datetime('now','localtime'),
     datetime('now','localtime'),
+    2,
     1,
     0
 );
@@ -2512,7 +2516,7 @@ SQL
 INSERT OR REPLACE INTO targetReferenceMaterials (
     materialCode, targetCode, contentCode, title, description, category,
     linkUrl, downloadUrl, fileName, fileSize, ownerUserCode, createdAt, updatedAt,
-    displayOrder, isDeleted
+    position, displayOrder, isDeleted
 )
 VALUES (
     '${video_material_code}',
@@ -2528,6 +2532,7 @@ VALUES (
     '${creator}',
     datetime('now','localtime'),
     datetime('now','localtime'),
+    3,
     2,
     0
 );
@@ -2786,7 +2791,7 @@ VALUES (
     0
 );
 INSERT OR REPLACE INTO targetSurvey (
-    surveyCode, targetCode, title, content, startAt, endAt, createdByUserCode, createdAt, updatedAt, displayOrder, isDeleted
+    surveyCode, targetCode, title, content, startAt, endAt, isGuestMode, createdByUserCode, createdAt, updatedAt, displayOrder, isDeleted
 )
 VALUES (
     '${announcement_code}',
@@ -2795,6 +2800,7 @@ VALUES (
     '${content_sql}',
     ${survey_start_expr},
     ${survey_end_expr},
+    0,
     '${announcement_creator}',
     ${created_at_expr},
     datetime('now','localtime'),
