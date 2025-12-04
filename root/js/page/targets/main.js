@@ -85,6 +85,8 @@
       }
       this.state.sessionUser = sessionUser;
 
+      window.Utils.initScreenModalHistoryObserver().observe();
+
       this.initConfig();
       this.targetAlias = this.resolveTargetAlias();
 
@@ -828,13 +830,28 @@
     {
       var modal = this.refs.formModal;
       if (!modal) return;
+      var restoreTarget = this._formModalTrigger;
+      var activeEl = document && document.activeElement;
+      var isFocusInside = !!(activeEl && modal.contains(activeEl));
+      if (isFocusInside)
+      {
+        if (restoreTarget && typeof restoreTarget.focus === 'function')
+        {
+          try { restoreTarget.focus({ preventScroll: true }); }
+          catch (_) { restoreTarget.focus(); }
+        }
+        else if (activeEl && typeof activeEl.blur === 'function')
+        {
+          activeEl.blur();
+        }
+      }
       modal.setAttribute('aria-hidden', 'true');
       modal.classList.remove('is-visible', 'is-open');
       modal.hidden = true;
       this._unlockBodyScroll();
-      if (this._formModalTrigger && this._formModalTrigger.focus) {
-        try { this._formModalTrigger.focus({ preventScroll: true }); }
-        catch (_) { this._formModalTrigger.focus(); }
+      if (!isFocusInside && restoreTarget && typeof restoreTarget.focus === 'function') {
+        try { restoreTarget.focus({ preventScroll: true }); }
+        catch (_) { restoreTarget.focus(); }
       }
       this._formModalTrigger = null;
     }

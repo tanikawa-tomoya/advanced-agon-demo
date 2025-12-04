@@ -1062,16 +1062,6 @@ CREATE TABLE IF NOT EXISTS targetSurveyItemKind (
     FOREIGN KEY (targetSurveyItemId) REFERENCES targetSurveyItem(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_targetSurveyItemKind_item ON targetSurveyItemKind(targetSurveyItemId);
-CREATE TABLE IF NOT EXISTS targetSurveyAcknowledgements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    targetSurveyId INTEGER NOT NULL,
-    userCode VARCHAR(32) NOT NULL,
-    acknowledgedAt VARCHAR(32),
-    UNIQUE(targetSurveyId, userCode),
-    FOREIGN KEY (targetSurveyId) REFERENCES targetSurvey(id) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_targetSurveyAck_survey ON targetSurveyAcknowledgements(targetSurveyId);
-CREATE INDEX IF NOT EXISTS idx_targetSurveyAck_user ON targetSurveyAcknowledgements(userCode);
 CREATE TABLE IF NOT EXISTS targetSurveyResponses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     targetSurveyId INTEGER NOT NULL,
@@ -2863,12 +2853,6 @@ INSERT OR IGNORE INTO targetAnnouncementAcknowledgements (targetAnnouncementId, 
 SELECT id, '${acknowledgement_user}', ${acknowledged_expr}
 FROM targetAnnouncements
 WHERE announcementCode = '${acknowledgement_code}'
-  AND targetCode = '${acknowledgement_target}'
-LIMIT 1;
-INSERT OR IGNORE INTO targetSurveyAcknowledgements (targetSurveyId, userCode, acknowledgedAt)
-SELECT id, '${acknowledgement_user}', ${acknowledged_expr}
-FROM targetSurvey
-WHERE surveyCode = '${acknowledgement_code}'
   AND targetCode = '${acknowledgement_target}'
 LIMIT 1;
 SQL

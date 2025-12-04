@@ -4,10 +4,14 @@
    
    class HeaderJobLogo
    {
-     constructor(serviceInstance)
-     {
-       this.serviceInstance = serviceInstance;
-     }
+    constructor(serviceInstance)
+    {
+      this.serviceInstance = serviceInstance;
+      this.PERFORMANCE_PRESETS = Object.freeze({
+        'default': Object.freeze({ pixelDensity: 2, frameRate: 60, sphereStep: 1.2 }),
+        low: Object.freeze({ pixelDensity: 1, frameRate: 30, sphereStep: 2 })
+      });
+    }
      
      loadP5IfNeeded(firstSrc)
      {
@@ -51,6 +55,7 @@
       const label = options && options.label ? String(options.label) : 'ADVANCED';
       const size = options && Number(options.size) > 0 ? Number(options.size) : 88;
       const ringRepeat = options && Number(options.ringRepeat) > 0 ? Math.floor(Number(options.ringRepeat)) : 1;
+      const performance = this._resolvePerformanceOptions(options);
       const $elements = $anchor && typeof $anchor.toArray === 'function' ? $anchor.toArray() : [];
       if ($elements.length === 0) { return; }
 
@@ -58,7 +63,12 @@
         for (let i = 0; i < $elements.length; i++) {
           const element = $elements[i];
           if (!element) { continue; }
-          this._renderAnimatedLogo(element, { label: label, size: size, ringRepeat: ringRepeat });
+          this._renderAnimatedLogo(element, {
+            label: label,
+            size: size,
+            ringRepeat: ringRepeat,
+            performance: performance
+          });
         }
       }).catch(function (err) {
         console.error('[header] p5 logo draw failed:', err);
@@ -93,6 +103,10 @@
       const size = config && Number(config.size) > 0 ? Number(config.size) : 88;
       const text = config && config.label ? String(config.label) : 'ADVANCED';
       const repeat = config && Number(config.ringRepeat) > 0 ? Math.floor(Number(config.ringRepeat)) : 1;
+      const performance = config && config.performance ? config.performance : {};
+      const pixelDensity = this._validatePerformanceValue(performance.pixelDensity, this.PERFORMANCE_PRESETS['default'].pixelDensity);
+      const frameRate = this._validatePerformanceValue(performance.frameRate, this.PERFORMANCE_PRESETS['default'].frameRate);
+      const sphereStep = this._validatePerformanceValue(performance.sphereStep, this.PERFORMANCE_PRESETS['default'].sphereStep);
       const letters = this._buildLetterRing(text, repeat);
       const textRadius = size * 0.38;
 
@@ -110,8 +124,8 @@
         p.setup = function () {
           const canvas = p.createCanvas(size, size);
           canvas.parent(host);
-          p.pixelDensity(2);
-          p.frameRate(60);
+          p.pixelDensity(pixelDensity);
+          p.frameRate(frameRate);
         };
 
         p.draw = function () {
@@ -155,7 +169,7 @@
           ctx.restore();
 
           const sphereRadius = size * 0.36;
-          for (let r = sphereRadius; r > 0; r -= 1.2) {
+          for (let r = sphereRadius; r > 0; r -= sphereStep) {
             const t = r / sphereRadius;
             const col = p.lerpColor(p.color(25, 45, 102, 200), p.color(13, 148, 136, 240), t);
             p.fill(col);
@@ -236,7 +250,41 @@
       }
       return letters;
     }
-     
+
+    _resolvePerformanceOptions(options)
+    {
+      const presets = this._mergePerformancePresets(options && options.performancePresets);
+      const src = options && typeof options.performance === 'object' ? options.performance : {};
+      const requestedPreset = src && src.preset ? String(src.preset) : options && options.performancePreset;
+      const preset = presets[requestedPreset] || presets['default'];
+
+      return {
+        preset: requestedPreset || 'default',
+        pixelDensity: this._validatePerformanceValue(src.pixelDensity, preset.pixelDensity),
+        frameRate: this._validatePerformanceValue(src.frameRate, preset.frameRate),
+        sphereStep: this._validatePerformanceValue(src.sphereStep, preset.sphereStep)
+      };
+    }
+
+    _mergePerformancePresets(customPresets)
+    {
+      const presets = Object.assign({}, this.PERFORMANCE_PRESETS);
+      if (!customPresets || typeof customPresets !== 'object') { return presets; }
+      for (const key in customPresets) {
+        if (!Object.prototype.hasOwnProperty.call(customPresets, key)) { continue; }
+        const candidate = customPresets[key];
+        if (!candidate || typeof candidate !== 'object') { continue; }
+        presets[key] = Object.assign({}, candidate);
+      }
+      return presets;
+    }
+
+    _validatePerformanceValue(value, fallback)
+    {
+      const num = Number(value);
+      return num > 0 ? num : fallback;
+    }
+
    }
    
   // Services.header 名前空間の直下に公開（再定義ガード付き）

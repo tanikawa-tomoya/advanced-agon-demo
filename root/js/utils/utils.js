@@ -739,10 +739,314 @@
     return Utils.SAFE_FILE_RE.test(String(s || ''));
   };
 
+  // ---------------------------------------------------------------------------
+  // Screen modal history (browser back closes modal)
+  // ---------------------------------------------------------------------------
+
+  function ScreenModalHistory()
+  {
+    this._stack = [];
+    this._entryMap = typeof Map === 'function' ? new Map() : null;
+    this._ignorePopstateCount = 0;
+    this._closingFromHistory = false;
+    this._historyHandler = null;
+    this._observer = null;
+  }
+
+  ScreenModalHistory.prototype._ensureHistoryListener = function ()
+  {
+    if (this._historyHandler)
+    {
+      return;
+    }
+    var self = this;
+    this._historyHandler = function ()
+    {
+      if (self._ignorePopstateCount > 0)
+      {
+        self._ignorePopstateCount -= 1;
+        return;
+      }
+      var entry = self._stack.pop();
+      if (!entry)
+      {
+        self._teardownHistoryIfIdle();
+        return;
+      }
+      self._closingFromHistory = true;
+      try
+      {
+        if (typeof entry.close === 'function')
+        {
+          entry.close();
+        }
+      }
+      catch (_err)
+      {
+      }
+      self._closingFromHistory = false;
+      self._teardownHistoryIfIdle();
+    };
+    window.addEventListener('popstate', this._historyHandler);
+  };
+
+  ScreenModalHistory.prototype._teardownHistoryIfIdle = function ()
+  {
+    if (this._stack.length === 0 && this._ignorePopstateCount <= 0 && this._historyHandler)
+    {
+      window.removeEventListener('popstate', this._historyHandler);
+      this._historyHandler = null;
+      this._ignorePopstateCount = 0;
+    }
+  };
+
+  ScreenModalHistory.prototype._registerOpen = function (modalEl)
+  {
+    if (!modalEl)
+    {
+      return;
+    }
+    if (this._entryMap && this._entryMap.has(modalEl))
+    {
+      return;
+    }
+    if (!this._entryMap)
+    {
+      for (var i = 0; i < this._stack.length; i += 1)
+      {
+        if (this._stack[i] && this._stack[i].modal === modalEl)
+        {
+          return;
+        }
+      }
+    }
+    var entry = {
+      modal: modalEl,
+      close: this._buildCloseHandler(modalEl)
+    };
+    this._stack.push(entry);
+    if (this._entryMap)
+    {
+      this._entryMap.set(modalEl, entry);
+    }
+    this._ensureHistoryListener();
+    history.pushState({ modal: 'page' }, document.title, window.location.href);
+  };
+
+  ScreenModalHistory.prototype._registerClose = function (modalEl)
+  {
+    var entry = this._entryMap ? this._entryMap.get(modalEl) : null;
+    if (!entry)
+    {
+      for (var i = this._stack.length - 1; i >= 0; i -= 1)
+      {
+        if (this._stack[i] && this._stack[i].modal === modalEl)
+        {
+          entry = this._stack[i];
+          break;
+        }
+      }
+    }
+    if (!entry)
+    {
+      return;
+    }
+    if (this._entryMap)
+    {
+      this._entryMap.delete(modalEl);
+    }
+    var idx = -1;
+    for (var j = this._stack.length - 1; j >= 0; j -= 1)
+    {
+      if (this._stack[j] === entry)
+      {
+        idx = j;
+        break;
+      }
+    }
+    if (idx >= 0)
+    {
+      this._stack.splice(idx, 1);
+    }
+    if (!this._closingFromHistory)
+    {
+      this._ignorePopstateCount += 1;
+      history.back();
+    }
+    else
+    {
+      this._teardownHistoryIfIdle();
+    }
+  };
+
+  ScreenModalHistory.prototype._buildCloseHandler = function (modalEl)
+  {
+    var self = this;
+    return function ()
+    {
+      if (self._entryMap)
+      {
+        self._entryMap.delete(modalEl);
+      }
+      self._invokeModalClose(modalEl);
+    };
+  };
+
+  ScreenModalHistory.prototype._invokeModalClose = function (modalEl)
+  {
+    if (!modalEl)
+    {
+      return;
+    }
+    var closeTarget = modalEl.querySelector('[data-modal-close]')
+      || modalEl.querySelector('.screen-modal__close')
+      || modalEl.querySelector('.screen-modal__overlay');
+    if (closeTarget && typeof closeTarget.dispatchEvent === 'function')
+    {
+      try
+      {
+        closeTarget.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }));
+        return;
+      }
+      catch (_err)
+      {
+      }
+    }
+    modalEl.classList.remove('is-open');
+    modalEl.setAttribute('aria-hidden', 'true');
+    modalEl.setAttribute('hidden', 'hidden');
+  };
+
+  ScreenModalHistory.prototype._isModalElement = function (node)
+  {
+    if (!(node && node.classList))
+    {
+      return false;
+    }
+    if (node.classList.contains('screen-modal'))
+    {
+      return true;
+    }
+    if (node.classList.contains('target-detail__survey-modal')
+      || node.classList.contains('target-detail__announcement-modal'))
+    {
+      return true;
+    }
+    if (node.hasAttribute && node.hasAttribute('data-modal-open'))
+    {
+      return true;
+    }
+    return false;
+  };
+
+  ScreenModalHistory.prototype._handleMutations = function (records)
+  {
+    var self = this;
+    var handleNode = function (node)
+    {
+      var targetIsModal = self._isModalElement(node);
+      if (targetIsModal)
+      {
+        self._syncModalState(node);
+      }
+      var descendants = node.querySelectorAll
+        ? node.querySelectorAll('.screen-modal, .target-detail__survey-modal, .target-detail__announcement-modal, [data-modal-open]')
+        : [];
+      for (var i = 0; i < descendants.length; i += 1)
+      {
+        self._syncModalState(descendants[i]);
+      }
+    };
+
+    for (var r = 0; r < records.length; r += 1)
+    {
+      var record = records[r];
+      if (record.type === 'attributes' && record.target)
+      {
+        handleNode(record.target);
+      }
+      else if (record.type === 'childList')
+      {
+        for (var a = 0; a < record.addedNodes.length; a += 1)
+        {
+          handleNode(record.addedNodes[a]);
+        }
+      }
+    }
+  };
+
+  ScreenModalHistory.prototype._syncModalState = function (modalEl)
+  {
+    if (!this._isModalElement(modalEl))
+    {
+      return;
+    }
+    var dataOpen = modalEl.getAttribute('data-open');
+    var dataModalOpen = modalEl.getAttribute('data-modal-open');
+    var isOpen = (modalEl.classList.contains('is-open')
+      || dataOpen === 'true'
+      || dataModalOpen === 'true')
+      && modalEl.getAttribute('aria-hidden') !== 'true'
+      && modalEl.getAttribute('hidden') !== 'hidden';
+    if (isOpen)
+    {
+      this._registerOpen(modalEl);
+    }
+    else
+    {
+      this._registerClose(modalEl);
+    }
+  };
+
+  ScreenModalHistory.prototype.observe = function ()
+  {
+    if (!document || !document.body)
+    {
+      return;
+    }
+    this._syncInitialModals();
+    if (this._observer)
+    {
+      this._observer.disconnect();
+    }
+    var observer = new MutationObserver(this._handleMutations.bind(this));
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true, childList: true });
+    this._observer = observer;
+  };
+
+  ScreenModalHistory.prototype._syncInitialModals = function ()
+  {
+    var opened = document.querySelectorAll(
+      '.screen-modal.is-open, .target-detail__survey-modal.is-open, .target-detail__survey-modal[data-open="true"],'
+      + ' .target-detail__announcement-modal.is-open, .target-detail__announcement-modal[data-open="true"],'
+      + ' [data-modal-open="true"]'
+    );
+    for (var i = 0; i < opened.length; i += 1)
+    {
+      this._registerOpen(opened[i]);
+    }
+  };
+
+  ScreenModalHistory.prototype.isClosingFromHistory = function ()
+  {
+    return this._closingFromHistory;
+  };
+
+  Utils.initScreenModalHistoryObserver = function initScreenModalHistoryObserver()
+  {
+    if (window.ScreenModalHistory && typeof window.ScreenModalHistory.observe === 'function')
+    {
+      return window.ScreenModalHistory;
+    }
+    var manager = new ScreenModalHistory();
+    window.ScreenModalHistory = manager;
+    return manager;
+  };
+
   // misc
   Utils.freezeArray = function freezeArray(arr)
   {
     return Object.freeze(arr.slice());
-  } 
+  }
 
 }());

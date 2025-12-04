@@ -71,6 +71,7 @@
         this.config.display.forceLoginButton = true;
         this._display.forceLoginButton = true;
       }
+      this.config.p5 = this._mergeP5Options(this.config.p5);
       this.applyOptions(rawOptions);
       this.mount(selector);
 
@@ -286,6 +287,26 @@
       return result;
     }
 
+    _mergeP5Options(options)
+    {
+      const defaults = this.DEFAULTS.p5 || {};
+      const raw = options && typeof options === 'object' ? options : {};
+      const performancePresets = raw.performancePresets || defaults.performancePresets || {};
+      const performancePreset = raw.performancePreset || defaults.performancePreset || 'default';
+      const performanceDefaults = defaults.performance || {};
+      const performanceRaw = raw.performance && typeof raw.performance === 'object' ? raw.performance : {};
+      const performance = Object.assign({}, performanceDefaults, performanceRaw);
+      if (!Object.prototype.hasOwnProperty.call(performance, 'preset')) {
+        performance.preset = performancePreset;
+      }
+
+      return Object.assign({}, defaults, raw, {
+        performancePreset: performancePreset,
+        performancePresets: performancePresets,
+        performance: performance
+      });
+    }
+
     resolveDefaultAccountEditHref()
     {
       const defaults = this.DEFAULTS || {};
@@ -441,7 +462,14 @@
       // ロゴ（p5）
       const $logo = $root.find(S.logo);
       const label = $logo.attr('data-logo-label') || 'ADVANCED';
-      this.jobLogo.drawLogoWithP5($logo, { src: this.config.p5.src, label: label, fontSize: this.config.p5.fontSize });
+      this.jobLogo.drawLogoWithP5($logo, {
+        src: this.config.p5.src,
+        label: label,
+        fontSize: this.config.p5.fontSize,
+        performance: this.config.p5.performance,
+        performancePreset: this.config.p5.performancePreset,
+        performancePresets: this.config.p5.performancePresets
+      });
 
       return this;
     }
@@ -781,6 +809,11 @@
         ])
       });
 
+      this.P5_PERFORMANCE_PRESETS = Object.freeze({
+        'default': Object.freeze({ pixelDensity: 2, frameRate: 60, sphereStep: 1.2 }),
+        low: Object.freeze({ pixelDensity: 1, frameRate: 30, sphereStep: 2 })
+      });
+
       this.DEFAULTS = Object.freeze({
         mountSelector: this.SELECTORS.root,
         // メニュー：役割に応じた既定値
@@ -800,10 +833,13 @@
           redirectUrl: '/login.html',
           label: 'ログアウト'
         }),
-        p5: {
+        p5: Object.freeze({
           // ロゴラベルは <a.site-header__logo data-logo-label="..."> を優先
-          fontSize: 18
-        },
+          fontSize: 18,
+          performancePreset: 'default',
+          performance: this.P5_PERFORMANCE_PRESETS['default'],
+          performancePresets: this.P5_PERFORMANCE_PRESETS
+        }),
         stylesheetHref: '/css/service-header.css',
         // 現在の URL に基づき highlightActiveLinkByUrl で aria-current="page" を適用
         activeByPath: true

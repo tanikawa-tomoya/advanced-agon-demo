@@ -92,9 +92,8 @@ class TargetManagementSurvey extends Base
 
         protected function validationTargetSurveyResponseDelete()
         {
-                if (isset($this->params['id']) == false && isset($this->params['surveyCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+                if (isset($this->params['id']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
                 if (isset($this->params['targetCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
-                if (isset($this->params['userCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
         }
 
 
@@ -208,11 +207,10 @@ class TargetManagementSurvey extends Base
 			}
 		}
 
-		$payload = $this->loadTargetSurveyCollections($targetRow);
-		$this->response = array(
-								'survey' => isset($payload['survey']) ? $payload['survey'] : array(),
-								'acknowledgements' => isset($payload['acknowledgements']) ? $payload['acknowledgements'] : array(),
-								);
+                $payload = $this->loadTargetSurveyCollections($targetRow);
+                $this->response = array(
+                                                                  'survey' => isset($payload['survey']) ? $payload['survey'] : array(),
+                                                                  );
 		$this->refreshTargetSurveyessionToken();
 	}
 
@@ -374,7 +372,7 @@ class TargetManagementSurvey extends Base
                 $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
-                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, array(), $itemLookup);
+                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $itemLookup);
 
 		$this->response = $payload !== null ? $payload : array();
 		$this->refreshTargetSurveyessionToken();
@@ -535,11 +533,9 @@ class TargetManagementSurvey extends Base
 
                 $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
-                $payload = $this->buildTargetSurveyPayload($updatedRow, $targetRow, $assignedUsers, $ackLookup, $itemLookup, $responseLookup);
+                $payload = $this->buildTargetSurveyPayload($updatedRow, $targetRow, $assignedUsers, $itemLookup, $responseLookup);
 
                 $this->response = $payload !== null ? $payload : array();
                 $this->refreshTargetSurveyessionToken();
@@ -615,106 +611,6 @@ class TargetManagementSurvey extends Base
 
 
 
-        public function procTargetSurveyAcknowledge()
-        {
-                $surveyId = null;
-                if (isset($this->params['id'])) {
-                        $surveyId = $this->filterTargetSurveyId($this->params['id']);
-                }
-
-                if ($surveyId === null && isset($this->params['surveyCode'])) {
-                        $code = trim((string)$this->params['surveyCode']);
-                        if ($code !== '') {
-                                $surveyId = $this->fetchTargetSurveyIdByCode($code);
-                        }
-                }
-
-                if ($surveyId === null) {
-                        $this->status = parent::RESULT_ERROR;
-                        $this->errorReason = 'invalid';
-			return;
-		}
-
-		$userCodeRaw = isset($this->params['userCode']) ? $this->params['userCode'] : '';
-		$userCode = trim((string)$userCodeRaw);
-		if ($userCode === '') {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'invalid';
-			return;
-		}
-
-		$surveyRow = $this->fetchTargetSurveyById($surveyId);
-		if ($surveyRow == null) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'notfound';
-			return;
-		}
-
-		$targetCode = isset($surveyRow['targetCode']) ? trim((string)$surveyRow['targetCode']) : '';
-		$targetRow = TargetManagementUtil::fetchActiveTargetByCode($targetCode, $this->getLoginUserCode(), $this->getPDOTarget(), $this->getUserInfo($this->getLoginUserCode()), $this->getPDOCommon());
-		if ($targetRow == null) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'notfound';
-			return;
-		}
-
-		$loginUserCode = $this->getLoginUserCode();
-		if ($loginUserCode === null || $loginUserCode === '') {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'permission';
-			return;
-		}
-
-		$normalizedLogin = $this->normalizeUserCodeValue($loginUserCode);
-		$normalizedTarget = $this->normalizeUserCodeValue($userCode);
-		$canManage = $this->canManageTargetSurvey($targetRow, $loginUserCode);
-
-		if ($canManage == false) {
-			if ($normalizedLogin === '' || $normalizedLogin !== $normalizedTarget) {
-				$this->status = parent::RESULT_ERROR;
-				$this->errorReason = 'permission';
-				return;
-			}
-		}
-
-		$userInfo = $this->getUserInfo($userCode);
-		if ($userInfo == null) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'notfound';
-			return;
-		}
-
-		$acknowledgedAt = null;
-		if (array_key_exists('acknowledgedAt', $this->params)) {
-			$timestampValue = Util::normalizeOptionalString($this->params['acknowledgedAt'], 64);
-			if ($timestampValue === false) {
-                                $this->status = parent::RESULT_ERROR;
-                                $this->errorReason = 'invalid';
-                                return;
-                        }
-                        $acknowledgedAt = $timestampValue;
-                }
-
-
-                $pdo = $this->getPDOTarget();
-
-                try {
-                        $stmt = $pdo->prepare(
-                                                                  'INSERT INTO targetSurveyAcknowledgements (targetSurveyId, userCode, acknowledgedAt) '
-                                                                  . 'VALUES (?, ?, ?) '
-                                                                  . 'ON CONFLICT(targetSurveyId, userCode) DO UPDATE SET acknowledgedAt = excluded.acknowledgedAt'
-                                                                  );
-                        $stmt->execute(array($surveyId, $userCode, $acknowledgedAt));
-                        $this->response = array('acknowledgedAt' => $acknowledgedAt);
-                } catch (Exception $exception) {
-                        $this->status = parent::RESULT_ERROR;
-                        $this->errorReason = 'database';
-                        return;
-                }
-
-                $this->refreshTargetSurveyessionToken();
-        }
-
 
 
         public function procTargetSurveyDetail()
@@ -784,11 +680,9 @@ class TargetManagementSurvey extends Base
                 $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
 
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
-                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $ackLookup, $itemLookup, $responseLookup);
+                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $itemLookup, $responseLookup);
 
                 $this->response = $payload !== null ? $payload : array();
                 $this->refreshTargetSurveyessionToken();
@@ -816,15 +710,7 @@ class TargetManagementSurvey extends Base
 			return;
 		}
 
-		$status = 'all';
-		if (isset($this->params['status'])) {
-			$candidate = strtolower(trim((string)$this->params['status']));
-			if ($candidate === 'acknowledged' || $candidate === 'unacknowledged' || $candidate === 'all') {
-				$status = $candidate;
-			}
-		}
-
-		$surveyRow = $this->fetchTargetSurveyById($surveyId);
+                $surveyRow = $this->fetchTargetSurveyById($surveyId);
 		if ($surveyRow == null) {
 			$this->status = parent::RESULT_ERROR;
 			$this->errorReason = 'notfound';
@@ -857,27 +743,14 @@ class TargetManagementSurvey extends Base
 		$assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
 
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
                 $surveyKey = (string)$surveyId;
-                $recipientAck = isset($ackLookup[$surveyKey]) ? $ackLookup[$surveyKey] : array();
                 $recipientResponses = isset($responseLookup[$surveyKey]) ? $responseLookup[$surveyKey] : array();
-                $recipients = $this->buildTargetSurveyRecipients($targetRow, $assignedUsers, $recipientAck, $recipientResponses);
+                $recipients = $this->buildTargetSurveyRecipients($targetRow, $assignedUsers, $recipientResponses);
 
-		if ($status === 'acknowledged') {
-			$recipients = array_values(array_filter($recipients, function ($recipient) {
-						return isset($recipient['acknowledgedAt']) && $recipient['acknowledgedAt'] !== null && $recipient['acknowledgedAt'] !== '';
-					}));
-		} elseif ($status === 'unacknowledged') {
-			$recipients = array_values(array_filter($recipients, function ($recipient) {
-						return empty($recipient['acknowledgedAt']);
-					}));
-		}
-
-		$this->response = array('recipients' => $recipients);
-		$this->refreshTargetSurveyessionToken();
+                $this->response = array('recipients' => $recipients);
+                $this->refreshTargetSurveyessionToken();
 	}
 
 
@@ -953,11 +826,9 @@ public function procTargetSurveyDownloadCSV()
 		$assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
 
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
-                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $ackLookup, $itemLookup, $responseLookup);
+                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $itemLookup, $responseLookup);
 
 		if ($payload === null) {
 		$this->status = parent::RESULT_ERROR;
@@ -1146,7 +1017,7 @@ public function procTargetSurveyDownloadCSV()
 				$row[] = $resolveAnswerText($recipient, $item);
 		}
 
-		$row[] = isset($recipient['acknowledgedAt']) ? $recipient['acknowledgedAt'] : '';
+                $row[] = isset($recipient['respondedAt']) ? $recipient['respondedAt'] : '';
 		fputcsv($handle, $row);
 		}
 
@@ -1311,14 +1182,11 @@ public function procTargetSurveyItemList()
                 $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
 
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
                 $surveyKey = (string)$surveyId;
-                $recipientAck = isset($ackLookup[$surveyKey]) ? $ackLookup[$surveyKey] : array();
                 $recipientResponses = isset($responseLookup[$surveyKey]) ? $responseLookup[$surveyKey] : array();
-                $recipients = $this->buildTargetSurveyRecipients($targetRow, $assignedUsers, $recipientAck, $recipientResponses);
+                $recipients = $this->buildTargetSurveyRecipients($targetRow, $assignedUsers, $recipientResponses);
 
                 $eligible = array();
                 foreach ($recipients as $recipient) {
@@ -1356,28 +1224,9 @@ public function procTargetSurveyItemList()
                         return;
                 }
 
-                $pdo = $this->getPDOTarget();
-
-                try {
-                        $stmt = $pdo->prepare(
-                                                                  'INSERT INTO targetSurveyAcknowledgements (targetSurveyId, userCode, acknowledgedAt) '
-                                                                  . 'VALUES (?, ?, NULL) '
-                                                                  . 'ON CONFLICT(targetSurveyId, userCode) DO UPDATE SET acknowledgedAt = NULL'
-                                                                  );
-                        foreach ($targets as $code) {
-                                $stmt->execute(array($surveyId, $code));
-                        }
-                } catch (Exception $exception) {
-                        $this->status = parent::RESULT_ERROR;
-                        $this->errorReason = 'database';
-                        return;
-                }
-
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
-                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $ackLookup, $itemLookup, $responseLookup);
+                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $itemLookup, $responseLookup);
 
                 $this->response = array('survey' => $payload);
                 $this->refreshTargetSurveyessionToken();
@@ -1604,15 +1453,6 @@ public function procTargetSurveyItemList()
                                 ));
                         }
 
-                        if ($guestResponse == false) {
-                                $ackStmt = $pdo->prepare(
-                                                                'INSERT INTO targetSurveyAcknowledgements (targetSurveyId, userCode, acknowledgedAt) '
-                                                                . 'VALUES (?, ?, ?) '
-                                                                . 'ON CONFLICT(targetSurveyId, userCode) DO UPDATE SET acknowledgedAt = excluded.acknowledgedAt'
-                                                                );
-                                $ackStmt->execute(array($surveyId, $userCode, $respondedAt));
-                        }
-
                         $pdo->commit();
 
                         if ($isGuestMode && $responseAction !== null) {
@@ -1636,11 +1476,9 @@ public function procTargetSurveyItemList()
 
                 $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
 
-                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $ackLookup, $itemLookup, $responseLookup);
+                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $itemLookup, $responseLookup);
 
                 $this->response = $payload !== null ? $payload : array('respondedAt' => $respondedAt);
                 $this->refreshTargetSurveyessionToken();
@@ -1650,19 +1488,8 @@ public function procTargetSurveyItemList()
 
         public function procTargetSurveyResponseDelete()
         {
-                $surveyId = null;
-                if (isset($this->params['id'])) {
-                        $surveyId = $this->filterTargetSurveyId($this->params['id']);
-                }
-
-                if ($surveyId === null && isset($this->params['surveyCode'])) {
-                        $code = trim((string)$this->params['surveyCode']);
-                        if ($code !== '') {
-                                $surveyId = $this->fetchTargetSurveyIdByCode($code);
-                        }
-                }
-
-                if ($surveyId === null) {
+                $responseId = isset($this->params['id']) ? (int)$this->params['id'] : 0;
+                if ($responseId <= 0) {
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'invalid';
                         return;
@@ -1675,11 +1502,26 @@ public function procTargetSurveyItemList()
                         return;
                 }
 
-                $userCodeRaw = isset($this->params['userCode']) ? $this->params['userCode'] : '';
-                $userCode = trim((string)$userCodeRaw);
-                if ($userCode === '') {
+                $targetRow = TargetManagementUtil::fetchActiveTargetByCode($targetCode, $this->getLoginUserCode(), $this->getPDOTarget(), $this->getUserInfo($this->getLoginUserCode()), $this->getPDOCommon());
+                if ($targetRow == null) {
                         $this->status = parent::RESULT_ERROR;
-                        $this->errorReason = 'invalid';
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                $responseRow = $this->fetchTargetSurveyResponseById($responseId);
+                if ($responseRow == null) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
+                        return;
+                }
+
+                $surveyId = isset($responseRow['targetSurveyId']) ? (int)$responseRow['targetSurveyId'] : 0;
+                $surveyTargetCode = isset($responseRow['targetCode']) ? trim((string)$responseRow['targetCode']) : '';
+
+                if ($surveyId <= 0 || ($surveyTargetCode !== '' && $surveyTargetCode !== $targetCode)) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'notfound';
                         return;
                 }
 
@@ -1697,13 +1539,6 @@ public function procTargetSurveyItemList()
                         return;
                 }
 
-                $targetRow = TargetManagementUtil::fetchActiveTargetByCode($targetCode, $this->getLoginUserCode(), $this->getPDOTarget(), $this->getUserInfo($this->getLoginUserCode()), $this->getPDOCommon());
-                if ($targetRow == null) {
-                        $this->status = parent::RESULT_ERROR;
-                        $this->errorReason = 'notfound';
-                        return;
-                }
-
                 $loginUserCode = $this->getLoginUserCode();
                 if ($loginUserCode === null || $loginUserCode === '') {
                         $this->status = parent::RESULT_ERROR;
@@ -1711,58 +1546,71 @@ public function procTargetSurveyItemList()
                         return;
                 }
 
-                if ($this->canManageTargetSurvey($targetRow, $loginUserCode) == false) {
+                $loginIsSupervisor = $this->isSupervisor();
+                $loginIsOperator = $this->isOperator();
+                $operatorIsMember = $loginIsOperator && $this->userCanAccessTarget($targetRow, $targetCode, $loginUserCode);
+
+                if ($loginIsSupervisor == false && $operatorIsMember == false) {
+                        $this->logSurveyEvent('procTargetSurveyResponseDelete permission denied', array(
+                                'loginUserCode' => $loginUserCode,
+                                'targetCode' => $targetCode,
+                                'surveyId' => $surveyId,
+                                'surveyCode' => isset($this->params['surveyCode']) ? $this->params['surveyCode'] : null,
+                                'userCode' => isset($responseRow['userCode']) ? $responseRow['userCode'] : null,
+                                'isSupervisor' => $loginIsSupervisor,
+                                'isOperator' => $loginIsOperator,
+                                'operatorIsMember' => $operatorIsMember,
+                        ));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'permission';
                         return;
                 }
 
-                $userInfo = $this->getUserInfo($userCode);
-                if ($userInfo == null) {
-                        $this->status = parent::RESULT_ERROR;
-                        $this->errorReason = 'notfound';
-                        return;
-                }
+                $userCode = isset($responseRow['userCode']) ? trim((string)$responseRow['userCode']) : '';
 
                 $pdo = $this->getPDOTarget();
-                $now = date('Y-m-d H:i:s');
 
                 try {
                         $pdo->beginTransaction();
 
-                        $responseStmt = $pdo->prepare('SELECT id FROM targetSurveyResponses WHERE targetSurveyId = ? AND userCode = ? LIMIT 1');
-                        $responseStmt->execute(array($surveyId, $userCode));
-                        $responseId = $responseStmt->fetchColumn();
+                        $deleteItems = $pdo->prepare('DELETE FROM targetSurveyResponseItems WHERE responseId = ?');
+                        $deleteItems->execute(array((int)$responseId));
 
-                        if ($responseId !== false && $responseId !== null) {
-                                $deleteItems = $pdo->prepare('DELETE FROM targetSurveyResponseItems WHERE responseId = ?');
-                                $deleteItems->execute(array((int)$responseId));
-
-                                $deleteResponse = $pdo->prepare('DELETE FROM targetSurveyResponses WHERE id = ?');
-                                $deleteResponse->execute(array((int)$responseId));
-                        }
-
-                        $deleteAck = $pdo->prepare('DELETE FROM targetSurveyAcknowledgements WHERE targetSurveyId = ? AND userCode = ?');
-                        $deleteAck->execute(array($surveyId, $userCode));
+                        $deleteResponse = $pdo->prepare('DELETE FROM targetSurveyResponses WHERE id = ?');
+                        $deleteResponse->execute(array((int)$responseId));
 
                         $pdo->commit();
+
+                        $this->logSurveyEvent('procTargetSurveyResponseDelete succeeded', array(
+                                'loginUserCode' => $loginUserCode,
+                                'targetCode' => $targetCode,
+                                'surveyId' => $surveyId,
+                                'surveyCode' => isset($this->params['surveyCode']) ? $this->params['surveyCode'] : null,
+                                'userCode' => $userCode,
+                                'deletedResponseId' => $responseId,
+                        ));
                 } catch (Exception $exception) {
                         if ($pdo->inTransaction()) {
                                 $pdo->rollBack();
                         }
-                        $this->logSurveyEvent('procTargetSurveyCreate failed during insert', array('targetCode' => $targetCode, 'exception' => $exception->getMessage()));
+                        $this->logSurveyEvent('procTargetSurveyResponseDelete failed', array(
+                                'targetCode' => $targetCode,
+                                'surveyId' => $surveyId,
+                                'surveyCode' => isset($this->params['surveyCode']) ? $this->params['surveyCode'] : null,
+                                'userCode' => $userCode,
+                                'loginUserCode' => $loginUserCode,
+                                'exception' => $exception->getMessage(),
+                        ));
                         $this->status = parent::RESULT_ERROR;
                         $this->errorReason = 'failed';
                         return;
                 }
 
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
                 $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
-                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $ackLookup, $itemLookup, $responseLookup);
+                $payload = $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $itemLookup, $responseLookup);
 
                 $this->response = $payload !== null ? $payload : array('deleted' => true);
                 $this->refreshTargetSurveyessionToken();
@@ -2647,13 +2495,13 @@ public function procTargetSurveyItemList()
         private function loadTargetSurveyCollections($targetRow)
         {
                 if ($targetRow == null || !is_array($targetRow)) {
-                        return array('survey' => array(), 'acknowledgements' => array());
-		}
+                        return array('survey' => array());
+                }
 
-		$targetCode = isset($targetRow['targetCode']) ? trim((string)$targetRow['targetCode']) : '';
-		if ($targetCode === '') {
-			return array('survey' => array(), 'acknowledgements' => array());
-		}
+                $targetCode = isset($targetRow['targetCode']) ? trim((string)$targetRow['targetCode']) : '';
+                if ($targetCode === '') {
+                        return array('survey' => array());
+                }
 
 
                 $pdo = $this->getPDOTarget();
@@ -2678,9 +2526,6 @@ public function procTargetSurveyItemList()
 			}
 		}
 
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements($surveyIds);
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
-
                 $itemLookup = $this->buildTargetSurveyItemLookup($surveyIds);
                 $responseLookup = $this->buildTargetSurveyResponseLookup($surveyIds, $itemLookup);
 
@@ -2692,13 +2537,13 @@ public function procTargetSurveyItemList()
                         if (!is_array($row)) {
                                 continue;
                         }
-                        $payload = $this->buildTargetSurveyPayload($row, $targetRow, $assignedUsers, $ackLookup, $itemLookup, $responseLookup);
+                        $payload = $this->buildTargetSurveyPayload($row, $targetRow, $assignedUsers, $itemLookup, $responseLookup);
                         if ($payload !== null) {
                                 $survey[] = $payload;
                         }
                 }
 
-		return array('survey' => $survey, 'acknowledgements' => $acknowledgements);
+                return array('survey' => $survey);
 	}
 
 
@@ -2769,92 +2614,6 @@ public function procTargetSurveyItemList()
 
 
 
-	private function fetchTargetSurveyAcknowledgements($surveyIds)
-	{
-		$list = array();
-		if (!is_array($surveyIds) || count($surveyIds) === 0) {
-			return $list;
-		}
-
-		$ids = array();
-		foreach ($surveyIds as $id) {
-			$intId = (int)$id;
-			if ($intId > 0) {
-				$ids[] = $intId;
-			}
-		}
-
-		if (count($ids) === 0) {
-			return $list;
-		}
-
-		$placeholders = implode(', ', array_fill(0, count($ids), '?'));
-		$stmt = $this->getPDOTarget()->prepare(
-											   'SELECT targetSurveyId, userCode, acknowledgedAt FROM targetSurveyAcknowledgements '
-											   . 'WHERE targetSurveyId IN (' . $placeholders . ')'
-											   );
-		$stmt->execute($ids);
-
-		while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-			if (!is_array($row)) {
-				continue;
-			}
-			$surveyId = isset($row['targetSurveyId']) ? (int)$row['targetSurveyId'] : 0;
-			if ($surveyId <= 0) {
-				continue;
-			}
-			$userCode = isset($row['userCode']) ? trim((string)$row['userCode']) : '';
-			if ($userCode === '') {
-				continue;
-			}
-			$ackAt = isset($row['acknowledgedAt']) ? Util::normalizeTimestampValue($row['acknowledgedAt']) : null;
-			$list[] = array(
-							'surveyId' => (string)$surveyId,
-							'userCode' => $userCode,
-							'acknowledgedAt' => $ackAt,
-							);
-		}
-
-		return $list;
-	}
-
-
-
-        private function indexTargetSurveyAcknowledgements($acknowledgements)
-        {
-                $lookup = array();
-                if (!is_array($acknowledgements)) {
-                        return $lookup;
-		}
-
-		foreach ($acknowledgements as $ack) {
-			if (!is_array($ack)) {
-				continue;
-			}
-			$surveyId = isset($ack['surveyId']) ? (string)$ack['surveyId'] : '';
-			if ($surveyId === '') {
-				continue;
-			}
-			$userCode = isset($ack['userCode']) ? trim((string)$ack['userCode']) : '';
-			if ($userCode === '') {
-				continue;
-			}
-			$normalized = $this->normalizeUserCodeValue($userCode);
-			if ($normalized === '') {
-				continue;
-			}
-                        if (isset($lookup[$surveyId]) == false) {
-                                $lookup[$surveyId] = array();
-                        }
-                        $lookup[$surveyId][$normalized] = array(
-                                                                                  'userCode' => $userCode,
-                                                                                  'acknowledgedAt' => isset($ack['acknowledgedAt']) ? $ack['acknowledgedAt'] : null,
-                                                                                  'hasAcknowledgement' => true,
-                                                                                  );
-                }
-
-                return $lookup;
-        }
 
 
 
@@ -3209,6 +2968,7 @@ public function procTargetSurveyItemList()
                         $lookup[$surveyKey][$responseKey] = array(
                                 'userCode' => $userCode,
                                 'respondedAt' => isset($response['respondedAt']) ? $response['respondedAt'] : null,
+                                'responseId' => $responseId,
                                 'answers' => $answers,
                                 'isGuestResponse' => $isGuestResponse,
                                 'isGuestMode' => $isGuestMode,
@@ -3218,6 +2978,49 @@ public function procTargetSurveyItemList()
                 }
 
                 return $lookup;
+        }
+
+
+
+        private function fetchTargetSurveyResponseById($responseId)
+        {
+                $id = (int)$responseId;
+                if ($id <= 0) {
+                        return null;
+                }
+
+                $stmt = $this->getPDOTarget()->prepare(
+                                                                               'SELECT r.id, r.targetSurveyId, r.userCode, r.respondedAt, r.createdAt, r.updatedAt, s.targetCode, s.isGuestMode '
+                                                                               . 'FROM targetSurveyResponses r '
+                                                                               . 'LEFT JOIN targetSurvey s ON s.id = r.targetSurveyId '
+                                                                               . 'WHERE r.id = ? '
+                                                                               . 'LIMIT 1'
+                                                                               );
+                $stmt->execute(array($id));
+
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!is_array($row)) {
+                        return null;
+                }
+
+                $userCode = isset($row['userCode']) ? trim((string)$row['userCode']) : '';
+                $isGuestMode = isset($row['isGuestMode']) ? ((int)$row['isGuestMode'] !== 0) : false;
+                if ($userCode === '' && $isGuestMode) {
+                        $row['userCode'] = 'guest:' . $id;
+                        $row['isGuestResponse'] = true;
+                        $row['guestDisplayName'] = 'ゲスト回答 #' . $id;
+                }
+
+                $row['respondedAt'] = isset($row['respondedAt']) ? Util::normalizeTimestampValue($row['respondedAt']) : null;
+                $row['createdAt'] = isset($row['createdAt']) ? Util::normalizeTimestampValue($row['createdAt']) : null;
+                $row['updatedAt'] = isset($row['updatedAt']) ? Util::normalizeTimestampValue($row['updatedAt']) : null;
+
+                if (isset($row['isGuestResponse']) == false) {
+                        $row['isGuestResponse'] = (isset($row['isGuestMode']) && (int)$row['isGuestMode'] !== 0)
+                                && (isset($row['userCode']) == false || trim((string)$row['userCode']) === '');
+                }
+
+                return $row;
         }
 
 
@@ -3780,15 +3583,13 @@ public function procTargetSurveyItemList()
                         return null;
                 }
 
-                $acknowledgements = $this->fetchTargetSurveyAcknowledgements(array($surveyId));
-                $ackLookup = $this->indexTargetSurveyAcknowledgements($acknowledgements);
                 $itemLookup = $this->buildTargetSurveyItemLookup(array($surveyId));
                 $responseLookup = $this->buildTargetSurveyResponseLookup(array($surveyId), $itemLookup);
 
                 $assignedUsersMap = $this->fetchAssignedUsersForTargets(array($targetCode));
                 $assignedUsers = isset($assignedUsersMap[$targetCode]) ? $assignedUsersMap[$targetCode] : array();
 
-                return $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $ackLookup, $itemLookup, $responseLookup);
+                return $this->buildTargetSurveyPayload($surveyRow, $targetRow, $assignedUsers, $itemLookup, $responseLookup);
         }
 
 
@@ -3867,7 +3668,7 @@ public function procTargetSurveyItemList()
 
 
 
-        private function buildTargetSurveyPayload($row, $targetRow, $assignedUserCodes, $ackLookup, $itemLookup = array(), $responseLookup = array())
+        private function buildTargetSurveyPayload($row, $targetRow, $assignedUserCodes, $itemLookup = array(), $responseLookup = array())
         {
                 if (!is_array($row)) {
                         return null;
@@ -3892,10 +3693,9 @@ public function procTargetSurveyItemList()
 		$creatorSummary = $this->resolveActivityActorSummary($creatorUserCode);
 		$creatorName = isset($creatorSummary[1]) ? $creatorSummary[1] : ($creatorUserCode !== '' ? $creatorUserCode : '');
 
-                $ackEntries = isset($ackLookup[$surveyKey]) ? $ackLookup[$surveyKey] : array();
                 $responses = isset($responseLookup[$surveyKey]) ? $responseLookup[$surveyKey] : array();
                 $recipientCodes = $this->extractRecipientCodesFromRow($row, $assignedUserCodes);
-                $recipients = $this->buildTargetSurveyRecipients($targetRow, $recipientCodes, $ackEntries, $responses);
+                $recipients = $this->buildTargetSurveyRecipients($targetRow, $recipientCodes, $responses);
 
                 $items = array();
                 if (isset($itemLookup[$surveyKey]) && is_array($itemLookup[$surveyKey])) {
@@ -3943,7 +3743,7 @@ public function procTargetSurveyItemList()
 
 
 
-        private function buildTargetSurveyRecipients($targetRow, $assignedUserCodes, $ackEntries, $responseEntries = array())
+        private function buildTargetSurveyRecipients($targetRow, $assignedUserCodes, $responseEntries = array())
         {
                 $recipientMap = array();
                 $assigned = is_array($assignedUserCodes) ? $assignedUserCodes : array();
@@ -3967,20 +3767,6 @@ public function procTargetSurveyItemList()
 			}
 		}
 
-                if (is_array($ackEntries)) {
-                        foreach ($ackEntries as $normalized => $ack) {
-                                if ($normalized === '') {
-                                        continue;
-                                }
-				if (isset($ack['userCode'])) {
-					$code = trim((string)$ack['userCode']);
-					if ($code !== '' && isset($recipientMap[$normalized]) == false) {
-						$recipientMap[$normalized] = $code;
-                                        }
-                                }
-                        }
-                }
-
                 if (is_array($responseEntries)) {
                         foreach ($responseEntries as $normalized => $response) {
                                 if ($normalized === '') {
@@ -3997,9 +3783,8 @@ public function procTargetSurveyItemList()
 
                 $recipients = array();
                 foreach ($recipientMap as $normalized => $code) {
-                        $ack = isset($ackEntries[$normalized]) ? $ackEntries[$normalized] : null;
                         $response = isset($responseEntries[$normalized]) ? $responseEntries[$normalized] : null;
-                        $recipient = $this->buildTargetSurveyRecipientPayload($targetRow, $code, $ack, $response);
+                        $recipient = $this->buildTargetSurveyRecipientPayload($targetRow, $code, $response);
                         if ($recipient !== null) {
                                 $recipients[] = $recipient;
                         }
@@ -4032,7 +3817,7 @@ public function procTargetSurveyItemList()
         }
 
 
-        private function buildTargetSurveyRecipientPayload($targetRow, $userCode, $ack, $response = null)
+        private function buildTargetSurveyRecipientPayload($targetRow, $userCode, $response = null)
         {
                 $resolvedCode = trim((string)$userCode);
                 if ($resolvedCode === '') {
@@ -4051,14 +3836,7 @@ public function procTargetSurveyItemList()
 
                 $role = $this->resolveTargetSurveyRecipientRole($targetRow, $resolvedCode);
 
-                $hasAcknowledgement = is_array($ack);
-
-                $acknowledgedAt = null;
                 $respondedAt = null;
-                if (is_array($ack) && isset($ack['acknowledgedAt']) && $ack['acknowledgedAt'] !== null && $ack['acknowledgedAt'] !== '') {
-                        $acknowledgedAt = $ack['acknowledgedAt'];
-                }
-
                 if (is_array($response) && isset($response['respondedAt']) && $response['respondedAt'] !== null && $response['respondedAt'] !== '') {
                         $respondedAt = Util::normalizeTimestampValue($response['respondedAt']);
                 }
@@ -4083,8 +3861,6 @@ public function procTargetSurveyItemList()
                                                  'userCode' => $resolvedCode,
                                                  'displayName' => $displayName,
                                                  'role' => $role,
-                                                 'acknowledgedAt' => $acknowledgedAt,
-                                                 'hasAcknowledgement' => $hasAcknowledgement,
                                                  'isActive' => $isActive,
                                                  );
 
@@ -4092,13 +3868,22 @@ public function procTargetSurveyItemList()
                         $payload['isGuest'] = true;
                 }
 
-                if ($acknowledgedAt !== null && $acknowledgedAt !== '') {
-                        $payload['acknowledgedAtDisplay'] = $acknowledgedAt;
-                }
-
                 if ($respondedAt !== null && $respondedAt !== '') {
                         $payload['respondedAt'] = $respondedAt;
                         $payload['respondedAtDisplay'] = $respondedAt;
+                }
+
+                if (is_array($response)) {
+                        $responseId = 0;
+                        if (isset($response['responseId'])) {
+                                $responseId = (int)$response['responseId'];
+                        } elseif (isset($response['id'])) {
+                                $responseId = (int)$response['id'];
+                        }
+
+                        if ($responseId > 0) {
+                                $payload['responseId'] = $responseId;
+                        }
                 }
 
                 if (is_array($response) && isset($response['answers']) && is_array($response['answers'])) {

@@ -10,11 +10,13 @@
       this.logoutNoticeStorageKey = 'advanced:logout-notice';
     }
 
-     // このページではSessionServiceでのログイン状態のチェックは不要     
+     // このページではSessionServiceでのログイン状態のチェックは不要
      async boot()
      {
+       window.Utils.initScreenModalHistoryObserver().observe();
+
        const jsList = [
-	       '/js/service-app/header/main.js',
+               '/js/service-app/header/main.js',
          '/js/service-app/toast/main.js',
 	       '/js/service-app/loading/main.js',
        ];

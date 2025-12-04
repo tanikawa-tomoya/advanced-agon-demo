@@ -16,6 +16,10 @@
       this.buttonService = null;
       this.confirmDialogService = null;
       this.toastService = null;
+      this._historyHandler = null;
+      this._historyDepth = 0;
+      this._ignorePopstateCount = 0;
+      this._closingFromHistory = false;
       this.onThumbnailUpdated = (options && typeof options.onThumbnailUpdated === 'function')
         ? options.onThumbnailUpdated
         : null;
@@ -156,8 +160,66 @@
       return this.region;
     }
 
+    _hasOpenModal()
+    {
+      return Array.isArray(this.stack) && this.stack.length > 0;
+    }
+
+    _ensureHistoryListener()
+    {
+      if (this._historyHandler) return;
+      var self = this;
+      this._historyHandler = function () {
+        if (self._ignorePopstateCount > 0)
+        {
+          self._ignorePopstateCount--;
+          return;
+        }
+        if (self._historyDepth > 0 && self._hasOpenModal())
+        {
+          self._historyDepth--;
+          self._closingFromHistory = true;
+          self.hide();
+          self._closingFromHistory = false;
+          self._teardownHistoryIfIdle();
+        }
+      };
+      window.addEventListener('popstate', this._historyHandler);
+    }
+
+    _teardownHistoryIfIdle()
+    {
+      if (!this._hasOpenModal() && this._historyDepth <= 0 && this._historyHandler)
+      {
+        window.removeEventListener('popstate', this._historyHandler);
+        this._historyHandler = null;
+        this._ignorePopstateCount = 0;
+        this._historyDepth = 0;
+      }
+    }
+
+    _pushHistoryState()
+    {
+      this._ensureHistoryListener();
+      history.pushState({ modal: 'video' }, document.title, window.location.href);
+      this._historyDepth++;
+    }
+
+    _popHistorySilently(count)
+    {
+      var steps = (typeof count === 'number' && count > 0) ? count : 1;
+      for (var i = 0; i < steps && this._historyDepth > 0; i++)
+      {
+        this._historyDepth--;
+        this._ignorePopstateCount++;
+        history.back();
+      }
+      this._teardownHistoryIfIdle();
+    }
+
     // 内部: モーダルのマウント
     _mount(modalEl) {
+      this._pushHistoryState();
       this._ensureRegion().appendChild(modalEl);
       this.stack.push({ node: modalEl });
       this.jobs.modal.lockBodyScroll(this.CSS, true);
@@ -172,6 +234,14 @@
       if (this.stack.length === 0) {
         this.jobs.modal.lockBodyScroll(this.CSS, false);
         this.jobs.modal.cleanupRegionIfEmpty(this.CSS);
+      }
+      if (!this._closingFromHistory)
+      {
+        this._popHistorySilently(1);
+      }
+      else
+      {
+        this._teardownHistoryIfIdle();
       }
     }
 

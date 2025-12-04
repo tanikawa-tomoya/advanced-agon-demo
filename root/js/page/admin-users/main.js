@@ -92,6 +92,8 @@
         return;
       }
 
+      window.Utils.initScreenModalHistoryObserver().observe();
+
       const sessionUser = await window.Services.sessionInstance.getUser();
       this.sessionUser = sessionUser;
       this.sessionFlags = this._resolveSessionFlags(sessionUser);

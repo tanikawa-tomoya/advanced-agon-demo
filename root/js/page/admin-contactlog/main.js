@@ -43,6 +43,8 @@
         return;
       }
 
+      window.Utils.initScreenModalHistoryObserver().observe();
+
       const jsList = [
         { src: '/js/service-app/header/main.js' },
         { src: '/js/service-app/toast/main.js' },

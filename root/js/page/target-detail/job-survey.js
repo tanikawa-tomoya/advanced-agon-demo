@@ -160,7 +160,6 @@
     {
       return null;
     }
-    var acknowledgedAt = normalizeText(entry.acknowledgedAt || entry.readAt || '');
     var respondedAt = normalizeText(entry.respondedAt || entry.respondedAtDisplay || '');
     var answers = [];
     if (Array.isArray(entry.answers))
@@ -175,25 +174,25 @@
     {
       answers = entry.items;
     }
-    var hasAcknowledgement = entry.hasAcknowledgement;
-    if (hasAcknowledgement == null)
-    {
-      var hasAcknowledgementData = acknowledgedAt || respondedAt
-        || (Array.isArray(answers) && answers.length > 0);
-      hasAcknowledgement = hasAcknowledgementData || true;
-    }
-    hasAcknowledgement = Boolean(hasAcknowledgement);
     var guestFlag = normalizeBooleanFlag((entry && (entry.isGuest || entry.guest))
       || (user && (user.isGuest || user.guest)));
     var selectionKey = normalizeText(entry.selectionKey || entry.recipientKey || entry.participantKey || (user && user.selectionKey) || '');
     var role = normalizeText(entry.role || (user && user.role));
+    var responseId = null;
+    var responseIdCandidate = entry.responseId;
+    if (!responseIdCandidate && entry.response && entry.response.id)
+    {
+      responseIdCandidate = entry.response.id;
+    }
+    var numericResponseId = Number(responseIdCandidate);
+    if (Number.isFinite(numericResponseId) && numericResponseId > 0)
+    {
+      responseId = numericResponseId;
+    }
     return {
       userCode: userCode,
       displayName: displayName || userCode || 'ユーザー',
       role: role,
-      acknowledgedAt: acknowledgedAt,
-      acknowledgedDisplay: acknowledgedAt || (entry.acknowledgedAtDisplay || ''),
-      hasAcknowledgement: hasAcknowledgement,
       respondedAt: respondedAt,
       respondedAtDisplay: respondedAt || (entry.respondedAtDisplay || ''),
       answers: answers,
@@ -202,6 +201,7 @@
       avatarTransform: normalizeText(entry.avatarTransform || entry.transform || (user && (user.avatarTransform || user.transform)) || ''),
       isActive: true,
       isGuest: guestFlag,
+      responseId: responseId,
       selectionKey: selectionKey
     };
   }
@@ -212,13 +212,13 @@
     {
       return '';
     }
-    if (entry.selectionKey)
-    {
-      return String(entry.selectionKey).toLowerCase();
-    }
     if (entry.userCode)
     {
       return String(entry.userCode).toLowerCase();
+    }
+    if (entry.selectionKey)
+    {
+      return String(entry.selectionKey).toLowerCase();
     }
     if (entry.displayName)
     {
@@ -236,11 +236,10 @@
       this.canManage = true;
       this.state = {
         items: [],
-        hasPresentedPending: false,
-        acknowledgingId: null,
+        submittingSurveyId: null,
         downloadingSurveyId: null,
         remindingSurveyId: null,
-        filters: { showAcknowledged: true, showOutOfPeriod: true }
+        filters: { showOutOfPeriod: true }
       };
       this.refs = {
         container: null,
@@ -250,11 +249,10 @@
         refreshButton: null,
         addButton: null,
         filters: null,
-        acknowledgedFilter: null,
         periodFilter: null
       };
       this.buttonService = null;
-      this.modals = { form: null, detail: null, preview: null, response: null, responseEdit: null, reminder: null };
+      this.modals = { form: null, detail: null, preview: null, response: null, responseEdit: null };
       this.localIdSeed = 0;
     }
 
@@ -299,7 +297,6 @@
       this.state.items = this.normalizeSurvey(Array.isArray(items) ? items : []);
       this.renderList();
       this.bindEvents();
-      await this.showPendingSurveyForViewer();
     }
 
     renderHeader()
@@ -402,14 +399,11 @@
       {
         var surveyCode = normalizeText(raw && raw.surveyCode);
         var recipients = this.normalizeRecipients(raw && raw.recipients);
-        var acknowledgedCount = recipients.filter(function (recipient)
+        var responseCount = this.countRecipientResponses(recipients);
+        var rawResponseCount = Number(raw && raw.responseCount);
+        if (Number.isFinite(rawResponseCount) && rawResponseCount >= 0)
         {
-          return recipient && recipient.acknowledgedAt;
-        }).length;
-        var rawAcknowledgedCount = Number(raw && (raw.acknowledgedCount || raw.responseCount));
-        if (Number.isFinite(rawAcknowledgedCount) && rawAcknowledgedCount >= 0)
-        {
-          acknowledgedCount = rawAcknowledgedCount;
+          responseCount = rawResponseCount;
         }
         var recipientCount = Number(raw && raw.recipientCount ? raw.recipientCount : recipients.length);
         if (!Number.isFinite(recipientCount) || recipientCount < 0)
@@ -438,9 +432,9 @@
           createdByAvatarInitial: normalizeText(raw && raw.createdByAvatarInitial),
           createdByIsActive: raw && raw.createdByIsActive !== false,
           isGuestMode: isGuestMode,
-          acknowledgedCount: acknowledgedCount,
+          responseCount: responseCount,
           recipientCount: recipientCount > 0 ? recipientCount : 0,
-          acknowledgedRate: recipientCount > 0 ? Math.round((acknowledgedCount / recipientCount) * 100) : 0,
+          responseRate: recipientCount > 0 ? Math.round((responseCount / recipientCount) * 100) : 0,
           recipients: recipients,
           items: this.normalizeSurveyItems(raw && raw.items ? raw.items : [])
         };
@@ -478,6 +472,17 @@
         }
         recipients.push(normalized);
       });
+      if (false && window.console && typeof window.console.log === 'function')
+      {
+        window.console.log('[target-detail] normalizeRecipients', {
+          inputLength: Array.isArray(list) ? list.length : 0,
+          normalizedLength: recipients.length,
+          keys: recipients.map(function (recipient)
+          {
+            return buildAudienceKey(recipient);
+          })
+        });
+      }
       return recipients;
     }
 
@@ -485,18 +490,6 @@
     {
       var filters = document.createElement('div');
       filters.className = 'target-reference__controls target-reference__filters target-survey__filters';
-
-      var acknowledgedFilter = this.createToggleFilter(
-        '回答済みの表示',
-        'acknowledgedFilter',
-        this.state.filters && this.state.filters.showAcknowledged !== false,
-        (shouldShow) =>
-        {
-          this.state.filters.showAcknowledged = shouldShow;
-          this.renderList();
-        }
-      );
-      filters.appendChild(acknowledgedFilter);
 
       var periodFilter = this.createToggleFilter(
         '期間外の表示',
@@ -545,12 +538,6 @@
 
     syncFilterControls()
     {
-      if (this.refs.acknowledgedFilter)
-      {
-        this.refs.acknowledgedFilter.value = this.state.filters && this.state.filters.showAcknowledged !== false
-          ? 'show'
-          : 'hide';
-      }
       if (this.refs.periodFilter)
       {
         this.refs.periodFilter.value = this.state.filters && this.state.filters.showOutOfPeriod !== false
@@ -561,9 +548,7 @@
 
     applyListFilters(items)
     {
-      var viewer = this.getViewerUserCode();
       var filters = this.state.filters || {};
-      var showAcknowledged = filters.showAcknowledged !== false;
       var showOutOfPeriod = filters.showOutOfPeriod !== false;
       var now = Date.now();
 
@@ -574,10 +559,6 @@
           return false;
         }
         if (!showOutOfPeriod && this.isSurveyActive(entry, now) === false)
-        {
-          return false;
-        }
-        if (!showAcknowledged && this.isSurveyAcknowledgedByUser(entry, viewer))
         {
           return false;
         }
@@ -606,12 +587,6 @@
       return 'active';
     }
 
-    isSurveyAcknowledgedByUser(item, userCode)
-    {
-      var recipient = this.findRecipientForUser(item, userCode);
-      return Boolean(recipient && recipient.acknowledgedAt);
-    }
-
     findRecipientForUser(item, userCode)
     {
       var normalizedUser = normalizeText(userCode).toLowerCase();
@@ -629,6 +604,37 @@
         }
         var recipientCode = normalizeText(recipient.userCode || recipient.displayName).toLowerCase();
         if (recipientCode && recipientCode === normalizedUser)
+        {
+          return recipient;
+        }
+      }
+      return null;
+    }
+
+    findRecipientByResponseId(item, responseId)
+    {
+      var recipients = Array.isArray(item && item.recipients) ? item.recipients : [];
+      var numericId = Number(responseId);
+      var hasNumericId = Number.isFinite(numericId) && numericId > 0;
+      if (!recipients.length)
+      {
+        return null;
+      }
+      for (var i = 0; i < recipients.length; i += 1)
+      {
+        var recipient = recipients[i];
+        if (!recipient)
+        {
+          continue;
+        }
+        var candidate = recipient.responseId;
+        if (!candidate && recipient.response && recipient.response.id)
+        {
+          candidate = recipient.response.id;
+        }
+        var candidateNumber = Number(candidate);
+        if ((hasNumericId && Number.isFinite(candidateNumber) && candidateNumber === numericId)
+          || (candidate && String(candidate) === String(responseId)))
         {
           return recipient;
         }
@@ -828,15 +834,7 @@
       meter.setAttribute('role', 'progressbar');
       meter.setAttribute('aria-valuemin', '0');
       meter.setAttribute('aria-valuemax', '100');
-      var rate = Number(item && item.acknowledgedRate ? item.acknowledgedRate : 0);
-      if (!Number.isFinite(rate) || rate < 0)
-      {
-        rate = 0;
-      }
-      if (rate > 100)
-      {
-        rate = 100;
-      }
+      var rate = this.getResponseRate(item);
       meter.setAttribute('aria-valuenow', String(rate));
 
       var bar = document.createElement('div');
@@ -945,7 +943,7 @@
         ? '開始待ち'
         : periodState === 'after'
           ? '締め切り済み'
-          : '回答フォームを表示する';
+          : '回答する';
 
       var respondButton = this.createServiceActionButton('target-survey-response', {
         label: label,
@@ -973,33 +971,29 @@
     formatAcknowledgementStatus(item)
     {
       var total = Number(item && item.recipientCount ? item.recipientCount : 0);
-      var acknowledged = Number(item && item.acknowledgedCount ? item.acknowledgedCount : 0);
-      if (!Number.isFinite(acknowledged) || acknowledged < 0)
+      var responses = this.getResponseCount(item);
+      if (!Number.isFinite(responses) || responses < 0)
       {
-        acknowledged = 0;
+        responses = 0;
       }
       if (item && item.isGuestMode)
       {
-        return '回答数 ' + acknowledged;
+        return '回答数 ' + responses;
       }
       if (!total)
       {
         return '—';
       }
-      if (acknowledged >= total)
+      if (responses >= total)
       {
-        acknowledged = total;
+        responses = total;
       }
-      var rate = Number(item && item.acknowledgedRate ? item.acknowledgedRate : 0);
+      var rate = this.getResponseRate(item);
       if (!Number.isFinite(rate) || rate < 0)
       {
-        rate = total ? Math.round((acknowledged / total) * 100) : 0;
+        rate = total ? Math.round((responses / total) * 100) : 0;
       }
-      if (rate > 100)
-      {
-        rate = 100;
-      }
-      return '回答数 ' + acknowledged + ' / ' + total + ' (' + rate + '%)';
+      return '回答数 ' + responses + ' / ' + total + ' (' + rate + '%)';
     }
 
     async handleDetail(item, trigger)
@@ -1039,6 +1033,7 @@
       }
       var modal = this.ensureResponseModal();
       modal.trigger = trigger || null;
+      modal.responseId = null;
       modal.responseUserCode = this.getViewerUserCode();
       var record = await this.loadSurveyDetail(item);
       modal.currentItem = record;
@@ -1046,17 +1041,33 @@
       this.toggleResponseModal(modal, true);
     }
 
-    async handleRecipientResponseEdit(item, recipient, trigger)
+    async handleRecipientResponseEdit(item, recipient, trigger, responseId)
     {
       if (!this.canManage || !item || !recipient)
       {
         return;
       }
+      if (false && window.console && typeof window.console.log === 'function')
+      {
+        window.console.log('[target-detail] handleRecipientResponseEdit', { surveyId: item && item.id, recipient: recipient });
+      }
       var modal = this.ensureResponseEditModal();
       modal.trigger = trigger || null;
+      modal.responseId = responseId || recipient.responseId || (recipient.response && recipient.response.id) || null;
       modal.responseUserCode = recipient.userCode || recipient.displayName || '';
       var record = await this.loadSurveyDetail(item);
       modal.currentItem = record;
+      var targetRecipient = this.findRecipientByResponseId(record, modal.responseId)
+        || this.findRecipientForUser(record, modal.responseUserCode);
+      if (targetRecipient)
+      {
+        modal.responseId = targetRecipient.responseId || modal.responseId
+          || (targetRecipient.response && targetRecipient.response.id) || null;
+        if (!modal.responseUserCode)
+        {
+          modal.responseUserCode = targetRecipient.userCode || targetRecipient.displayName || '';
+        }
+      }
       this.renderResponseModal(record, modal);
       this.toggleResponseModal(modal, true);
     }
@@ -1331,6 +1342,7 @@
         items: root.querySelector('[data-survey-response-items]'),
         extraHost: root.querySelector('[data-survey-response-extra]'),
         respondedAtInput: null,
+        responseId: null,
         responseUserCode: null,
         submitHost: root.querySelector('[data-survey-response-submit]'),
         submitButton: null,
@@ -1376,60 +1388,6 @@
         rootClass: 'target-detail__survey-modal target-detail__survey-response-modal target-detail__survey-response-edit-modal'
       });
       return this.modals.responseEdit;
-    }
-
-    ensureReminderModal()
-    {
-      if (this.modals.reminder)
-      {
-        return this.modals.reminder;
-      }
-      var root = document.createElement('div');
-      root.className = 'target-detail__survey-modal target-detail__survey-reminder-modal';
-      root.setAttribute('hidden', 'hidden');
-      root.innerHTML = '' +
-        '<div class="target-detail__survey-overlay" data-modal-close></div>' +
-        '<div class="target-detail__survey-dialog" role="dialog" aria-modal="true" aria-labelledby="target-survey-reminder-title">' +
-        '  <header class="target-detail__survey-dialog-header">' +
-        '    <div class="target-detail__survey-dialog-header-main">' +
-        '      <h2 class="target-detail__survey-dialog-title" id="target-survey-reminder-title">アンケート</h2>' +
-        '    </div>' +
-        '    <p class="target-detail__survey-dialog-meta target-detail__survey-dialog-header-meta" data-survey-reminder-meta></p>' +
-        '    <button type="button" class="target-detail__survey-dialog-close" aria-label="閉じる">×</button>' +
-        '  </header>' +
-        '  <hr class="target-detail__survey-dialog-divider" />' +
-        '  <div class="target-detail__survey-dialog-content" data-survey-reminder-content></div>' +
-        '  <footer class="target-detail__survey-actions target-detail__survey-reminder-actions">' +
-        '    <div class="target-detail__survey-actions-buttons" data-survey-reminder-actions></div>' +
-        '  </footer>' +
-        '</div>';
-      document.body.appendChild(root);
-      var overlay = root.querySelector('[data-modal-close]');
-      var closeButton = root.querySelector('.target-detail__survey-dialog-close');
-      var modal = {
-        root: root,
-        overlay: overlay,
-        closeButton: closeButton,
-        title: root.querySelector('#target-survey-reminder-title'),
-        meta: root.querySelector('[data-survey-reminder-meta]'),
-        content: root.querySelector('[data-survey-reminder-content]'),
-        actionsHost: root.querySelector('[data-survey-reminder-actions]'),
-        confirmButton: null,
-        trigger: null,
-        currentItem: null
-      };
-
-      var close = () => this.toggleReminderModal(modal, false);
-      if (overlay)
-      {
-        overlay.addEventListener('click', close);
-      }
-      if (closeButton)
-      {
-        closeButton.addEventListener('click', close);
-      }
-      this.modals.reminder = modal;
-      return modal;
     }
 
     lockBodyScroll()
@@ -1699,36 +1657,6 @@
       this.toggleResponseModal(modal, false);
     }
 
-    toggleReminderModal(modal, open)
-    {
-      if (!modal)
-      {
-        return;
-      }
-      if (open)
-      {
-        modal.root.removeAttribute('hidden');
-        modal.root.dataset.open = 'true';
-        modal.root.classList.add('is-open');
-        this.lockBodyScroll();
-        if (modal.closeButton && typeof modal.closeButton.focus === 'function')
-        {
-          modal.closeButton.focus();
-        }
-      }
-      else
-      {
-        modal.root.setAttribute('hidden', 'hidden');
-        modal.root.classList.remove('is-open');
-        modal.root.removeAttribute('data-open');
-        this.unlockBodyScroll();
-        if (modal.trigger && typeof modal.trigger.focus === 'function')
-        {
-          modal.trigger.focus();
-        }
-      }
-    }
-
     renderDetailModal(item, modal, options)
     {
       if (!modal)
@@ -1740,9 +1668,14 @@
       modal.hideStatus = hideStatus;
       modal.currentItem = item || null;
       var recipients = Array.isArray(item && item.recipients) ? item.recipients : [];
+      var isGuestMode = normalizeGuestModeFlag(item);
       if (typeof modal.showUserColumn !== 'boolean')
       {
         modal.showUserColumn = true;
+      }
+      if (isGuestMode)
+      {
+        modal.showUserColumn = false;
       }
       if (modal.title)
       {
@@ -1967,7 +1900,10 @@
           modal.surveyItems = normalizedItems;
         }
         var answerUserCode = modal && modal.responseUserCode ? modal.responseUserCode : this.getViewerUserCode();
-        var answerLookup = this.getAnswerLookupForUser(item, answerUserCode);
+        var responseId = Object.prototype.hasOwnProperty.call(opts, 'responseId')
+          ? opts.responseId
+          : (modal ? modal.responseId : null);
+        var answerLookup = this.getAnswerLookupForUser(item, answerUserCode, responseId);
         if (!normalizedItems.length)
         {
           var emptyItems = document.createElement('p');
@@ -1987,12 +1923,32 @@
       if (modal)
       {
         modal.surveyItems = this.normalizeSurveyItems(item && item.items ? item.items : []);
+        var modalResponseId = modal.responseId;
+        var responseRecipient = this.findRecipientByResponseId(item, modalResponseId)
+          || this.findRecipientForUser(item, modal.responseUserCode);
+        if (responseRecipient)
+        {
+          modal.responseId = responseRecipient.responseId || modal.responseId
+            || (responseRecipient.response && responseRecipient.response.id) || null;
+          if (!modal.responseUserCode)
+          {
+            modal.responseUserCode = responseRecipient.userCode || responseRecipient.displayName || '';
+          }
+        }
         if (!modal.responseUserCode)
         {
           modal.responseUserCode = this.getViewerUserCode();
         }
+        if (false && window.console && typeof window.console.log === 'function')
+        {
+          window.console.log('[target-detail] renderResponseModal', {
+            surveyId: item && item.id,
+            responseUserCode: modal.responseUserCode,
+            responseId: modal.responseId
+          });
+        }
       }
-      this.renderPreviewModal(item, modal, { hideAuthor: true });
+      this.renderPreviewModal(item, modal, { hideAuthor: true, responseId: modal.responseId });
       this.renderResponseMetadata(modal);
       this.renderResponseActions(modal);
       this.resetResponseSnapshot(modal);
@@ -2013,7 +1969,8 @@
       }
       modal.extraHost.hidden = false;
       var userCode = modal.responseUserCode || this.getViewerUserCode();
-      var recipient = this.findRecipientForUser(modal.currentItem, userCode);
+      var recipient = this.findRecipientByResponseId(modal.currentItem, modal.responseId)
+        || this.findRecipientForUser(modal.currentItem, userCode);
 
       var field = document.createElement('div');
       field.className = 'target-detail__survey-response-field';
@@ -2033,69 +1990,6 @@
       modal.respondedAtInput = input;
 
       modal.extraHost.appendChild(field);
-    }
-
-    renderReminderModal(item, modal)
-    {
-      if (!modal)
-      {
-        return;
-      }
-      modal.currentItem = item || null;
-      if (modal.title)
-      {
-        modal.title.textContent = item && item.title ? item.title : 'アンケート';
-      }
-      if (modal.meta)
-      {
-        var reminderPeriodText = this.formatPeriodDisplay(item);
-        modal.meta.textContent = reminderPeriodText ? '回答期間: ' + reminderPeriodText : '';
-      }
-      if (modal.content)
-      {
-        modal.content.innerHTML = '';
-        var contentSection = document.createElement('div');
-        contentSection.className = 'target-detail__survey-dialog-section';
-        var contentBody = document.createElement('div');
-        contentBody.className = 'target-detail__survey-dialog-body';
-        var message = item && item.content ? item.content : '';
-        var lines = message ? message.split(/\n/) : [];
-        if (!lines.length)
-        {
-          lines = ['アンケートへの回答をお願いします。'];
-        }
-        lines.forEach(function (line)
-        {
-          var paragraph = document.createElement('p');
-          paragraph.textContent = line;
-          contentBody.appendChild(paragraph);
-        });
-        contentSection.appendChild(contentBody);
-        modal.content.appendChild(contentSection);
-      }
-      if (modal.actionsHost)
-      {
-        modal.actionsHost.innerHTML = '';
-        var confirmButton = modal.confirmButton;
-        if (!confirmButton)
-        {
-          confirmButton = this.createServiceActionButton('target-reference-refresh', {
-            label: '確認済みにする',
-            hoverLabel: '確認済みにする',
-            ariaLabel: '確認済みにする',
-            title: '確認済みにする'
-          });
-          confirmButton.classList.add('target-detail__survey-reminder-confirm');
-          confirmButton.addEventListener('click', () =>
-          {
-            this.handleReminderConfirm(modal);
-          });
-          modal.confirmButton = confirmButton;
-        }
-        confirmButton.disabled = false;
-        confirmButton.removeAttribute('aria-busy');
-        modal.actionsHost.appendChild(confirmButton);
-      }
     }
 
     renderResponseActions(modal)
@@ -2354,9 +2248,14 @@
           return false;
         }
         var recipientCode = normalizeText(recipient.userCode || recipient.displayName).toLowerCase();
-        return recipientCode && recipientCode === normalizedUser
-          && !recipient.acknowledgedAt
-          && recipient.hasAcknowledgement;
+        if (!recipientCode || recipientCode !== normalizedUser)
+        {
+          return false;
+        }
+        var hasResponse = Boolean(recipient.respondedAt)
+          || (Array.isArray(recipient.answers) && recipient.answers.length > 0)
+          || recipient.hasResponseItems;
+        return !hasResponse;
       });
     }
 
@@ -2368,7 +2267,7 @@
       }
       var viewer = this.getViewerUserCode();
       var pending = this.isSurveyPendingForUser(item, viewer);
-      var isProcessing = item && this.state.acknowledgingId === item.id;
+      var isProcessing = item && this.state.submittingSurveyId === item.id;
       if (modal.actions)
       {
         modal.actions.hidden = Boolean(modal.hideStatus) || !pending;
@@ -2393,6 +2292,7 @@
       {
         return;
       }
+      var isGuestMode = normalizeGuestModeFlag(modal.currentItem);
       var host = modal.filterHost;
       var items = Array.isArray(modal.surveyItems) ? modal.surveyItems : [];
       host.innerHTML = '';
@@ -2411,27 +2311,30 @@
       host.appendChild(heading);
 
       var self = this;
-      var userOption = document.createElement('label');
-      userOption.className = 'target-detail__survey-filter-option';
-
-      var userCheckbox = document.createElement('input');
-      userCheckbox.type = 'checkbox';
-      userCheckbox.className = 'target-detail__survey-filter-checkbox';
-      userCheckbox.checked = modal.showUserColumn !== false;
-      userCheckbox.id = 'survey-filter-user';
-      userCheckbox.addEventListener('change', function ()
+      if (!isGuestMode)
       {
-        modal.showUserColumn = userCheckbox.checked;
-        self.renderStatusTable(modal, modal.currentItem && modal.currentItem.recipients ? modal.currentItem.recipients : []);
-      });
-      userOption.appendChild(userCheckbox);
+        var userOption = document.createElement('label');
+        userOption.className = 'target-detail__survey-filter-option';
 
-      var userLabel = document.createElement('span');
-      userLabel.className = 'target-detail__survey-filter-label';
-      userLabel.textContent = 'ユーザー';
-      userOption.appendChild(userLabel);
+        var userCheckbox = document.createElement('input');
+        userCheckbox.type = 'checkbox';
+        userCheckbox.className = 'target-detail__survey-filter-checkbox';
+        userCheckbox.checked = modal.showUserColumn !== false;
+        userCheckbox.id = 'survey-filter-user';
+        userCheckbox.addEventListener('change', function ()
+        {
+          modal.showUserColumn = userCheckbox.checked;
+          self.renderStatusTable(modal, modal.currentItem && modal.currentItem.recipients ? modal.currentItem.recipients : []);
+        });
+        userOption.appendChild(userCheckbox);
 
-      list.appendChild(userOption);
+        var userLabel = document.createElement('span');
+        userLabel.className = 'target-detail__survey-filter-label';
+        userLabel.textContent = 'ユーザー';
+        userOption.appendChild(userLabel);
+
+        list.appendChild(userOption);
+      }
       items.forEach(function (item, index)
       {
         var option = document.createElement('label');
@@ -2620,8 +2523,8 @@
       {
         return;
       }
-      var isGuestMode = Boolean(modal.currentItem && modal.currentItem.isGuestMode);
-      var showUserColumn = modal.showUserColumn !== false;
+      var isGuestMode = normalizeGuestModeFlag(modal.currentItem);
+      var showUserColumn = !isGuestMode && modal.showUserColumn !== false;
       var visibleItems = this.getVisibleSurveyItems(modal);
 
       modal.statusHead.innerHTML = '';
@@ -2647,14 +2550,6 @@
       dateHeader.textContent = '回答日時';
       headerRow.appendChild(dateHeader);
 
-      if (!isGuestMode)
-      {
-        var remindHeader = document.createElement('th');
-        remindHeader.scope = 'col';
-        remindHeader.textContent = 'リマインド';
-        headerRow.appendChild(remindHeader);
-      }
-
       var actionHeader = document.createElement('th');
       actionHeader.scope = 'col';
       actionHeader.className = 'target-detail__survey-status-action-header';
@@ -2665,6 +2560,10 @@
 
       modal.statusBody.innerHTML = '';
       var rows = Array.isArray(recipients) ? recipients : [];
+      if (isGuestMode)
+      {
+        rows = rows.filter((entry) => this.hasRecipientResponse(entry));
+      }
       if (!rows.length)
       {
         var emptyRow = document.createElement('tr');
@@ -2672,7 +2571,7 @@
         var columnCount = visibleItems.length + 2 + (showUserColumn ? 1 : 0) + (isGuestMode ? 0 : 1);
         cell.colSpan = columnCount;
         cell.className = 'target-detail__survey-status-empty';
-        cell.textContent = '対象ユーザーが設定されていません。';
+        cell.textContent = isGuestMode ? 'アンケートの回答はまだありません。' : '対象ユーザーが設定されていません。';
         emptyRow.appendChild(cell);
         modal.statusBody.appendChild(emptyRow);
         return;
@@ -2793,7 +2692,10 @@
         {
           return;
         }
-        if (normalized.acknowledgedAt)
+        var hasResponse = Boolean(normalized.respondedAt)
+          || (Array.isArray(normalized.answers) && normalized.answers.length > 0)
+          || normalized.hasResponseItems;
+        if (hasResponse)
         {
           return;
         }
@@ -3031,26 +2933,95 @@
       return [];
     }
 
-    getAnswerLookupForUser(item, userCode)
+    hasRecipientAnswers(recipients)
     {
-      if (normalizeGuestModeFlag(item))
+      var list = Array.isArray(recipients) ? recipients : [];
+      for (var i = 0; i < list.length; i += 1)
       {
-        return {};
-      }
-      var normalizedUser = normalizeText(userCode).toLowerCase();
-      if (!item || !normalizedUser || !Array.isArray(item.recipients))
-      {
-        return {};
-      }
-      var recipient = item.recipients.find(function (entry)
-      {
-        if (!entry)
+        var answers = this.extractRecipientAnswers(list[i]);
+        if (Array.isArray(answers) && answers.length)
         {
-          return false;
+          return true;
         }
-        var code = normalizeText(entry.userCode || entry.displayName).toLowerCase();
-        return code && code === normalizedUser;
-      });
+      }
+      return false;
+    }
+
+    hasRecipientResponse(recipient)
+    {
+      if (!recipient)
+      {
+        return false;
+      }
+      if (recipient.respondedAt)
+      {
+        return true;
+      }
+      var answers = this.extractRecipientAnswers(recipient);
+      return Array.isArray(answers) && answers.length > 0;
+    }
+
+    countRecipientResponses(recipients)
+    {
+      var list = Array.isArray(recipients) ? recipients : [];
+      var self = this;
+      return list.filter(function (recipient)
+      {
+        return self.hasRecipientResponse(recipient);
+      }).length;
+    }
+
+    getResponseCount(item)
+    {
+      var responseCount = Number(item && item.responseCount ? item.responseCount : 0);
+      if (!Number.isFinite(responseCount) || responseCount < 0)
+      {
+        responseCount = this.countRecipientResponses(item && item.recipients);
+      }
+      return responseCount;
+    }
+
+    getResponseRate(item)
+    {
+      var total = Number(item && item.recipientCount ? item.recipientCount : 0);
+      var responseCount = this.getResponseCount(item);
+      var rate = total ? Math.round((responseCount / total) * 100) : 0;
+      if (rate > 100)
+      {
+        rate = 100;
+      }
+      return rate;
+    }
+
+    getAnswerLookupForUser(item, userCode, responseId)
+    {
+      var normalizedUser = normalizeText(userCode).toLowerCase();
+      if (!item || !Array.isArray(item.recipients))
+      {
+        return {};
+      }
+      if (false && window.console && typeof window.console.log === 'function')
+      {
+        window.console.log('[target-detail] getAnswerLookupForUser', {
+          surveyId: item.id,
+          userCode: normalizedUser,
+          responseId: responseId,
+          recipientCount: item.recipients.length
+        });
+      }
+      var recipient = this.findRecipientByResponseId(item, responseId);
+      if (!recipient)
+      {
+        recipient = item.recipients.find(function (entry)
+        {
+          if (!entry)
+          {
+            return false;
+          }
+          var code = normalizeText(entry.userCode || entry.displayName).toLowerCase();
+          return normalizedUser && code === normalizedUser;
+        });
+      }
       if (!recipient)
       {
         return {};
@@ -3244,6 +3215,7 @@
     {
       var row = document.createElement('tr');
       var isGuestMode = Boolean(item && item.isGuestMode);
+      var responseId = recipient && (recipient.responseId || (recipient.response && recipient.response.id));
       if (showUserColumn !== false)
       {
         var userCell = document.createElement('td');
@@ -3284,85 +3256,11 @@
         row.appendChild(answerCell);
       }
 
-      var acknowledged = recipient && recipient.acknowledgedAt;
       var respondedText = normalizeText(recipient && (recipient.respondedAtDisplay
         || formatDateTime(this.helpers, recipient.respondedAt)));
       var dateCell = document.createElement('td');
-      if (respondedText)
-      {
-        dateCell.textContent = respondedText;
-      }
-      else
-      {
-        dateCell.textContent = acknowledged ? formatDateTime(this.helpers, recipient.acknowledgedAt) : '—';
-      }
+      dateCell.textContent = respondedText || '—';
       row.appendChild(dateCell);
-
-      if (!isGuestMode)
-      {
-        var reminderCell = document.createElement('td');
-        reminderCell.className = 'target-detail__survey-reminder-cell';
-        var hasAcknowledgement = recipient && recipient.hasAcknowledgement;
-        var reminderContent = document.createElement('div');
-        reminderContent.className = 'target-detail__survey-reminder-actions';
-        if (!hasAcknowledgement)
-        {
-          reminderContent.textContent = '—';
-        }
-        else if (acknowledged)
-        {
-          var reminderText = document.createElement('span');
-          reminderText.className = 'target-detail__survey-reminder-text';
-          reminderText.textContent = formatDateTime(this.helpers, recipient.acknowledgedAt);
-          reminderContent.appendChild(reminderText);
-
-          var reminderDelete = this.createServiceActionButton('delete', {
-            label: '',
-            ariaLabel: 'リマインド日時を削除',
-            hoverLabel: 'リマインド日時を削除',
-            title: 'リマインド日時を削除',
-            className: 'target-detail__survey-status-action target-detail__survey-status-action--undo',
-            hideLabel: true,
-            buttonType: 'delete'
-          });
-          reminderDelete.addEventListener('click', async (event) =>
-          {
-            event.preventDefault();
-            var confirmed = await this.page.confirmDialogService.open('リマインド日時を削除しますか？', { type: 'warning' });
-            if (!confirmed)
-            {
-              return;
-            }
-            this.toggleRecipientAcknowledgement(item, recipient, false, [reminderDelete]);
-          });
-          reminderContent.appendChild(reminderDelete);
-        }
-        else
-        {
-          var reminderPending = document.createElement('span');
-          reminderPending.className = 'target-detail__survey-reminder-text';
-          reminderPending.textContent = '未確認';
-          reminderContent.appendChild(reminderPending);
-
-          var reminderEdit = this.createServiceActionButton('edit', {
-            label: '',
-            ariaLabel: 'リマインド日時を保存',
-            hoverLabel: 'リマインド日時を保存',
-            title: 'リマインド日時を保存',
-            className: 'target-detail__survey-status-action target-detail__survey-status-action--edit',
-            hideLabel: true
-          });
-          reminderEdit.disabled = !this.canManage;
-          reminderEdit.addEventListener('click', (event) =>
-          {
-            event.preventDefault();
-            this.toggleRecipientAcknowledgement(item, recipient, true, [reminderEdit]);
-          });
-          reminderContent.appendChild(reminderEdit);
-        }
-        reminderCell.appendChild(reminderContent);
-        row.appendChild(reminderCell);
-      }
 
       var actionsCell = document.createElement('td');
       actionsCell.className = 'target-detail__survey-status-action-cell';
@@ -3377,19 +3275,23 @@
         className: 'target-detail__survey-status-action target-detail__survey-status-action--edit',
         hideLabel: true
       });
+      if (responseId)
+      {
+        editButton.dataset.responseId = responseId;
+      }
       editButton.disabled = !this.canManage;
       editButton.addEventListener('click', (event) =>
       {
         event.preventDefault();
-        this.handleRecipientResponseEdit(item, recipient, editButton);
+        this.handleRecipientResponseEdit(item, recipient, editButton, responseId);
       });
       actions.appendChild(editButton);
 
       var deleteButton = this.createServiceActionButton('delete', {
         label: '',
-        ariaLabel: 'アンケートを未回答にする',
-        hoverLabel: 'アンケートを未回答にする',
-        title: 'アンケートを未回答にする',
+        ariaLabel: isGuestMode ? 'アンケートを削除する' : 'アンケートを未回答にする',
+        hoverLabel: isGuestMode ? 'アンケートを削除する' : 'アンケートを未回答にする',
+        title: isGuestMode ? 'アンケートを削除する' : 'アンケートを未回答にする',
         className: 'target-detail__survey-status-action target-detail__survey-status-action--delete',
         hideLabel: true,
         buttonType: 'delete'
@@ -3408,11 +3310,26 @@
 
     async handleRecipientResponseDelete(item, recipient, trigger)
     {
-      if (!item || !recipient || !recipient.userCode)
+      if (!item || !recipient)
       {
         return;
       }
-      var confirmed = await this.page.confirmDialogService.open('アンケートを未回答状態に戻しますか？', { type: 'warning' });
+      var responseId = Number(recipient.responseId);
+      if (!Number.isFinite(responseId) || responseId <= 0)
+      {
+        if (window.console && typeof window.console.error === 'function')
+        {
+          window.console.error('[target-detail] missing response id for deletion', recipient);
+        }
+        if (this.page && typeof this.page.showToast === 'function')
+        {
+          this.page.showToast('error', 'アンケートの削除に失敗しました。');
+        }
+        return;
+      }
+      var isGuestMode = Boolean(item && item.isGuestMode);
+      var confirmMessage = isGuestMode ? 'アンケートを削除しますか？' : 'アンケートを未回答状態に戻しますか？';
+      var confirmed = await this.page.confirmDialogService.open(confirmMessage, { type: 'warning' });
       if (!confirmed)
       {
         return;
@@ -3424,25 +3341,7 @@
         trigger.disabled = true;
         trigger.setAttribute('aria-busy', 'true');
       }
-      var payload = { targetCode: this.page.state.targetCode, userCode: recipient.userCode };
-      var numericId = null;
-      var stringId = String(item.id || '').trim();
-      if (/^\d+$/.test(stringId))
-      {
-        numericId = Number(stringId);
-      }
-      if (numericId !== null)
-      {
-        payload.id = numericId;
-      }
-      if (item.surveyCode)
-      {
-        payload.surveyCode = item.surveyCode;
-      }
-      else if (numericId === null && item.id)
-      {
-        payload.surveyCode = item.id;
-      }
+      var payload = { targetCode: this.page.state.targetCode, id: responseId };
       try
       {
         await this.page.callApi('TargetSurveyResponseDelete', payload, { requestType: 'TargetManagementSurvey' });
@@ -3454,7 +3353,8 @@
         }
         if (this.page && typeof this.page.showToast === 'function')
         {
-          this.page.showToast('success', 'アンケートを未回答状態に戻しました。');
+          var successMessage = isGuestMode ? 'アンケートを削除しました。' : 'アンケートを未回答状態に戻しました。';
+          this.page.showToast('success', successMessage);
         }
       }
       catch (error)
@@ -3495,185 +3395,56 @@
       return null;
     }
 
-    updateAcknowledgementState(id, userCode, ackAt)
-    {
-      var normalized = String(userCode || '').toLowerCase();
-      if (!normalized)
-      {
-        return;
-      }
-      var updater = function (list)
-      {
-        if (!Array.isArray(list))
-        {
-          return list;
-        }
-        return list.map(function (entry)
-        {
-          if (!entry || entry.id !== id)
-          {
-            return entry;
-          }
-          var recipients = Array.isArray(entry.recipients) ? entry.recipients.map(function (recipient)
-          {
-            if (!recipient)
-            {
-              return recipient;
-            }
-            var code = String(recipient.userCode || '').toLowerCase();
-            if (code === normalized)
-            {
-              var updatedRecipient = Object.assign({}, recipient);
-              updatedRecipient.acknowledgedAt = ackAt === undefined ? recipient.acknowledgedAt : ackAt;
-              updatedRecipient.acknowledgedDisplay = ackAt === undefined
-                ? recipient.acknowledgedDisplay
-                : (ackAt || '');
-              updatedRecipient.hasAcknowledgement = true;
-              return updatedRecipient;
-            }
-            return recipient;
-          }) : entry.recipients;
-          var recipientCount = Array.isArray(recipients) ? recipients.length : (entry.recipientCount || 0);
-          var acknowledgedCount = Array.isArray(recipients)
-            ? recipients.filter(function (recipient)
-            {
-              return recipient && recipient.acknowledgedAt;
-            }).length
-            : (entry.acknowledgedCount || 0);
-          var acknowledgedRate = recipientCount
-            ? Math.round((acknowledgedCount / recipientCount) * 100)
-            : 0;
-          return Object.assign({}, entry, {
-            recipients: recipients,
-            recipientCount: recipientCount,
-            acknowledgedCount: acknowledgedCount,
-            acknowledgedRate: acknowledgedRate
-          });
-        });
-      };
-      this.state.items = updater(this.state.items);
-      if (Array.isArray(this.page.state.survey))
-      {
-        this.page.state.survey = updater(this.page.state.survey);
-      }
-    }
-
-    async toggleRecipientAcknowledgement(item, recipient, acknowledged, buttons)
-    {
-      if (!item || !item.id || !recipient || !recipient.userCode)
-      {
-        return;
-      }
-      var targets = Array.isArray(buttons) ? buttons : [];
-      for (var i = 0; i < targets.length; i += 1)
-      {
-        if (targets[i])
-        {
-          targets[i].disabled = true;
-          targets[i].setAttribute('aria-busy', 'true');
-        }
-      }
-      var numericId = null;
-      var stringId = String(item.id || '').trim();
-      if (/^\d+$/.test(stringId))
-      {
-        numericId = Number(stringId);
-      }
-      var payload = {
-        targetCode: this.page.state.targetCode,
-        userCode: recipient.userCode
-      };
-      if (numericId !== null)
-      {
-        payload.id = numericId;
-      }
-      if (item.surveyCode)
-      {
-        payload.surveyCode = item.surveyCode;
-      }
-      else if (numericId === null && item.id)
-      {
-        payload.surveyCode = item.id;
-      }
-      if (acknowledged)
-      {
-        payload.acknowledgedAt = formatServerTimestamp(new Date());
-      }
-      else
-      {
-        payload.acknowledgedAt = null;
-      }
-      try
-      {
-        var result = await this.page.callApi('TargetSurveyAcknowledge', payload, { requestType: 'TargetManagementSurvey' });
-        var ackAt = result && Object.prototype.hasOwnProperty.call(result, 'acknowledgedAt')
-          ? result.acknowledgedAt
-          : payload.acknowledgedAt;
-        this.updateAcknowledgementState(item.id, recipient.userCode, ackAt);
-        var latest = this.findSurveyById(item.id) || item;
-        if (this.modals && this.modals.detail)
-        {
-          this.renderDetailModal(latest, this.modals.detail);
-        }
-        this.renderList();
-        if (this.page.toastService && typeof this.page.toastService.success === 'function')
-        {
-          this.page.toastService.success(acknowledged ? '確認済みにしました。' : '未確認に戻しました。');
-        }
-      }
-      catch (error)
-      {
-        if (window.console && typeof window.console.error === 'function')
-        {
-          window.console.error('[target-detail] failed to update survey acknowledgement', error);
-        }
-        if (this.page.toastService && typeof this.page.toastService.error === 'function')
-        {
-          this.page.toastService.error('確認状態の更新に失敗しました。');
-        }
-      }
-      for (var j = 0; j < targets.length; j += 1)
-      {
-        if (targets[j])
-        {
-          targets[j].disabled = false;
-          targets[j].removeAttribute('aria-busy');
-        }
-      }
-    }
-
     async loadSurveyDetail(item)
     {
       if (!item || !item.id)
       {
         return item;
       }
-      var needsRecipients = !item.recipients || !item.recipients.length;
+      var existingRecipients = Array.isArray(item.recipients) ? item.recipients : [];
+      var needsRecipients = !existingRecipients.length || !this.hasRecipientAnswers(existingRecipients);
       var needsContent = !item.content;
       var needsItems = !item.items || !item.items.length;
+      if (false && window.console && typeof window.console.log === 'function')
+      {
+        window.console.log('[target-detail] loadSurveyDetail', {
+          surveyId: item.id,
+          needsRecipients: needsRecipients,
+          needsContent: needsContent,
+          needsItems: needsItems
+        });
+      }
       if (!needsRecipients && !needsContent && !needsItems)
       {
         return item;
       }
       try
       {
-        var payload = await this.page.callApi('TargetSurveyDetail', {
-          targetCode: this.page.state.targetCode,
-          surveyCode: item.id
-        }, { requestType: 'TargetManagementSurvey' });
+        var detailPayload = { targetCode: this.page.state.targetCode };
+        var detailStringId = String(item.id || '').trim();
+        if (/^\d+$/.test(detailStringId))
+        {
+          detailPayload.id = Number(detailStringId);
+        }
+        if (item.surveyCode)
+        {
+          detailPayload.surveyCode = item.surveyCode;
+        }
+        else if (!detailPayload.id && detailStringId)
+        {
+          detailPayload.surveyCode = detailStringId;
+        }
+        var payload = await this.page.callApi('TargetSurveyDetail', detailPayload, { requestType: 'TargetManagementSurvey' });
         var recipients = this.normalizeRecipients(payload && payload.recipients);
         var items = this.normalizeSurveyItems(payload && payload.items ? payload.items : (item && item.items ? item.items : []));
         var startAt = payload && payload.startAt ? payload.startAt : (item && item.startAt);
         var endAt = payload && payload.endAt ? payload.endAt : (item && item.endAt);
         var isGuestMode = normalizeGuestModeFlag(payload || item);
-        var acknowledgedCount = recipients.filter(function (entry)
+        var responseCount = this.countRecipientResponses(recipients);
+        var payloadResponseCount = Number(payload && payload.responseCount);
+        if (Number.isFinite(payloadResponseCount) && payloadResponseCount >= 0)
         {
-          return entry && entry.acknowledgedAt;
-        }).length;
-        var payloadAcknowledgedCount = Number(payload && (payload.acknowledgedCount || payload.responseCount));
-        if (Number.isFinite(payloadAcknowledgedCount) && payloadAcknowledgedCount >= 0)
-        {
-          acknowledgedCount = payloadAcknowledgedCount;
+          responseCount = payloadResponseCount;
         }
         var recipientCount = Number(payload && payload.recipientCount ? payload.recipientCount : (item && item.recipientCount));
         if (!Number.isFinite(recipientCount) || recipientCount < 0)
@@ -3689,11 +3460,11 @@
           startAtDisplay: formatDateTime(this.helpers, startAt),
           endAtDisplay: formatDateTime(this.helpers, endAt),
           isGuestMode: isGuestMode,
-          acknowledgedCount: acknowledgedCount,
+          responseCount: responseCount,
           recipientCount: recipientCount
         });
-        updated.acknowledgedRate = updated.recipientCount
-          ? Math.round((updated.acknowledgedCount / updated.recipientCount) * 100)
+        updated.responseRate = updated.recipientCount
+          ? Math.round((responseCount / updated.recipientCount) * 100)
           : 0;
         this.replaceSurvey(updated);
         return updated;
@@ -3703,76 +3474,6 @@
         window.console.warn('[target-detail] failed to load survey detail', error);
         return item;
       }
-    }
-
-    applyAcknowledgement(surveyId, userCode, acknowledgedAt)
-    {
-      var normalizedId = normalizeText(surveyId);
-      var normalizedUser = normalizeText(userCode).toLowerCase();
-      if (!normalizedId || !normalizedUser)
-      {
-        return null;
-      }
-      var source = (this.state.items || []).find(function (entry)
-      {
-        return entry && entry.id === normalizedId;
-      });
-      if (!source)
-      {
-        return null;
-      }
-      var recipients = Array.isArray(source.recipients) ? source.recipients.slice() : [];
-      var found = false;
-      var updatedRecipients = recipients.map(function (recipient)
-      {
-        if (!recipient)
-        {
-          return recipient;
-        }
-        var recipientCode = normalizeText(recipient.userCode || recipient.displayName).toLowerCase();
-        if (recipientCode && recipientCode === normalizedUser)
-        {
-          found = true;
-          var nextAck = acknowledgedAt === undefined ? recipient.acknowledgedAt : acknowledgedAt;
-          var nextDisplay = recipient.acknowledgedDisplay || (nextAck || '');
-          return Object.assign({}, recipient, {
-            acknowledgedAt: nextAck,
-            acknowledgedDisplay: nextDisplay || nextAck,
-            hasAcknowledgement: true
-          });
-        }
-        return recipient;
-      });
-      if (!found)
-      {
-        updatedRecipients.push({
-          userCode: userCode,
-          displayName: userCode,
-          role: 'participant',
-          acknowledgedAt: acknowledgedAt,
-          acknowledgedDisplay: acknowledgedAt,
-          hasAcknowledgement: true
-        });
-      }
-      var acknowledgedCount = updatedRecipients.filter(function (entry)
-      {
-        return entry && entry.acknowledgedAt;
-      }).length;
-      var baseRecipientCount = Number(source.recipientCount || 0);
-      if (!Number.isFinite(baseRecipientCount) || baseRecipientCount < updatedRecipients.length)
-      {
-        baseRecipientCount = updatedRecipients.length;
-      }
-      var updated = Object.assign({}, source, {
-        recipients: updatedRecipients,
-        acknowledgedCount: acknowledgedCount,
-        recipientCount: baseRecipientCount
-      });
-      updated.acknowledgedRate = updated.recipientCount
-        ? Math.round((acknowledgedCount / updated.recipientCount) * 100)
-        : 0;
-      this.replaceSurvey(updated);
-      return updated;
     }
 
     collectSurveyResponses(modal)
@@ -3924,11 +3625,11 @@
         {
           this.page.showToast('error', '未回答の必須設問があります。');
         }
-        this.state.acknowledgingId = null;
+        this.state.submittingSurveyId = null;
         this.updateDetailModalActions(modal, target);
         return;
       }
-      this.state.acknowledgingId = target.id;
+      this.state.submittingSurveyId = target.id;
       this.updateDetailModalActions(modal, target);
       var answers = responses && responses.answers ? responses.answers : [];
       try
@@ -3963,82 +3664,8 @@
           window.console.error('[target-detail] failed to submit survey response', error);
         }
       }
-      this.state.acknowledgingId = null;
+      this.state.submittingSurveyId = null;
       this.updateDetailModalActions(modal, modal.currentItem || target);
-    }
-
-    async handleReminderConfirm(modal)
-    {
-      if (!modal || !modal.currentItem)
-      {
-        return;
-      }
-      var userCode = modal.responseUserCode || this.getViewerUserCode();
-      if (!userCode)
-      {
-        return;
-      }
-      var button = modal.confirmButton;
-      if (button)
-      {
-        button.disabled = true;
-        button.setAttribute('aria-busy', 'true');
-      }
-      this.state.acknowledgingId = modal.currentItem.id;
-      var payload = { targetCode: this.page.state.targetCode, userCode: userCode };
-      var numericId = null;
-      var stringId = String(modal.currentItem.id || '').trim();
-      if (/^\d+$/.test(stringId))
-      {
-        numericId = Number(stringId);
-      }
-      if (numericId !== null)
-      {
-        payload.id = numericId;
-      }
-      if (modal.currentItem.surveyCode)
-      {
-        payload.surveyCode = modal.currentItem.surveyCode;
-      }
-      else if (numericId === null && modal.currentItem.id)
-      {
-        payload.surveyCode = modal.currentItem.id;
-      }
-      payload.acknowledgedAt = formatServerTimestamp(new Date());
-
-      try
-      {
-        var result = await this.page.callApi('TargetSurveyAcknowledge', payload, { requestType: 'TargetManagementSurvey' });
-        var ackAt = result && result.acknowledgedAt ? result.acknowledgedAt : payload.acknowledgedAt;
-        var updated = this.applyAcknowledgement(modal.currentItem.id, userCode, ackAt);
-        if (updated)
-        {
-          modal.currentItem = updated;
-          this.renderReminderModal(updated, modal);
-        }
-        this.toggleReminderModal(modal, false);
-        if (this.page.toastService && typeof this.page.toastService.success === 'function')
-        {
-          this.page.toastService.success('確認済みにしました。');
-        }
-      }
-      catch (error)
-      {
-        if (window.console && typeof window.console.error === 'function')
-        {
-          window.console.error('[target-detail] failed to acknowledge survey reminder', error);
-        }
-        if (this.page.toastService && typeof this.page.toastService.error === 'function')
-        {
-          this.page.toastService.error('確認状態の更新に失敗しました。');
-        }
-      }
-      this.state.acknowledgingId = null;
-      if (button)
-      {
-        button.disabled = false;
-        button.removeAttribute('aria-busy');
-      }
     }
 
     async handleResponseSubmit(modal)
@@ -4169,97 +3796,6 @@
       var profile = this.page && this.page.state ? this.page.state.profile : null;
       var code = profile && (profile.userCode || profile.user_code || profile.code || '');
       return normalizeText(code);
-    }
-
-    findPendingSurvey(userCode)
-    {
-      if (!userCode)
-      {
-        return null;
-      }
-      var normalizedUser = userCode.toLowerCase();
-      var items = Array.isArray(this.state.items) ? this.state.items : [];
-      var target = null;
-      var latestTimestamp = 0;
-      var self = this;
-      items.forEach(function (item)
-      {
-        if (!item || !Array.isArray(item.recipients))
-        {
-          return;
-        }
-        if (self.isSurveyActive(item) === false)
-        {
-          return;
-        }
-        var match = item.recipients.find(function (recipient)
-        {
-          if (!recipient)
-          {
-            return false;
-          }
-          var recipientCode = normalizeText(recipient.userCode || recipient.displayName).toLowerCase();
-          if (!recipientCode)
-          {
-            return false;
-          }
-          if (recipientCode !== normalizedUser)
-          {
-            return false;
-          }
-          return !recipient.acknowledgedAt && recipient.hasAcknowledgement;
-        });
-        if (!match)
-        {
-          return;
-        }
-        var createdAt = item.createdAt ? new Date(String(item.createdAt).replace(/-/g, '/')) : null;
-        var createdValue = createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.getTime() : 0;
-        if (createdValue >= latestTimestamp)
-        {
-          target = item;
-          latestTimestamp = createdValue;
-        }
-      });
-      return target;
-    }
-
-    async showPendingSurveyForViewer()
-    {
-      if (this.state.hasPresentedPending)
-      {
-        return;
-      }
-      var viewerCode = this.getViewerUserCode();
-      if (!viewerCode)
-      {
-        return;
-      }
-      var pending = this.findPendingSurvey(viewerCode);
-      if (!pending)
-      {
-        return;
-      }
-      if (!this.isSurveyActive(pending))
-      {
-        return;
-      }
-      this.state.hasPresentedPending = true;
-      if (this.canManage)
-      {
-        var detailModal = this.ensureDetailModal();
-        detailModal.trigger = null;
-        detailModal.currentItem = pending;
-        detailModal.hideStatus = true;
-        this.renderDetailModal(pending, detailModal, { hideStatus: true });
-        this.toggleDetailModal(detailModal, true);
-        return;
-      }
-      var reminderModal = this.ensureReminderModal();
-      reminderModal.trigger = null;
-      reminderModal.currentItem = pending;
-      this.renderReminderModal(pending, reminderModal);
-      this.toggleReminderModal(reminderModal, true);
     }
 
     getUserSelectModalService()
@@ -4505,7 +4041,40 @@
       this.clearFieldError(modal.contentField);
       this.clearFieldError(modal.startField);
       this.clearFieldError(modal.endField);
-      this.setAudienceSelection(modal, item && item.recipients ? item.recipients : []);
+      var audienceCandidates = this.getAudienceCandidates();
+      var initialAudience = [];
+      if (modal.mode === 'edit')
+      {
+        var candidateKeys = (Array.isArray(audienceCandidates) ? audienceCandidates : []).map(function (entry)
+        {
+          return buildAudienceKey(entry);
+        }).filter(Boolean);
+        var selectedKeys = [];
+        var rawAudience = item && Array.isArray(item.audience) ? item.audience : null;
+        var rawRecipients = item && Array.isArray(item.recipients) ? item.recipients : null;
+        var sourceList = rawAudience || rawRecipients || [];
+        selectedKeys = sourceList.map(function (entry)
+        {
+          var normalized = normalizeRecipient(entry);
+          if (!normalized || normalized.isGuest)
+          {
+            return '';
+          }
+          return buildAudienceKey(normalized);
+        }).filter(Boolean);
+        if (selectedKeys.length && candidateKeys.length)
+        {
+          initialAudience = audienceCandidates.filter(function (entry)
+          {
+            return selectedKeys.indexOf(buildAudienceKey(entry)) !== -1;
+          });
+        }
+        else
+        {
+          initialAudience = audienceCandidates;
+        }
+      }
+      this.setAudienceSelection(modal, initialAudience);
       if (modal.titleNode)
       {
         modal.titleNode.textContent = modal.mode === 'edit' ? 'アンケートを編集' : 'アンケートを追加';
@@ -4547,6 +4116,7 @@
         modal.guestToggle.checked = Boolean(item && item.isGuestMode);
         this.renderAudienceSelection(modal);
       }
+      this.resetFormSnapshot(modal);
       if (modal.titleInput)
       {
         modal.titleInput.focus();
@@ -4568,6 +4138,64 @@
       {
         modal.restoreTarget.focus();
       }
+    }
+
+    buildFormSnapshot(modal)
+    {
+      if (!modal)
+      {
+        return '';
+      }
+      var recipients = Array.isArray(modal.selectedRecipients) ? modal.selectedRecipients : [];
+      var payload = {
+        mode: modal.mode,
+        title: modal.titleInput && modal.titleInput.value ? modal.titleInput.value : '',
+        content: modal.contentInput && modal.contentInput.value ? modal.contentInput.value : '',
+        startAt: modal.startInput && modal.startInput.value ? modal.startInput.value : '',
+        endAt: modal.endInput && modal.endInput.value ? modal.endInput.value : '',
+        isGuestMode: this.isGuestModeEnabled(modal),
+        recipients: recipients.map(function (entry)
+        {
+          return {
+            key: buildAudienceKey(entry),
+            userCode: entry && entry.userCode ? String(entry.userCode).trim() : '',
+            selectionKey: entry && entry.selectionKey ? String(entry.selectionKey) : '',
+            isGuest: normalizeBooleanFlag(entry && (entry.isGuest || entry.guest))
+          };
+        }),
+        items: this.serializeSurveyItems(modal.surveyItems)
+      };
+      return JSON.stringify(payload);
+    }
+
+    resetFormSnapshot(modal)
+    {
+      if (!modal)
+      {
+        return;
+      }
+      modal.initialFormSnapshot = this.buildFormSnapshot(modal);
+    }
+
+    hasFormChanges(modal)
+    {
+      if (!modal)
+      {
+        return false;
+      }
+      var baseline = typeof modal.initialFormSnapshot === 'string' ? modal.initialFormSnapshot : '';
+      var current = this.buildFormSnapshot(modal);
+      return baseline !== current;
+    }
+
+    async confirmFormModalClose(modal)
+    {
+      if (!this.hasFormChanges(modal))
+      {
+        return true;
+      }
+      var confirmed = await this.page.confirmDialogService.open('編集中の内容が破棄されます。閉じてもよろしいですか？', { type: 'warning' });
+      return !!confirmed;
     }
 
     createFormModal()
@@ -4720,17 +4348,22 @@
       };
 
       var self = this;
-      function close(event)
+      async function close(event)
       {
         if (modal.isSubmitting)
         {
           return;
         }
-        self.closeFormModal();
         if (event && typeof event.preventDefault === 'function')
         {
           event.preventDefault();
         }
+        var canClose = await self.confirmFormModalClose(modal);
+        if (!canClose)
+        {
+          return;
+        }
+        self.closeFormModal();
       }
 
       modalRoot.addEventListener('keydown', function (event)
@@ -6560,6 +6193,17 @@
         selection.push(normalized);
       });
       modal.selectedRecipients = selection;
+      if (false && window.console && typeof window.console.log === 'function')
+      {
+        window.console.log('[target-detail] setAudienceSelection', {
+          inputLength: Array.isArray(list) ? list.length : 0,
+          selectionLength: selection.length,
+          keys: selection.map(function (recipient)
+          {
+            return buildAudienceKey(recipient);
+          })
+        });
+      }
       this.renderAudienceSelection(modal);
       this.clearFieldError(modal.audienceField);
     }
@@ -6577,6 +6221,17 @@
         list.innerHTML = '';
       }
       var selection = Array.isArray(modal.selectedRecipients) ? modal.selectedRecipients : [];
+      if (false && window.console && typeof window.console.log === 'function')
+      {
+        window.console.log('[target-detail] renderAudienceSelection', {
+          selectionLength: selection.length,
+          guestMode: isGuestMode,
+          keys: selection.map(function (recipient)
+          {
+            return buildAudienceKey(recipient);
+          })
+        });
+      }
       if (modal.audienceCount)
       {
         if (selection.length)

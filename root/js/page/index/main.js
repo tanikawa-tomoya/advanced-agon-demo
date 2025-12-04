@@ -12,6 +12,8 @@
     // このページではSessionServiceでのログイン状態のチェックは不要         
     async boot()
     {
+      window.Utils.initScreenModalHistoryObserver().observe();
+
       await window.Utils.loadScriptsSync([{ src: '/js/service-app/header/main.js' } ,
                                                       { src: '/js/service-app/toast/main.js' },
                                                       { src: '/js/service-app/loading/main.js' },

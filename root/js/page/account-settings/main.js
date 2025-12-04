@@ -76,6 +76,8 @@
         return;
       }
 
+      window.Utils.initScreenModalHistoryObserver().observe();
+
       // Load required scripts and initialize services
       await this._loadScripts();
       this.initConfig();

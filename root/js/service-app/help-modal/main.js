@@ -10,6 +10,10 @@
       this._region = null;
       this._current = null; // { overlay, dialog, backdrop, escHandler, prevActive }
       this._roleFlags = null;
+      this._historyHandler = null;
+      this._historyDepth = 0;
+      this._ignorePopstateCount = 0;
+      this._closingFromHistory = false;
       this.initConfig();
     }
 
@@ -30,6 +34,63 @@
         defaultSanitizeFn: null
       };
       this.config = Object.assign({}, DEFAULTS, this.options || {});
+    }
+
+    _hasOpenModal()
+    {
+      return this.isOpen();
+    }
+
+    _ensureHistoryListener()
+    {
+      if (this._historyHandler) return;
+      var self = this;
+      this._historyHandler = function () {
+        if (self._ignorePopstateCount > 0)
+        {
+          self._ignorePopstateCount--;
+          return;
+        }
+        if (self._historyDepth > 0 && self._hasOpenModal())
+        {
+          self._historyDepth--;
+          self._closingFromHistory = true;
+          self.dismiss();
+          self._closingFromHistory = false;
+          self._teardownHistoryIfIdle();
+        }
+      };
+      window.addEventListener('popstate', this._historyHandler);
+    }
+
+    _teardownHistoryIfIdle()
+    {
+      if (!this._hasOpenModal() && this._historyDepth <= 0 && this._historyHandler)
+      {
+        window.removeEventListener('popstate', this._historyHandler);
+        this._historyHandler = null;
+        this._ignorePopstateCount = 0;
+        this._historyDepth = 0;
+      }
+    }
+
+    _pushHistoryState()
+    {
+      this._ensureHistoryListener();
+      history.pushState({ modal: 'help' }, document.title, window.location.href);
+      this._historyDepth++;
+    }
+
+    _popHistorySilently(count)
+    {
+      var steps = (typeof count === 'number' && count > 0) ? count : 1;
+      for (var i = 0; i < steps && this._historyDepth > 0; i++)
+      {
+        this._historyDepth--;
+        this._ignorePopstateCount++;
+        history.back();
+      }
+      this._teardownHistoryIfIdle();
     }
     
     async boot()
@@ -118,6 +179,7 @@
 
       // 状態保持
       this._current = { overlay: overlay, dialog: dialog, backdrop: backdrop, escHandler: escHandler, prevActive: prevActive, container: container };
+      this._pushHistoryState();
       return dialog;
     }
 
@@ -146,6 +208,14 @@
       var region = this.jobs.region.getRegion(cur.container);
       if (region && this.jobs.region.isRegionEmpty(region)) {
         this.jobs.region.removeRegion(region);
+      }
+      if (!this._closingFromHistory)
+      {
+        this._popHistorySilently(1);
+      }
+      else
+      {
+        this._teardownHistoryIfIdle();
       }
       return true;
     }

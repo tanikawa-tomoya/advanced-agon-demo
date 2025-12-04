@@ -59,6 +59,8 @@
     {
       try
       {
+        window.Utils.initScreenModalHistoryObserver().observe();
+
         this.initConfig();
         await this.loadJobScripts();
         this.initJobs();

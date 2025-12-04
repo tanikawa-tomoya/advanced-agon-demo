@@ -28,6 +28,8 @@
         return;
       }
 
+      window.Utils.initScreenModalHistoryObserver().observe();
+
       this.initConfig();
       await this._loadCoreServices();
       this._renderBreadcrumbs();

@@ -88,7 +88,9 @@
         window.location.href = "/login.html";
         return;
       }
-      
+
+      window.Utils.initScreenModalHistoryObserver().observe();
+
       try {
         this.initConfig();
         await this.initServices();

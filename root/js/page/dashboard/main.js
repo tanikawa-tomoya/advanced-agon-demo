@@ -14,8 +14,10 @@
         window.location.href = "/login.html";
         return;
       }
-      
-      const jsList = [      
+
+      window.Utils.initScreenModalHistoryObserver().observe();
+
+      const jsList = [
         '/js/service-app/header/main.js',
         '/js/service-app/toast/main.js',
         '/js/service-app/loading/main.js',

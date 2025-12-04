@@ -1133,6 +1133,8 @@
         return;
       }
 
+      window.Utils.initScreenModalHistoryObserver().observe();
+
       this.initConfig();
       this.targetAlias = this.resolveTargetAlias();
 

@@ -11,6 +11,10 @@
       this.stack = [];
       this.config = null;
       this.CSS = null;
+      this._historyHandler = null;
+      this._historyDepth = 0;
+      this._ignorePopstateCount = 0;
+      this._closingFromHistory = false;
     }
 
     initConfig(options)
@@ -45,6 +49,63 @@
       return this.config;
     }
 
+    _hasOpenModal()
+    {
+      return Array.isArray(this.stack) && this.stack.length > 0;
+    }
+
+    _ensureHistoryListener()
+    {
+      if (this._historyHandler) return;
+      var self = this;
+      this._historyHandler = function () {
+        if (self._ignorePopstateCount > 0)
+        {
+          self._ignorePopstateCount--;
+          return;
+        }
+        if (self._historyDepth > 0 && self._hasOpenModal())
+        {
+          self._historyDepth--;
+          self._closingFromHistory = true;
+          self.dismiss();
+          self._closingFromHistory = false;
+          self._teardownHistoryIfIdle();
+        }
+      };
+      window.addEventListener('popstate', this._historyHandler);
+    }
+
+    _teardownHistoryIfIdle()
+    {
+      if (!this._hasOpenModal() && this._historyDepth <= 0 && this._historyHandler)
+      {
+        window.removeEventListener('popstate', this._historyHandler);
+        this._historyHandler = null;
+        this._ignorePopstateCount = 0;
+        this._historyDepth = 0;
+      }
+    }
+
+    _pushHistoryState()
+    {
+      this._ensureHistoryListener();
+      history.pushState({ modal: 'audio' }, document.title, window.location.href);
+      this._historyDepth++;
+    }
+
+    _popHistorySilently(count)
+    {
+      var steps = (typeof count === 'number' && count > 0) ? count : 1;
+      for (var i = 0; i < steps && this._historyDepth > 0; i++)
+      {
+        this._historyDepth--;
+        this._ignorePopstateCount++;
+        history.back();
+      }
+      this._teardownHistoryIfIdle();
+    }
+
     async boot()
     {
       await window.Utils.loadScriptsSync([
@@ -70,6 +131,7 @@
 
     _mount(modalEl, container)
     {
+      this._pushHistoryState();
       this._ensureRegion(container, this.config.zIndex).appendChild(modalEl);
       this.stack.push({ node: modalEl, container: container || document.body });
       try
@@ -93,6 +155,14 @@
       {
         this.jobs.modal.lockBodyScroll(this.CSS, false);
         this.jobs.region.cleanupIfEmpty(this.CSS);
+      }
+      if (!this._closingFromHistory)
+      {
+        this._popHistorySilently(1);
+      }
+      else
+      {
+        this._teardownHistoryIfIdle();
       }
     }
 
@@ -165,10 +235,17 @@
 
     dismissAll()
     {
+      var historyCount = this._historyDepth;
+      this._closingFromHistory = true;
       while (this.stack.length)
       {
         var e = this.stack.pop();
         this._unmount(e.node);
+      }
+      this._closingFromHistory = false;
+      if (historyCount > 0)
+      {
+        this._popHistorySilently(historyCount);
       }
       return true;
     }
