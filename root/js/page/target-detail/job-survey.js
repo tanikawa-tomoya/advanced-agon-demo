@@ -380,7 +380,8 @@
       try
       {
         await this.fetchAndRenderSurvey();
-        this.setFeedback('最新のアンケートを読み込みました。', 'success');
+        this.setFeedback('');
+        this.page.showToast('success', '最新のアンケートを読み込みました。');
       }
       catch (error)
       {

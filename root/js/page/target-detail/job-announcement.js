@@ -153,6 +153,12 @@
       return flags || { isSupervisor: false, isOperator: false };
     }
 
+    canViewAcknowledgementSummary()
+    {
+      var flags = this.getRoleFlags();
+      return !!(flags && (flags.isSupervisor || flags.isOperator));
+    }
+
     getSessionUserSelection()
     {
       var profile = this.page && this.page.state ? this.page.state.profile : null;
@@ -727,6 +733,8 @@
       var items = this.state.items || [];
       this.refs.list.innerHTML = '';
 
+      var showAcknowledgement = this.canViewAcknowledgementSummary();
+
       if (!items.length)
       {
         if (this.refs.empty)
@@ -746,10 +754,9 @@
       var thead = document.createElement('thead');
       thead.innerHTML = '' +
         '<tr>' +
-        '<th scope="col">作成者</th>' +
         '<th scope="col">タイトル</th>' +
         '<th scope="col">作成日</th>' +
-        '<th scope="col">確認状況</th>' +
+        (showAcknowledgement ? '<th scope="col">確認状況</th>' : '') +
         '<th scope="col" class="target-reference__actions-header">操作</th>' +
         '</tr>';
       table.appendChild(thead);
@@ -758,17 +765,15 @@
       var self = this;
       items.forEach(function (item)
       {
-        tbody.appendChild(self.createTableRow(item));
+        tbody.appendChild(self.createTableRow(item, showAcknowledgement));
       });
       table.appendChild(tbody);
       this.refs.list.appendChild(table);
     }
 
-    createTableRow(item)
+    createTableRow(item, showAcknowledgement)
     {
       var row = document.createElement('tr');
-
-      row.appendChild(this.renderAuthorCell(item));
 
       var titleCell = document.createElement('td');
       titleCell.className = 'target-detail__announcement-content-cell';
@@ -787,45 +792,12 @@
       createdCell.textContent = item.createdAtDisplay || '—';
       row.appendChild(createdCell);
 
-      row.appendChild(this.renderProgressCell(item));
+      if (showAcknowledgement)
+      {
+        row.appendChild(this.renderProgressCell(item));
+      }
       row.appendChild(this.renderActionsCell(item));
       return row;
-    }
-
-    renderAuthorCell(item)
-    {
-      var cell = document.createElement('td');
-      cell.className = 'target-detail__announcement-author-cell';
-
-      var author = document.createElement('div');
-      author.className = 'target-detail__announcement-author';
-
-      var avatarHost = document.createElement('span');
-      avatarHost.className = 'target-detail__announcement-author-avatar c-user-avatar-host';
-      avatarHost.dataset.avatarName = item.createdByDisplayName || item.createdByUserCode || '作成者';
-      avatarHost.dataset.avatarAlt = avatarHost.dataset.avatarName;
-      if (item.createdByUserCode)
-      {
-        avatarHost.dataset.userCode = item.createdByUserCode;
-      }
-      avatarHost.dataset.userActive = item && item.createdByIsActive === false ? 'false' : 'true';
-      this.renderAvatar(avatarHost, {
-        name: avatarHost.dataset.avatarName,
-        userCode: item.createdByUserCode,
-        src: item.createdByAvatarUrl,
-        transform: item.createdByAvatarTransform,
-        initial: item.createdByAvatarInitial,
-        isActive: item && item.createdByIsActive !== false
-      }, { size: 36, nameOverlay: true });
-      author.appendChild(avatarHost);
-
-      var name = document.createElement('div');
-      name.className = 'target-detail__announcement-author-name';
-      name.textContent = item.createdByDisplayName || item.createdByUserCode || '—';
-      author.appendChild(name);
-
-      cell.appendChild(author);
-      return cell;
     }
 
     renderProgressCell(item)
@@ -872,31 +844,62 @@
       var cell = document.createElement('td');
       cell.className = 'target-detail__announcement-action-group';
 
-      var detailButton = this.createActionButton('detail', '詳細', 'target-detail__announcement-action target-detail__announcement-action--detail');
-      detailButton.addEventListener('click', (event) =>
-      {
-        event.preventDefault();
-        this.handleDetail(item, detailButton);
-      });
-      cell.appendChild(detailButton);
+      var flags = this.getRoleFlags();
+      var isPrivileged = !!(flags && (flags.isSupervisor || flags.isOperator));
 
-      var editButton = this.createActionButton('edit', '編集', 'target-detail__announcement-action target-detail__announcement-action--edit');
-      editButton.disabled = !this.canManage;
-      editButton.addEventListener('click', (event) =>
+      if (isPrivileged)
       {
-        event.preventDefault();
-        this.handleEdit(item, editButton);
-      });
-      cell.appendChild(editButton);
+        var detailButton = this.createActionButton('detail', '詳細', 'target-detail__announcement-action target-detail__announcement-action--detail');
+        detailButton.addEventListener('click', (event) =>
+        {
+          event.preventDefault();
+          this.handleDetail(item, detailButton);
+        });
+        cell.appendChild(detailButton);
 
-      var deleteButton = this.createActionButton('delete', '削除', 'target-detail__announcement-action target-detail__announcement-action--delete');
-      deleteButton.disabled = !this.canManage;
-      deleteButton.addEventListener('click', (event) =>
+        var editButton = this.createActionButton('edit', '編集', 'target-detail__announcement-action target-detail__announcement-action--edit');
+        editButton.disabled = !this.canManage;
+        editButton.addEventListener('click', (event) =>
+        {
+          event.preventDefault();
+          this.handleEdit(item, editButton);
+        });
+        cell.appendChild(editButton);
+
+        var deleteButton = this.createActionButton('delete', '削除', 'target-detail__announcement-action target-detail__announcement-action--delete');
+        deleteButton.disabled = !this.canManage;
+        deleteButton.addEventListener('click', (event) =>
+        {
+          event.preventDefault();
+          this.handleDelete(item, deleteButton);
+        });
+        cell.appendChild(deleteButton);
+      }
+      else
       {
-        event.preventDefault();
-        this.handleDelete(item, deleteButton);
-      });
-      cell.appendChild(deleteButton);
+        var confirmLabel = '確認済みにする';
+        var confirmButton = this.createServiceActionButton(
+          'target-reference-refresh',
+          {
+            label: confirmLabel,
+            ariaLabel: confirmLabel,
+            hoverLabel: confirmLabel,
+            className: 'btn btn--primary btn-primary target-detail__announcement-ack-button'
+          },
+          'btn btn--primary btn-primary target-detail__announcement-ack-button'
+        );
+        this.updateAcknowledgeButtonState(confirmButton, item);
+        confirmButton.addEventListener('click', (event) =>
+        {
+          event.preventDefault();
+          if (confirmButton.disabled)
+          {
+            return;
+          }
+          this.handleListAcknowledge(item, confirmButton);
+        });
+        cell.appendChild(confirmButton);
+      }
 
       return cell;
     }
@@ -1273,6 +1276,25 @@
       });
     }
 
+    isAnnouncementAcknowledgedByUser(item, userCode)
+    {
+      var normalizedUser = normalizeText(userCode).toLowerCase();
+      if (!item || !normalizedUser)
+      {
+        return false;
+      }
+      var recipients = Array.isArray(item.recipients) ? item.recipients : [];
+      return recipients.some(function (recipient)
+      {
+        if (!recipient)
+        {
+          return false;
+        }
+        var recipientCode = normalizeText(recipient.userCode || recipient.displayName).toLowerCase();
+        return recipientCode && recipientCode === normalizedUser && !!recipient.acknowledgedAt;
+      });
+    }
+
     updateDetailModalActions(modal, item)
     {
       if (!modal)
@@ -1297,6 +1319,33 @@
         {
           modal.confirmButton.removeAttribute('aria-busy');
         }
+      }
+    }
+
+    updateAcknowledgeButtonState(button, item)
+    {
+      if (!button)
+      {
+        return;
+      }
+      var viewer = this.getViewerUserCode();
+      var isPending = this.isAnnouncementPendingForUser(item, viewer);
+      var isProcessing = item && this.state.acknowledgingId === item.id;
+      var acknowledged = this.isAnnouncementAcknowledgedByUser(item, viewer);
+      var label = acknowledged ? '確認済み' : '確認済みにする';
+      button.textContent = label;
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+      button.setAttribute('data-hover-label', label);
+      if (isProcessing)
+      {
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+      }
+      else
+      {
+        button.removeAttribute('aria-busy');
+        button.disabled = !isPending;
       }
     }
 
@@ -1649,43 +1698,45 @@
       return updated;
     }
 
-    async handleAnnouncementConfirm(modal)
+    async acknowledgeAnnouncement(item, callbacks)
     {
-      if (!modal || !modal.currentItem)
+      if (!item)
       {
-        return;
+        return null;
       }
       var userCode = this.getViewerUserCode();
       if (!userCode)
       {
-        return;
+        return null;
       }
-      var target = modal.currentItem;
-      this.state.acknowledgingId = target.id;
-      this.updateDetailModalActions(modal, target);
+      this.state.acknowledgingId = item.id;
+      if (callbacks && typeof callbacks.onStart === 'function')
+      {
+        callbacks.onStart(item);
+      }
+
       var acknowledgedAt = new Date().toISOString();
+      var updated = null;
       try
       {
         var payload = await this.page.callApi(
           'TargetAnnouncementAcknowledge',
-          { id: target.id, userCode: userCode, acknowledgedAt: acknowledgedAt },
+          { id: item.id, userCode: userCode, acknowledgedAt: acknowledgedAt },
           { requestType: 'TargetManagementAnnouncements' }
         );
         if (payload && payload.acknowledgedAt)
         {
           acknowledgedAt = payload.acknowledgedAt;
         }
-        var updated = this.applyAcknowledgement(target.id, userCode, acknowledgedAt);
-        if (updated)
+        updated = this.applyAcknowledgement(item.id, userCode, acknowledgedAt) || item;
+        if (callbacks && typeof callbacks.onSuccess === 'function')
         {
-          modal.currentItem = updated;
-          this.renderDetailModal(updated, modal);
+          callbacks.onSuccess(updated);
         }
         if (this.page && typeof this.page.showToast === 'function')
         {
           this.page.showToast('success', 'お知らせを確認済みにしました。');
         }
-        this.toggleDetailModal(modal, false);
       }
       catch (error)
       {
@@ -1697,9 +1748,59 @@
         {
           window.console.error('[target-detail] failed to acknowledge announcement', error);
         }
+        if (callbacks && typeof callbacks.onError === 'function')
+        {
+          callbacks.onError(error);
+        }
       }
       this.state.acknowledgingId = null;
-      this.updateDetailModalActions(modal, modal.currentItem || target);
+      if (callbacks && typeof callbacks.onComplete === 'function')
+      {
+        callbacks.onComplete(updated || item);
+      }
+      return updated;
+    }
+
+    async handleListAcknowledge(item, button)
+    {
+      await this.acknowledgeAnnouncement(item, {
+        onStart: () =>
+        {
+          this.updateAcknowledgeButtonState(button, item);
+        },
+        onComplete: (latest) =>
+        {
+          this.updateAcknowledgeButtonState(button, latest);
+        }
+      });
+    }
+
+    async handleAnnouncementConfirm(modal)
+    {
+      if (!modal || !modal.currentItem)
+      {
+        return;
+      }
+      var target = modal.currentItem;
+      await this.acknowledgeAnnouncement(target, {
+        onStart: () =>
+        {
+          this.updateDetailModalActions(modal, target);
+        },
+        onSuccess: (updated) =>
+        {
+          if (updated)
+          {
+            modal.currentItem = updated;
+            this.renderDetailModal(updated, modal);
+          }
+          this.toggleDetailModal(modal, false);
+        },
+        onComplete: (latest) =>
+        {
+          this.updateDetailModalActions(modal, modal.currentItem || latest);
+        }
+      });
     }
 
     replaceAnnouncement(next)
@@ -2446,12 +2547,33 @@
     getAudienceCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
-      var candidates = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
+      var assignedUsers = target && Array.isArray(target.assignedUsers) ? target.assignedUsers.slice() : [];
+      var candidates = participants.concat(assignedUsers);
       var seen = Object.create(null);
       var normalized = [];
       candidates.forEach(function (entry)
       {
-        var recipient = normalizeRecipient(entry);
+        var user = entry && entry.user && typeof entry.user === 'object' ? entry.user : null;
+        var recipient = normalizeRecipient({
+          userCode: entry && entry.userCode ? entry.userCode : (entry && entry.code ? entry.code : (user && (user.userCode || user.code || user.loginId)) || ''),
+          displayName: entry && entry.displayName
+            ? entry.displayName
+            : (entry && (entry.userDisplayName || entry.name || entry.fullName))
+              || (user && (user.displayName || user.userDisplayName || user.name || user.fullName))
+              || '',
+          role: entry && entry.role ? entry.role : (user && user.role) || '',
+          avatarUrl: entry && entry.avatarUrl ? entry.avatarUrl : (entry && entry.photoUrl)
+            || (user && (user.avatarUrl || user.photoUrl))
+            || '',
+          avatarInitial: entry && entry.avatarInitial ? entry.avatarInitial : (entry && entry.initial)
+            || (user && (user.avatarInitial || user.initial))
+            || '',
+          avatarTransform: entry && entry.avatarTransform ? entry.avatarTransform : (entry && entry.transform)
+            || (user && (user.avatarTransform || user.transform))
+            || '',
+          isActive: !(entry && entry.isActive === false)
+        });
         if (!recipient)
         {
           return;

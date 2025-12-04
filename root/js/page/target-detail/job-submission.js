@@ -1366,6 +1366,8 @@
     {
       var cell = document.createElement('td');
       cell.className = 'target-detail__submission-actions-cell';
+      var actionsContainer = document.createElement('div');
+      actionsContainer.className = 'target-detail__submission-actions';
 
       var attachment = pickPrimaryAttachment(item);
       var hasAttachment = !!attachment;
@@ -1375,7 +1377,7 @@
         event.preventDefault();
         this.handlePlayback(item, attachment);
       });
-      cell.appendChild(previewButton);
+      actionsContainer.appendChild(previewButton);
 
       var downloadUrl = this.resolveAttachmentDownloadUrl(attachment);
       var downloadButton = createActionButton('download', {
@@ -1394,7 +1396,7 @@
           event.preventDefault();
         });
       }
-      cell.appendChild(downloadButton);
+      actionsContainer.appendChild(downloadButton);
 
       if (this.canManage)
       {
@@ -1404,7 +1406,7 @@
           event.preventDefault();
           this.openAddModal(item);
         });
-        cell.appendChild(editButton);
+        actionsContainer.appendChild(editButton);
 
         var deleteButton = createActionButton('delete', { element: 'button', ariaLabel: '提出を削除' });
         deleteButton.addEventListener('click', (event) =>
@@ -1412,9 +1414,10 @@
           event.preventDefault();
           this.deleteSubmission(item, deleteButton);
         });
-        cell.appendChild(deleteButton);
+        actionsContainer.appendChild(deleteButton);
       }
 
+      cell.appendChild(actionsContainer);
       return cell;
     }
 
@@ -1793,6 +1796,15 @@
       return flags || { isSupervisor: false, isOperator: false };
     }
 
+    isContentManagementEnabled()
+    {
+      if (this.page && typeof this.page.isContentsManagementEnabled === 'function')
+      {
+        return this.page.isContentsManagementEnabled();
+      }
+      return true;
+    }
+
     getDefaultStatusLabel()
     {
       if (Array.isArray(this.defaultStatuses) && this.defaultStatuses.length)
@@ -1913,6 +1925,46 @@
       if (modal.submitterClearButton)
       {
         modal.submitterClearButton.hidden = !isSupervisor;
+      }
+    }
+
+    applyContentSelectionPolicy(modal)
+    {
+      if (!modal)
+      {
+        return;
+      }
+      var enabled = this.isContentManagementEnabled();
+      if (modal.contentLibraryPanel)
+      {
+        this.setElementVisibility(modal.contentLibraryPanel, enabled);
+      }
+      if (modal.contentOpenButton)
+      {
+        if (enabled)
+        {
+          modal.contentOpenButton.removeAttribute('disabled');
+        }
+        else
+        {
+          modal.contentOpenButton.setAttribute('disabled', 'disabled');
+        }
+      }
+      if (modal.contentClearButton)
+      {
+        modal.contentClearButton.hidden = !enabled;
+        if (enabled)
+        {
+          modal.contentClearButton.removeAttribute('aria-hidden');
+        }
+        else
+        {
+          modal.contentClearButton.setAttribute('aria-hidden', 'true');
+        }
+      }
+      if (!enabled)
+      {
+        this.toggleContentPicker(modal, false);
       }
     }
 
@@ -2083,6 +2135,7 @@
       this.fillFormWithItem(modal, item);
       this.applyStatusSelectionPolicy(modal);
       this.applySubmitterSelectionPolicy(modal);
+      this.applyContentSelectionPolicy(modal);
       var focusSubmitter = this.shouldShowSubmitterField();
       if (focusSubmitter && modal.submitterSelectButton && typeof modal.submitterSelectButton.focus === 'function')
       {
@@ -2223,6 +2276,7 @@
       var feedback = form.querySelector('.target-reference__form-feedback');
       var uploaderHost = form.querySelector('[data-target-submission-uploader]');
       var uploadCounter = form.querySelector('[data-target-submission-upload-counter]');
+      var contentLibraryPanel = form.querySelector('[aria-labelledby="target-submission-panel-library"]');
       var contentOpenButton = form.querySelector('[data-target-submission-content-open]');
       var contentClearButton = form.querySelector('[data-target-submission-content-clear]');
       var contentList = form.querySelector('[data-target-submission-content-list]');
@@ -2256,6 +2310,7 @@
         feedback: feedback,
         uploaderHost: uploaderHost,
         uploadCounter: uploadCounter,
+        contentLibraryPanel: contentLibraryPanel,
         contentOpenButton: contentOpenButton,
         contentClearButton: contentClearButton,
         contentList: contentList,
@@ -2279,6 +2334,8 @@
         selectedUser: null,
         selectedContents: []
       };
+
+      this.applyContentSelectionPolicy(modal);
 
       if (contentInput)
       {
@@ -2624,6 +2681,11 @@
       {
         return;
       }
+      if (!this.isContentManagementEnabled())
+      {
+        modal.contentPicker.hidden = true;
+        return;
+      }
       var shouldOpen = !!isOpen;
       modal.contentPicker.hidden = !shouldOpen;
       if (!shouldOpen)
@@ -2639,6 +2701,10 @@
 
     openContentSelectModal(modal)
     {
+      if (!this.isContentManagementEnabled())
+      {
+        return;
+      }
       var service = this.getContentsSelectModalService();
       if (!service || typeof service.open !== 'function')
       {
@@ -2744,6 +2810,10 @@
 
     async ensureContentLibrary(modal)
     {
+      if (!this.isContentManagementEnabled())
+      {
+        return;
+      }
       var ownerKey = this.resolveContentLibraryOwner(modal);
       var ownerParams = this.resolveContentLibraryOwnerParams(modal);
       var requiresSelection = this.shouldShowSubmitterField();

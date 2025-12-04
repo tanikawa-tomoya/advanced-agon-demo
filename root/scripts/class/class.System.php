@@ -77,7 +77,7 @@ class System extends Base
                 $params = array();
 
                 if ($this->isSupervisor() == false) {
-                        $allowedKeys = array('siteTitle', 'siteTheme', 'targetAlias');
+                        $allowedKeys = array('siteTitle', 'siteTheme', 'targetAlias', 'agreementAlias');
                         $placeholders = implode(',', array_fill(0, count($allowedKeys), '?'));
                         $sql .= ' WHERE key IN (' . $placeholders . ')';
                         $params = $allowedKeys;

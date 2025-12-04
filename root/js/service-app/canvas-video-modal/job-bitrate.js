@@ -317,6 +317,7 @@
       }
       var container = document.createElement('div');
       container.className = this.service.CSS.actions;
+      var hasButton = false;
 
       for (var i = 0; i < variants.length; i += 1)
       {
@@ -325,9 +326,14 @@
         {
           continue;
         }
-        var ariaLabel = variant.label ? ('ビットレート ' + variant.label) : 'ビットレートを切り替え';
+        var label = typeof variant.label === 'string' ? variant.label.trim() : '';
+        if (!label)
+        {
+          continue;
+        }
+        var ariaLabel = 'ビットレート ' + label;
         var btn = this.buttonService.createActionButton('content-bitrate', {
-          label: variant.label,
+          label: label,
           ariaLabel: ariaLabel,
           elementTag: 'button',
           type: 'button'
@@ -344,8 +350,9 @@
           btn.setAttribute('aria-pressed', 'false');
         }
         container.appendChild(btn);
+        hasButton = true;
       }
-      return container;
+      return hasButton ? container : null;
     }
 
     bindActions(container, videoEl, variants, initialKey, autoplay)

@@ -799,6 +799,7 @@
       this.basicConfirmationView = null;
       this.agreementsView = null;
       this.agreementsData = [];
+      this.isReorderingAgreements = false;
       this.goalsView = null;
       this.goalsData = [];
       this.basicPanel = null;
@@ -810,6 +811,40 @@
       this.pendingGuidanceUploadResults = [];
       this.guidanceP5Promise = null;
       this.guidanceUploadOwnerUserCode = '';
+      this.agreementAlias = '';
+    }
+
+    _agreementAlias()
+    {
+      if (this.agreementAlias)
+      {
+        return this.agreementAlias;
+      }
+      var alias = '';
+      if (this.page)
+      {
+        if (this.page.agreementAlias)
+        {
+          alias = this.page.agreementAlias;
+        }
+        else if (typeof this.page.resolveAgreementAlias === 'function')
+        {
+          alias = this.page.resolveAgreementAlias();
+        }
+      }
+      alias = String(alias || '').trim();
+      this.agreementAlias = alias || '規約';
+      return this.agreementAlias;
+    }
+
+    _agreementAliasWithSuffix(suffix)
+    {
+      var alias = this._agreementAlias();
+      if (!suffix)
+      {
+        return alias;
+      }
+      return alias + suffix;
     }
 
     canManageContent()
@@ -992,7 +1027,7 @@
         var nextIndex = (currentIndex + direction + buttons.length) % buttons.length;
         var nextButton = buttons[nextIndex];
         var targetId = nextButton.getAttribute('data-tab-target');
-        self.page.activateTab(targetId);
+        self.page.activateTab(targetId, { userInitiated: true });
         try
         {
           nextButton.focus({ preventScroll: true });
@@ -1298,34 +1333,6 @@
 
       var ownerRow = document.createElement('div');
       ownerRow.className = 'target-detail__guidance-owner-row';
-
-      var ownerLabel = entry.ownerDisplayName || entry.ownerUserCode || '';
-      if (ownerLabel)
-      {
-        var owner = document.createElement('p');
-        owner.className = 'content-item__description target-detail__guidance-owner-inline';
-
-        var ownerAvatar = createUserAvatarElement(
-          {
-            className: 'target-detail__guidance-avatar',
-            displayName: ownerLabel,
-            userCode: entry && entry.ownerUserCode ? String(entry.ownerUserCode).trim() : '',
-            avatarUrl: entry && entry.ownerAvatarUrl ? entry.ownerAvatarUrl : '',
-            transform: entry && entry.ownerAvatarTransform ? entry.ownerAvatarTransform : '',
-            fallbackLabel: ownerLabel,
-            size: 32
-          },
-          this.getAvatarService()
-        );
-        owner.appendChild(ownerAvatar);
-
-        var ownerName = document.createElement('span');
-        ownerName.className = 'target-detail__guidance-owner-name';
-        ownerName.textContent = ownerLabel;
-        owner.appendChild(ownerName);
-
-        ownerRow.appendChild(owner);
-      }
 
       var actionContainer = this.buildGuidanceActions(null, entry, sourceEntry, canManage);
       if (actionContainer)
@@ -3729,6 +3736,7 @@
       {
         return null;
       }
+      var agreementLabel = this._agreementAlias();
       var section = document.createElement('section');
       section.className = 'target-detail__card target-agreements target-detail__section-block';
 
@@ -3736,14 +3744,14 @@
       header.className = 'target-agreements__header target-detail__section-header';
       var title = document.createElement('h2');
       title.className = 'target-agreements__title';
-      title.textContent = '規約';
+      title.textContent = agreementLabel;
       header.appendChild(title);
       var actions = document.createElement('div');
       actions.className = 'target-detail__section-help target-detail__section-help--align-end';
       var canManage = this.canManageContent();
       if (canManage)
       {
-        var addButton = this.createBannerButton('規約を追加', 'add-agreement', {
+        var addButton = this.createBannerButton(this._agreementAliasWithSuffix('を追加'), 'add-agreement', {
           baseClass: 'target-management__icon-button target-management__icon-button--primary target-agreements__add-button',
           buttonType: 'expandable-icon-button/add'
         }, COMPACT_BANNER_CLASS);
@@ -3767,7 +3775,7 @@
       var thead = document.createElement('thead');
       var headRow = document.createElement('tr');
       var headers = [
-        { label: '規約', className: 'target-agreements__header-cell target-agreements__header-cell--title' },
+        { label: agreementLabel, className: 'target-agreements__header-cell target-agreements__header-cell--title' },
         { label: '備考', className: 'target-agreements__header-cell target-agreements__header-cell--notes' },
         { label: '更新日', className: 'target-agreements__header-cell target-agreements__header-cell--updated' },
         { label: '操作', className: 'target-agreements__header-cell target-agreements__header-cell--actions' }
@@ -3809,6 +3817,7 @@
       {
         return;
       }
+      var agreementLabel = this._agreementAlias();
       var modal = this.ensureAgreementModal();
       this.clearAgreementValidationState(modal);
       var titleValue = modal.titleInput.value.trim();
@@ -3816,13 +3825,13 @@
       {
         if (modal.feedback)
         {
-          modal.feedback.textContent = '規約タイトルを入力してください。';
+          modal.feedback.textContent = agreementLabel + 'タイトルを入力してください。';
           modal.feedback.hidden = false;
         }
         this.setAgreementFieldErrorState(modal.titleInput, true);
         this.setAgreementFieldErrorState(modal.titleField, true);
         modal.titleInput.focus();
-        this.page.showToast('error', '規約タイトルを入力してください。');
+        this.page.showToast('error', agreementLabel + 'タイトルを入力してください。');
         return;
       }
       var contentValue = modal.contentInput.value.trim();
@@ -3830,13 +3839,13 @@
       {
         if (modal.feedback)
         {
-          modal.feedback.textContent = '規約本文を入力してください。';
+          modal.feedback.textContent = agreementLabel + '本文を入力してください。';
           modal.feedback.hidden = false;
         }
         this.setAgreementFieldErrorState(modal.contentInput, true);
         this.setAgreementFieldErrorState(modal.contentField, true);
         modal.contentInput.focus();
-        this.page.showToast('error', '規約本文を入力してください。');
+        this.page.showToast('error', agreementLabel + '本文を入力してください。');
         return;
       }
       if (modal.feedback)
@@ -3881,14 +3890,14 @@
         await this.page.callApi(isEditing ? 'TargetAgreementUpdate' : 'TargetAgreementCreate', payload, {
           requestType: 'TargetManagementAgreements'
         });
-        this.page.showToast('success', isEditing ? '規約を更新しました。' : '規約を登録しました。');
+        this.page.showToast('success', isEditing ? agreementLabel + 'を更新しました。' : agreementLabel + 'を登録しました。');
         await this.reloadAgreements();
-        this.closeAgreementModal();
+        await this.closeAgreementModal({ force: true });
       }
       catch (error)
       {
         console.error('[target-detail] failed to submit agreement', error);
-        this.page.showToast('error', isEditing ? '規約の更新に失敗しました。' : '規約の登録に失敗しました。');
+        this.page.showToast('error', isEditing ? agreementLabel + 'の更新に失敗しました。' : agreementLabel + 'の登録に失敗しました。');
       }
       finally
       {
@@ -4051,8 +4060,10 @@
       var initialKeyword = selection && (selection.userCode || selection.displayName)
         ? (selection.userCode || selection.displayName)
         : '';
+      var candidates = this.getAgreementCreatorCandidates();
       var options = {
         multiple: false,
+        availableUsers: candidates,
         selectedCodes: selectedCodes,
         initialKeyword: initialKeyword,
         onApply: (users) =>
@@ -4093,7 +4104,12 @@
 
     setAgreementsData(data)
     {
-      this.agreementsData = Array.isArray(data) ? data.slice() : [];
+      var normalized = Array.isArray(data) ? data.slice() : [];
+      if (this.page && typeof this.page.normalizeAgreements === 'function')
+      {
+        normalized = this.page.normalizeAgreements(normalized);
+      }
+      this.agreementsData = normalized;
       this.updateAgreementsTable();
     }
 
@@ -4111,22 +4127,24 @@
         var emptyCell = document.createElement('td');
         emptyCell.colSpan = 4;
         emptyCell.className = 'target-agreements__cell target-agreements__cell--empty';
-        emptyCell.textContent = '登録された規約はありません。';
+        emptyCell.textContent = '登録された' + this._agreementAlias() + 'はありません。';
         emptyRow.appendChild(emptyCell);
         tbody.appendChild(emptyRow);
         return;
       }
       var self = this;
-      this.agreementsData.forEach(function (item)
+      var totalCount = this.agreementsData.length;
+      this.agreementsData.forEach(function (item, index)
       {
-        var row = self.buildAgreementRow(item);
+        var row = self.buildAgreementRow(item, index, totalCount);
         tbody.appendChild(row);
       });
       this.bindOverviewUserPopovers(this.agreementsView.table || tbody);
     }
 
-    buildAgreementRow(item)
+    buildAgreementRow(item, index, totalCount)
     {
+      var agreementLabel = this._agreementAlias();
       var row = document.createElement('tr');
       row.className = 'target-agreements__row';
       var self = this;
@@ -4177,18 +4195,46 @@
       actionCell.className = 'target-agreements__cell target-agreements__cell--actions';
       var actions = document.createElement('div');
       actions.className = 'target-agreements__actions';
-      var canDelete = this.canManageContent()
+      var canManage = this.canManageContent()
         && this.page && this.page.state && this.page.state.target && this.page.state.target.targetCode;
-      if (canDelete)
+      var currentIndex = Number.isFinite(index) ? index : (Array.isArray(this.agreementsData) ? this.agreementsData.indexOf(item) : -1);
+      var total = Number.isFinite(totalCount) ? totalCount : (Array.isArray(this.agreementsData) ? this.agreementsData.length : 0);
+      var isFirst = currentIndex <= 0;
+      var isLast = total > 0 ? currentIndex === total - 1 : true;
+      if (currentIndex === -1)
       {
-        var editButton = this.createIconActionButton('edit', '規約を編集', 'edit-agreement');
+        isFirst = true;
+        isLast = true;
+      }
+      var isReordering = Boolean(this.isReorderingAgreements);
+      if (canManage)
+      {
+        var upButton = this.createIconActionButton('up', '上に移動', 'move-agreement-up');
+        upButton.disabled = isFirst || isReordering;
+        upButton.addEventListener('click', function (event)
+        {
+          event.preventDefault();
+          self.moveAgreement(item, -1);
+        });
+        actions.appendChild(upButton);
+
+        var downButton = this.createIconActionButton('down', '下に移動', 'move-agreement-down');
+        downButton.disabled = isLast || isReordering;
+        downButton.addEventListener('click', function (event)
+        {
+          event.preventDefault();
+          self.moveAgreement(item, 1);
+        });
+        actions.appendChild(downButton);
+
+        var editButton = this.createIconActionButton('edit', this._agreementAliasWithSuffix('を編集'), 'edit-agreement');
         editButton.addEventListener('click', function (event)
         {
           event.preventDefault();
           self.openAgreementModal(item);
         });
         actions.appendChild(editButton);
-        var deleteButton = this.createIconActionButton('delete', '規約を削除', 'delete-agreement');
+        var deleteButton = this.createIconActionButton('delete', agreementLabel + 'を削除', 'delete-agreement');
         deleteButton.dataset.agreementCode = item && item.agreementCode ? item.agreementCode : '';
         deleteButton.setAttribute('data-agreement-code', item && item.agreementCode ? item.agreementCode : '');
         deleteButton.addEventListener('click', function (event)
@@ -4295,7 +4341,8 @@
       {
         return;
       }
-      var confirmed = await this.page.confirmDialogService.open('この規約を削除しますか？', { type: 'warning' });
+      var agreementLabel = this._agreementAlias();
+      var confirmed = await this.page.confirmDialogService.open('この' + agreementLabel + 'を削除しますか？', { type: 'warning' });
       if (!confirmed)
       {
         return;
@@ -4319,13 +4366,13 @@
         }, {
           requestType: 'TargetManagementAgreements'
         });
-        this.page.showToast('success', '規約を削除しました。');
+        this.page.showToast('success', agreementLabel + 'を削除しました。');
         await this.reloadAgreements();
       }
       catch (error)
       {
         console.error('[target-detail] failed to delete agreement', error);
-        this.page.showToast('error', '規約の削除に失敗しました。');
+        this.page.showToast('error', agreementLabel + 'の削除に失敗しました。');
       }
       finally
       {
@@ -4346,6 +4393,99 @@
       }
     }
 
+    async moveAgreement(item, delta)
+    {
+      if (!item || !Array.isArray(this.agreementsData) || this.isReorderingAgreements)
+      {
+        return;
+      }
+      var ordered = this.page && typeof this.page.normalizeAgreements === 'function'
+        ? this.page.normalizeAgreements(this.agreementsData.slice())
+        : this.agreementsData.slice();
+      var currentIndex = ordered.findIndex(function (entry)
+      {
+        return entry && entry.agreementCode === item.agreementCode;
+      });
+      var targetIndex = currentIndex + delta;
+      if (currentIndex === -1 || targetIndex < 0 || targetIndex >= ordered.length)
+      {
+        return;
+      }
+      this.isReorderingAgreements = true;
+      var moving = ordered.splice(currentIndex, 1)[0];
+      ordered.splice(targetIndex, 0, moving);
+      var changes = [];
+      ordered.forEach(function (entry, position)
+      {
+        var newPosition = position + 1;
+        if (!Number.isFinite(entry.position) || entry.position !== newPosition)
+        {
+          entry.position = newPosition;
+          changes.push({ agreementCode: entry.agreementCode, position: newPosition });
+        }
+      });
+      var normalized = this.page && typeof this.page.normalizeAgreements === 'function'
+        ? this.page.normalizeAgreements(ordered)
+        : ordered;
+      this.agreementsData = normalized;
+      if (this.page && this.page.state && this.page.state.target)
+      {
+        this.page.state.target.agreements = normalized.slice();
+      }
+      this.updateAgreementsTable();
+      try
+      {
+        await this.persistAgreementPositions(changes);
+        await this.reloadAgreements();
+      }
+      catch (error)
+      {
+        console.error('[target-detail] failed to update agreement order', error);
+        this.page.showToast('error', this._agreementAlias() + 'の並び替えに失敗しました。');
+        try
+        {
+          await this.reloadAgreements();
+        }
+        catch (refreshError)
+        {
+          window.console.warn('[target-detail] agreement reload failed after reorder', refreshError);
+        }
+      }
+      finally
+      {
+        this.isReorderingAgreements = false;
+        this.updateAgreementsTable();
+      }
+    }
+
+    async persistAgreementPositions(changes)
+    {
+      if (!Array.isArray(changes) || !changes.length)
+      {
+        return;
+      }
+      var target = this.page && this.page.state ? this.page.state.target : null;
+      var targetCode = target && target.targetCode ? target.targetCode : '';
+      if (!targetCode)
+      {
+        return;
+      }
+      for (var i = 0; i < changes.length; i += 1)
+      {
+        var change = changes[i];
+        if (!change || !change.agreementCode || !Number.isFinite(change.position))
+        {
+          continue;
+        }
+        await this.page.callApi('TargetAgreementUpdate', {
+          targetCode: targetCode,
+          agreementCode: change.agreementCode,
+          position: change.position
+        }, { requestType: 'TargetManagementAgreements' });
+      }
+      this.page.showToast('success', this._agreementAlias() + 'の並び順を更新しました。');
+    }
+
     async reloadAgreements()
     {
       if (!this.page || !this.page.state || !this.page.state.target || !this.page.state.target.targetCode)
@@ -4354,9 +4494,9 @@
       }
       try
       {
-      var result = await this.page.callApi('TargetAgreementList', { targetCode: this.page.state.target.targetCode }, {
-        requestType: 'TargetManagementAgreements'
-      });
+        var result = await this.page.callApi('TargetAgreementList', { targetCode: this.page.state.target.targetCode }, {
+          requestType: 'TargetManagementAgreements'
+        });
         var agreements = this.page.normalizeAgreements(result && result.agreements ? result.agreements : []);
         this.page.state.target.agreements = agreements;
         this.setAgreementsData(agreements);
@@ -4364,7 +4504,7 @@
       catch (error)
       {
         console.error('[target-detail] failed to load agreements', error);
-        this.page.showToast('error', '規約の取得に失敗しました。');
+        this.page.showToast('error', this._agreementAlias() + 'の取得に失敗しました。');
       }
     }
 
@@ -4375,6 +4515,7 @@
         this.page.showToast('error', 'ターゲット情報が読み込まれていません。');
         return;
       }
+      var agreementLabel = this._agreementAlias();
       var modal = this.ensureAgreementModal();
       if (modal.form)
       {
@@ -4390,13 +4531,13 @@
       var isEditing = Boolean(modal.editingItem);
       if (modal.titleElement)
       {
-        modal.titleElement.textContent = isEditing ? '規約を編集' : '規約を追加';
+        modal.titleElement.textContent = isEditing ? this._agreementAliasWithSuffix('を編集') : this._agreementAliasWithSuffix('を追加');
       }
       if (modal.summaryElement)
       {
         modal.summaryElement.textContent = isEditing
-          ? '登録済みの規約の内容を更新します。'
-          : 'ターゲットに紐づく規約を登録します。';
+          ? '登録済みの' + agreementLabel + 'の内容を更新します。'
+          : 'ターゲットに紐づく' + agreementLabel + 'を登録します。';
       }
       modal.typeInput.value = entry && entry.type ? entry.type : '';
       modal.titleInput.value = entry && entry.title ? entry.title : '';
@@ -4409,12 +4550,29 @@
       this.openScreenModal(modal);
     }
 
-    closeAgreementModal()
+    async closeAgreementModal(options)
     {
       var modal = this.modals && this.modals.agreement;
       if (!modal)
       {
         return;
+      }
+      var forceClose = options && options.force;
+      if (!forceClose && this.page && this.page.confirmDialogService)
+      {
+        var confirmed = await this.page.confirmDialogService.open(
+          '入力内容は保存されません。編集画面を閉じてもよろしいですか？',
+          {
+            titleText: '確認',
+            confirmText: '閉じる',
+            cancelText: 'キャンセル',
+            type: 'warning'
+          }
+        );
+        if (!confirmed)
+        {
+          return;
+        }
       }
       modal.editingItem = null;
       this.closeScreenModal(modal);
@@ -4426,13 +4584,14 @@
       {
         return this.modals.agreement;
       }
+      var agreementLabel = this._agreementAlias();
       var shell = createScreenModalShell({
         containerClass: 'target-agreements__modal-container',
         contentClass: 'target-agreements__modal',
         titleId: 'target-agreement-modal-title',
         summaryId: 'target-agreement-modal-summary',
-        title: '規約を追加',
-        summary: 'ターゲットに紐づく規約を登録します。'
+        title: this._agreementAliasWithSuffix('を追加'),
+        summary: 'ターゲットに紐づく' + agreementLabel + 'を登録します。'
       });
       var form = document.createElement('form');
       form.className = 'target-agreements__form';
@@ -4445,9 +4604,9 @@
       typeInput.type = 'text';
       typeInput.className = 'user-management__input';
       typeInput.maxLength = 128;
-      typeInput.placeholder = '例: 利用規約';
+      typeInput.placeholder = '例: 利用' + agreementLabel;
       typeInput.name = 'agreementType';
-      var typeField = createAgreementField('規約タイプ', typeInput, { half: true });
+      var typeField = createAgreementField(agreementLabel + 'タイプ', typeInput, { half: true });
       row.appendChild(typeField);
 
       var titleInput = document.createElement('input');
@@ -4520,7 +4679,7 @@
       contentInput.required = true;
       contentInput.rows = 4;
       contentInput.maxLength = 4000;
-      contentInput.placeholder = '規約本文を入力';
+      contentInput.placeholder = agreementLabel + '本文を入力';
       contentInput.name = 'content';
       contentField.appendChild(createAgreementField('本文', contentInput));
       form.appendChild(contentField);
@@ -4583,10 +4742,10 @@
         event.preventDefault();
         self.handleAgreementSubmit();
       });
-      cancelButton.addEventListener('click', function (event)
+      cancelButton.addEventListener('click', async function (event)
       {
         event.preventDefault();
-        self.closeAgreementModal();
+        await self.closeAgreementModal();
       });
       bindModalCloseHandlers(shell, function ()
       {
@@ -4622,7 +4781,7 @@
       return modal;
     }
 
-    getGuidanceOwnerCandidates()
+    getTargetOperatorCandidates()
     {
       var target = this.page && this.page.state ? this.page.state.target : null;
       var participants = target && Array.isArray(target.participants) ? target.participants.slice() : [];
@@ -4693,6 +4852,16 @@
         });
       });
       return filtered;
+    }
+
+    getGuidanceOwnerCandidates()
+    {
+      return this.getTargetOperatorCandidates();
+    }
+
+    getAgreementCreatorCandidates()
+    {
+      return this.getTargetOperatorCandidates();
     }
 
     getGuidanceRoleFlags()
@@ -5352,7 +5521,7 @@
       var isEditing = Boolean(normalized && normalized.guidanceCode);
       if (modal.titleElement)
       {
-        modal.titleElement.textContent = isEditing ? 'ガイダンスを編集' : 'ガイダンスコンテンツの追加';
+        modal.titleElement.textContent = isEditing ? 'ガイダンスコンテンツを編集' : 'ガイダンスコンテンツの追加';
       }
       if (modal.summaryElement)
       {
@@ -5369,12 +5538,29 @@
       this.openScreenModal(modal);
     }
 
-    closeGuidanceModal()
+    async closeGuidanceModal(options)
     {
       var modal = this.modals && this.modals.guidance;
       if (!modal)
       {
         return;
+      }
+      var forceClose = options && options.force;
+      if (!forceClose && this.page && this.page.confirmDialogService)
+      {
+        var confirmed = await this.page.confirmDialogService.open(
+          '入力内容は保存されません。編集画面を閉じてもよろしいですか？',
+          {
+            titleText: '確認',
+            confirmText: '閉じる',
+            cancelText: 'キャンセル',
+            type: 'warning'
+          }
+        );
+        if (!confirmed)
+        {
+          return;
+        }
       }
       this.resetGuidanceUploadState(modal);
       this.resetGuidanceContentSelection(modal);
@@ -5549,10 +5735,10 @@
         event.preventDefault();
         self.handleGuidanceSubmit();
       });
-      cancelButton.addEventListener('click', function (event)
+      cancelButton.addEventListener('click', async function (event)
       {
         event.preventDefault();
-        self.closeGuidanceModal();
+        await self.closeGuidanceModal();
       });
       bindModalCloseHandlers(shell, function ()
       {
@@ -5699,9 +5885,9 @@
       var hasPendingUploadResults = Array.isArray(this.pendingGuidanceUploadResults)
         && this.pendingGuidanceUploadResults.length > 0;
       var selectedContent = modal.selectedContent && modal.selectedContent.contentCode ? modal.selectedContent : null;
-      var needsUpload = !isEditing && hasUploadQueue;
-      var hasContentCandidate = !isEditing && (hasUploadQueue || hasPendingUploadResults || selectedContent);
-      if (!hasContentCandidate)
+      var needsUpload = hasUploadQueue;
+      var hasContentCandidate = hasUploadQueue || hasPendingUploadResults || selectedContent;
+      if (!hasContentCandidate && !isEditing)
       {
         if (modal.feedback)
         {
@@ -5794,7 +5980,7 @@
           payload.fileName = uploadedResult.fileName || '';
           payload.categoryLabel = resolveContentTypeLabel(uploadedResult.contentType);
         }
-        else if (!isEditing && selectedContent)
+        else if (selectedContent)
         {
           payload.contentCode = selectedContent.contentCode;
           if (selectedContent.fileName)
@@ -5839,7 +6025,7 @@
         }
         this.resetGuidanceUploadState();
         this.refreshBasicPanel();
-        this.closeGuidanceModal();
+        await this.closeGuidanceModal({ force: true });
       }
       catch (error)
       {
@@ -5916,6 +6102,7 @@
       {
         this.pendingGuidanceUploadResults = [];
       }
+      this.applyGuidanceTitleFromQueue(queue);
     }
 
     handleGuidanceUploaderStart(queue)
@@ -5943,6 +6130,29 @@
           modal.feedback.hidden = false;
           modal.feedback.textContent = 'ファイルのアップロードが完了しました。';
         }
+      }
+    }
+
+    applyGuidanceTitleFromQueue(queue)
+    {
+      var modal = this.modals && this.modals.guidance ? this.modals.guidance : null;
+      if (!modal || !modal.titleInput)
+      {
+        return;
+      }
+      if (!Array.isArray(queue) || !queue.length)
+      {
+        return;
+      }
+      if (modal.titleInput.value && modal.titleInput.value.trim())
+      {
+        return;
+      }
+      var firstEntry = queue[0];
+      var fileName = firstEntry && firstEntry.name ? String(firstEntry.name).trim() : '';
+      if (fileName)
+      {
+        modal.titleInput.value = fileName;
       }
     }
 

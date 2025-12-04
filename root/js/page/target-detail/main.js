@@ -1098,6 +1098,7 @@
         roleFlags: null
       };
       this.targetAlias = '';
+      this.agreementAlias = '';
       this.refs = {
         container: null,
         helpModal: null,
@@ -1122,6 +1123,8 @@
       this.userSelectModalService = null;
       this.actionVisibilityObserver = null;
       this.lastHelpTrigger = null;
+      this.basicConfirmationOverlay = null;
+      this.basicConfirmationOverlayTimer = null;
       this.breadcrumbService = null;
       this.root = document.querySelector('[data-page="target-detail"]') || document.body;
     }
@@ -1137,6 +1140,7 @@
 
       this.initConfig();
       this.targetAlias = this.resolveTargetAlias();
+      this.agreementAlias = this.resolveAgreementAlias();
 
       const jsList = [
         { src: '/js/service-app/header/main.js' },
@@ -1298,6 +1302,24 @@
       }
       alias = String(alias || '').trim();
       return alias || 'ターゲット';
+    }
+
+    resolveAgreementAlias()
+    {
+      var alias = '';
+      var settings = (window.siteSettings || window.SiteSettings || {});
+      if (settings && typeof settings.agreementAlias === 'string')
+      {
+        alias = settings.agreementAlias;
+      }
+      if (!alias)
+      {
+        var body = document.body || {};
+        var ds = body.dataset || {};
+        alias = ds.agreementAlias || ds.agreementalias || '';
+      }
+      alias = String(alias || '').trim();
+      return alias || '規約';
     }
 
     applyTargetAliasTexts()
@@ -1789,7 +1811,38 @@
       {
         return true;
       }
-      return this.isTargetParticipantUser();
+      if (this.isTargetParticipantUser())
+      {
+        return true;
+      }
+      var profile = this.state && this.state.profile;
+      return !!(profile && (profile.userCode || profile.user_code || profile.id || profile.userId));
+    }
+
+    isContentsManagementEnabled(profile)
+    {
+      var source = profile && typeof profile === 'object' ? profile : (this.state && this.state.profile);
+      if (!source || typeof source !== 'object')
+      {
+        return true;
+      }
+      var value = (typeof source.useContentsManagement !== 'undefined')
+        ? source.useContentsManagement
+        : source.use_contents_management;
+      if (typeof value === 'undefined')
+      {
+        return true;
+      }
+      if (value === true || value === 1 || value === '1')
+      {
+        return true;
+      }
+      if (typeof value === 'string')
+      {
+        var normalized = value.toLowerCase();
+        return normalized === 'true' || normalized === 'yes' || normalized === 'on';
+      }
+      return false;
     }
 
     cacheElements()
@@ -1814,7 +1867,7 @@
                                  {
         event.preventDefault();
         var id = this.getAttribute('data-tab-target');
-        self.activateTab(id).catch(function (error)
+        self.activateTab(id, { userInitiated: true }).catch(function (error)
         {
           console.error('[target-detail] failed to activate tab', error);
         });
@@ -2649,10 +2702,19 @@
       return this.renderedTabs[tabId];
     }
 
-    async activateTab(id)
+    async activateTab(id, options)
     {
       var availableTabs = this.getAvailableTabs();
       var tabId = availableTabs.indexOf(id) >= 0 ? id : (availableTabs[0] || 'basic');
+      var isUserInitiated = options && options.userInitiated;
+      if (tabId !== 'basic' && this.shouldEnforceBasicConfirmation())
+      {
+        tabId = 'basic';
+        if (isUserInitiated)
+        {
+          this.showBasicConfirmationOverlay();
+        }
+      }
       this.state.activeTab = tabId;
       var nav = this.refs.tabNav;
       if (nav) {
@@ -2677,6 +2739,83 @@
       });
 
       await this.renderTabOnDemand(tabId);
+    }
+
+    showBasicConfirmationOverlay()
+    {
+      if (!this.loadingService || !this.refs || !this.refs.container)
+      {
+        return;
+      }
+      if (this.basicConfirmationOverlayTimer)
+      {
+        window.clearTimeout(this.basicConfirmationOverlayTimer);
+        this.basicConfirmationOverlayTimer = null;
+      }
+      if (this.basicConfirmationOverlay && this.basicConfirmationOverlay.parentNode)
+      {
+        this.loadingService.update(this.basicConfirmationOverlay, {
+          message: '基本情報が未確認の状態のため表示できません',
+          ariaLabel: '基本情報が未確認の案内'
+        });
+      }
+      else
+      {
+        this.basicConfirmationOverlay = this.loadingService.show(
+          '基本情報が未確認の状態のため表示できません',
+          {
+            container: this.refs.container,
+            lockScroll: false,
+            dismissOnBackdrop: true,
+            dismissOnEsc: true,
+            id: 'target-detail-basic-confirmation-overlay',
+            maxStack: 1,
+            position: 'center',
+            ariaLabel: '基本情報が未確認の案内'
+          }
+        );
+        if (this.basicConfirmationOverlay)
+        {
+          this.basicConfirmationOverlay.classList.add('target-detail__basic-confirmation-overlay');
+        }
+      }
+      var self = this;
+      this.basicConfirmationOverlayTimer = window.setTimeout(function ()
+      {
+        if (self.basicConfirmationOverlay)
+        {
+          self.loadingService.dismiss(self.basicConfirmationOverlay);
+          self.basicConfirmationOverlay = null;
+        }
+        self.basicConfirmationOverlayTimer = null;
+        self.scrollToBasicConfirmation();
+      }, 2000);
+    }
+
+    scrollToBasicConfirmation()
+    {
+      var host = (this.refs && this.refs.container) ? this.refs.container : this.root;
+      if (!host)
+      {
+        return;
+      }
+      var anchor = host.querySelector('.target-detail__basic-confirmation');
+      if (!anchor && this.root && host !== this.root)
+      {
+        anchor = this.root.querySelector('.target-detail__basic-confirmation');
+      }
+      if (!anchor || typeof anchor.scrollIntoView !== 'function')
+      {
+        return;
+      }
+      try
+      {
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      catch (error)
+      {
+        anchor.scrollIntoView(true);
+      }
     }
 
     normalizeTarget(raw)
@@ -2966,6 +3105,22 @@
         return true;
       }
       return !!flags[flagKey];
+    }
+
+    isBasicInfoConfirmed()
+    {
+      var target = this.state && this.state.target;
+      var confirmation = target && target.basicInfoConfirmation;
+      return Boolean(confirmation && confirmation.confirmed);
+    }
+
+    shouldEnforceBasicConfirmation()
+    {
+      if (!this.shouldDisplaySection('basicConfirmation'))
+      {
+        return false;
+      }
+      return !this.isBasicInfoConfirmed();
     }
 
     normalizeSubmissions(list)
@@ -3260,7 +3415,8 @@
         return null;
       }
       var type = entry.type || entry.agreementType || '';
-      var title = entry.title || '規約';
+      var alias = this.agreementAlias || this.resolveAgreementAlias();
+      var title = entry.title || alias;
       var content = entry.content || '';
       var notes = entry.notes || '';
       var createdAt = entry.createdAtDisplay || entry.createdAt || '';
@@ -3271,6 +3427,19 @@
       var updatedBy = entry.updatedByDisplayName || updatedByUserCode || '';
       var createdByAvatar = entry.createdByAvatar || {};
       var updatedByAvatar = entry.updatedByAvatar || {};
+      var position = null;
+      if (typeof entry.position === 'number')
+      {
+        position = entry.position;
+      }
+      else if (entry.position !== undefined && entry.position !== null)
+      {
+        var parsedPosition = Number(entry.position);
+        if (!Number.isNaN(parsedPosition))
+        {
+          position = parsedPosition;
+        }
+      }
       var displayOrder = 0;
       if (typeof entry.displayOrder === 'number') {
         displayOrder = entry.displayOrder;
@@ -3301,6 +3470,7 @@
         updatedByAvatarTransform: entry.updatedByAvatarTransform || updatedByAvatar.transform || '',
         updatedByAvatarAlt: entry.updatedByAvatarAlt || '',
         updatedByAvatarInitial: deriveParticipantInitial(updatedBy || updatedByUserCode, ''),
+        position: position,
         displayOrder: displayOrder
       };
     }
@@ -3318,15 +3488,30 @@
       }).filter(Boolean);
       normalized.sort(function (a, b)
       {
-        var orderA = a ? a.displayOrder || 0 : 0;
-        var orderB = b ? b.displayOrder || 0 : 0;
-        if (orderA !== orderB)
+        var posA = a && Number.isFinite(a.position) ? a.position : null;
+        var posB = b && Number.isFinite(b.position) ? b.position : null;
+        var hasPosA = posA !== null;
+        var hasPosB = posB !== null;
+        if (hasPosA && hasPosB)
         {
-          return orderA - orderB;
+          if (posA !== posB)
+          {
+            return posA - posB;
+          }
+        }
+        else if (hasPosA || hasPosB)
+        {
+          return hasPosA ? -1 : 1;
         }
         var updatedA = a && a.updatedAt ? parseTimestampValue(a.updatedAt) : 0;
         var updatedB = b && b.updatedAt ? parseTimestampValue(b.updatedAt) : 0;
-        return updatedB - updatedA;
+        if (updatedA !== updatedB)
+        {
+          return updatedB - updatedA;
+        }
+        var orderA = a && Number.isFinite(a.displayOrder) ? a.displayOrder : 0;
+        var orderB = b && Number.isFinite(b.displayOrder) ? b.displayOrder : 0;
+        return orderA - orderB;
       });
       return normalized;
     }

@@ -603,6 +603,7 @@ INSERT OR REPLACE INTO siteSettings (key, value) VALUES
     ('hostname', '${computed_hostname}'),
     ('siteTitle', '${SITE_TITLE}'),
     ('targetAlias', 'ターゲット'),
+    ('agreementAlias', '規約'),
     ('siteTheme', 'classic'),
     ('codex-auto-pull', '1'),
     ('latest-code-update', '0');
@@ -951,6 +952,7 @@ CREATE TABLE IF NOT EXISTS targetAgreements (
     updatedByUserCode VARCHAR(32),
     createdAt VARCHAR(32),
     updatedAt VARCHAR(32),
+    position INTEGER,
     displayOrder INTEGER DEFAULT 0,
     isDeleted INTEGER DEFAULT 0
 );
@@ -2444,7 +2446,7 @@ sqlite3 "$db_path" <<SQL
 INSERT OR REPLACE INTO targetAgreements (
     agreementCode, targetCode, agreementKind, title, content, notes,
     createdByUserId, createdByUserCode, updatedByUserId, updatedByUserCode,
-    createdAt, updatedAt, displayOrder, isDeleted
+    createdAt, updatedAt, position, displayOrder, isDeleted
 )
 VALUES (
     '${agreement_primary_code}',
@@ -2459,6 +2461,7 @@ VALUES (
     '${creator}',
     datetime('now','localtime'),
     datetime('now','localtime'),
+    1,
     0,
     0
 ), (
@@ -2474,6 +2477,7 @@ VALUES (
     '${creator}',
     datetime('now','localtime'),
     datetime('now','localtime'),
+    2,
     1,
     0
 );

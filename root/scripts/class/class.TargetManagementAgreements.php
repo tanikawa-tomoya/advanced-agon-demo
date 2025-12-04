@@ -4,15 +4,34 @@ Base::requireFromShm('class/class.TargetManagementUtil.php');
 
 class TargetManagementAgreements extends Base
 {
-	public function __construct($context)
-	{
-		parent::__construct($context);
-	}
+        public function __construct($context)
+        {
+                parent::__construct($context);
+        }
 
-	protected function validationTargetAgreementList()
-	{
-		if (isset($this->params['targetCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
-	}
+        private function normalizeAgreementPosition($rawValue)
+        {
+                if ($rawValue === null || $rawValue === '') {
+                        return null;
+                }
+
+                $filtered = filter_var(
+                        $rawValue,
+                        FILTER_VALIDATE_INT,
+                        array('options' => array('min_range' => 0))
+                );
+
+                if ($filtered === false || $filtered === null) {
+                        return null;
+                }
+
+                return (int)$filtered;
+        }
+
+        protected function validationTargetAgreementList()
+        {
+                if (isset($this->params['targetCode']) == false) { throw new Exception(__FILE__ . ":" . __LINE__); }
+        }
 
 
 
@@ -112,20 +131,31 @@ class TargetManagementAgreements extends Base
 		}
 
 		$notes = null;
-		if (isset($this->params['notes'])) {
-			$notesValue = Util::normalizeOptionalString($this->params['notes'], 2000);
-			if ($notesValue === false) {
-				$this->status = parent::RESULT_ERROR;
-				$this->errorReason = 'invalid';
-				return;
-			}
-			$notes = $notesValue;
-		}
+                if (isset($this->params['notes'])) {
+                        $notesValue = Util::normalizeOptionalString($this->params['notes'], 2000);
+                        if ($notesValue === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $notes = $notesValue;
+                }
 
-		$creatorUserCode = $this->getLoginUserCode();
-		if ($creatorUserCode === null || $creatorUserCode === '') {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'permission';
+                $position = null;
+                if (array_key_exists('position', $this->params)) {
+                        $positionValue = $this->normalizeAgreementPosition($this->params['position']);
+                        if ($positionValue === null && $this->params['position'] !== null && $this->params['position'] !== '') {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $position = $positionValue;
+                }
+
+                $creatorUserCode = $this->getLoginUserCode();
+                if ($creatorUserCode === null || $creatorUserCode === '') {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'permission';
 			return;
 		}
 		$creatorUserId = $this->getLoginUserId();
@@ -137,27 +167,28 @@ class TargetManagementAgreements extends Base
 		$agreementCode = $this->generateUniqid();
 
 		try {
-			$pdo->beginTransaction();
+                        $pdo->beginTransaction();
 
                         $stmt = $pdo->prepare(
                                                                   'INSERT INTO targetAgreements '
-                                                                  . '(agreementCode, targetCode, agreementKind, title, content, notes, createdByUserId, createdByUserCode, updatedByUserId, updatedByUserCode, createdAt, updatedAt, displayOrder, isDeleted) '
-                                                                  . 'VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)'
+                                                                  . '(agreementCode, targetCode, agreementKind, title, content, notes, createdByUserId, createdByUserCode, updatedByUserId, updatedByUserCode, createdAt, updatedAt, position, displayOrder, isDeleted) '
+                                                                  . 'VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)'
                                                                   );
-			$stmt->execute(array(
-								 $agreementCode,
-								 $targetCode,
-								 $type,
-								 $title,
-								 $content,
-								 $notes,
-								 $creatorUserId,
-								 $creatorUserCode,
-								 $creatorUserId,
-								 $creatorUserCode,
-								 $timestamp,
-								 $timestamp
-								 ));
+                        $stmt->execute(array(
+                                                                 $agreementCode,
+                                                                 $targetCode,
+                                                                 $type,
+                                                                 $title,
+                                                                 $content,
+                                                                 $notes,
+                                                                 $creatorUserId,
+                                                                 $creatorUserCode,
+                                                                 $creatorUserId,
+                                                                 $creatorUserCode,
+                                                                 $timestamp,
+                                                                 $timestamp,
+                                                                 $position
+                                                                 ));
 
 			$pdo->commit();
 		} catch (\Exception $error) {
@@ -208,17 +239,20 @@ class TargetManagementAgreements extends Base
 			return;
 		}
 
-		$title = Util::normalizeRequiredString($this->params['title'], 256);
-		if ($title === false) {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'invalid';
-			return;
-		}
+                $titleSource = array_key_exists('title', $this->params)
+                        ? Util::normalizeRequiredString($this->params['title'], 256)
+                        : Util::normalizeRequiredString(isset($agreement['title']) ? $agreement['title'] : '', 256);
+                if ($titleSource === false || $titleSource === null) {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'invalid';
+                        return;
+                }
+                $title = $titleSource;
 
-		$type = null;
-		$typeKeys = array('agreementType', 'kind', 'type');
-		foreach ($typeKeys as $key) {
-			if (array_key_exists($key, $this->params) == false) {
+                $type = null;
+                $typeKeys = array('agreementType', 'kind', 'type');
+                foreach ($typeKeys as $key) {
+                        if (array_key_exists($key, $this->params) == false) {
 				continue;
 			}
 			$typeValue = Util::normalizeOptionalString($this->params[$key], 128);
@@ -230,59 +264,97 @@ class TargetManagementAgreements extends Base
 			if ($key === 'type' && $typeValue === $this->type) {
 				continue;
 			}
-			$type = $typeValue;
-			break;
-		}
+                        $type = $typeValue;
+                        break;
+                }
 
-		$content = null;
-		if (array_key_exists('content', $this->params)) {
-			$contentValue = Util::normalizeOptionalString($this->params['content'], 4000);
-			if ($contentValue === false) {
-				$this->status = parent::RESULT_ERROR;
-				$this->errorReason = 'invalid';
-				return;
-			}
-			$content = $contentValue;
-		}
+                if ($type === null) {
+                        $existingType = null;
+                        if (isset($agreement['type']) && $agreement['type'] !== '') {
+                                $existingType = $agreement['type'];
+                        } else if (isset($agreement['agreementKind']) && $agreement['agreementKind'] !== '') {
+                                $existingType = $agreement['agreementKind'];
+                        }
 
-		$notes = null;
-		if (array_key_exists('notes', $this->params)) {
-			$notesValue = Util::normalizeOptionalString($this->params['notes'], 2000);
+                        if ($existingType !== null) {
+                                $typeValue = Util::normalizeOptionalString($existingType, 128);
+                                if ($typeValue === false) {
+                                        $this->status = parent::RESULT_ERROR;
+                                        $this->errorReason = 'invalid';
+                                        return;
+                                }
+                                $type = $typeValue;
+                        }
+                }
+
+                $content = null;
+                if (array_key_exists('content', $this->params)) {
+                        $contentValue = Util::normalizeOptionalString($this->params['content'], 4000);
+                        if ($contentValue === false) {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $content = $contentValue;
+                } else if (array_key_exists('content', $agreement)) {
+                        $content = $agreement['content'];
+                }
+
+                $notes = null;
+                if (array_key_exists('notes', $this->params)) {
+                        $notesValue = Util::normalizeOptionalString($this->params['notes'], 2000);
 			if ($notesValue === false) {
-				$this->status = parent::RESULT_ERROR;
-				$this->errorReason = 'invalid';
-				return;
-			}
-			$notes = $notesValue;
-		}
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $notes = $notesValue;
+                } else if (array_key_exists('notes', $agreement)) {
+                        $notes = $agreement['notes'];
+                }
 
-		$updaterUserCode = $this->getLoginUserCode();
-		if ($updaterUserCode === null || $updaterUserCode === '') {
-			$this->status = parent::RESULT_ERROR;
-			$this->errorReason = 'permission';
+                $position = null;
+                $positionSpecified = array_key_exists('position', $this->params);
+                if ($positionSpecified) {
+                        $positionValue = $this->normalizeAgreementPosition($this->params['position']);
+                        if ($positionValue === null && $this->params['position'] !== null && $this->params['position'] !== '') {
+                                $this->status = parent::RESULT_ERROR;
+                                $this->errorReason = 'invalid';
+                                return;
+                        }
+                        $position = $positionValue;
+                } else if (isset($agreement['position']) && $agreement['position'] !== null && $agreement['position'] !== '') {
+                        $position = (int)$agreement['position'];
+                }
+
+                $updaterUserCode = $this->getLoginUserCode();
+                if ($updaterUserCode === null || $updaterUserCode === '') {
+                        $this->status = parent::RESULT_ERROR;
+                        $this->errorReason = 'permission';
 			return;
 		}
 		$updaterUserId = $this->getLoginUserId();
 
 		$pdo = $this->getPDOTarget();
 		$now = new DateTime('now');
-		$timestamp = $now->format('Y-m-d H:i:s');
+                $timestamp = $now->format('Y-m-d H:i:s');
 
-		try {
+                try {
                         $stmt = $pdo->prepare(
-                                                                  'UPDATE targetAgreements SET agreementKind = ?, title = ?, content = ?, notes = ?, '
+                                                                  'UPDATE targetAgreements SET agreementKind = ?, title = ?, content = ?, notes = ?, position = ?, '
                                                                   . 'updatedByUserId = ?, updatedByUserCode = ?, updatedAt = ? WHERE agreementCode = ? AND targetCode = ?'
                                                                   );
-			$stmt->execute(array(
-								 $type,
-								 $title,
-								 $content,
-								 $notes,
-								 $updaterUserId,
-								 $updaterUserCode,
-								 $timestamp,
-								 $agreementCode,
-								 $targetCode
+                        $stmt->execute(array(
+                                                                 $type,
+                                                                 $title,
+                                                                 $content,
+                                                                 $notes,
+                                                                 $position,
+                                                                 $updaterUserId,
+                                                                 $updaterUserCode,
+                                                                 $timestamp,
+                                                                 $agreementCode,
+                                                                 $targetCode
 								 ));
 		} catch (\Exception $error) {
 			$this->status = parent::RESULT_ERROR;
@@ -452,17 +524,22 @@ class TargetManagementAgreements extends Base
 		}
 
 		$updatedByDisplayName = isset($row['updatedByDisplayName']) ? $row['updatedByDisplayName'] : null;
-		if (($updatedByDisplayName === null || $updatedByDisplayName === '') && $updatedByUserCode !== null && $updatedByUserCode !== '') {
-			$userInfo = $this->getUserInfo($updatedByUserCode);
-			if ($userInfo != null && isset($userInfo['displayName'])) {
-				$updatedByDisplayName = $userInfo['displayName'];
-			}
-		}
+                if (($updatedByDisplayName === null || $updatedByDisplayName === '') && $updatedByUserCode !== null && $updatedByUserCode !== '') {
+                        $userInfo = $this->getUserInfo($updatedByUserCode);
+                        if ($userInfo != null && isset($userInfo['displayName'])) {
+                                $updatedByDisplayName = $userInfo['displayName'];
+                        }
+                }
 
-		$displayOrder = 0;
-		if (isset($row['displayOrder']) && $row['displayOrder'] !== null && $row['displayOrder'] !== '') {
-			$displayOrder = (int)$row['displayOrder'];
-		}
+                $position = null;
+                if (array_key_exists('position', $row) && $row['position'] !== null && $row['position'] !== '') {
+                        $position = (int)$row['position'];
+                }
+
+                $displayOrder = 0;
+                if (isset($row['displayOrder']) && $row['displayOrder'] !== null && $row['displayOrder'] !== '') {
+                        $displayOrder = (int)$row['displayOrder'];
+                }
 
 		return array(
 					 'agreementCode' => $agreementCode,
@@ -475,13 +552,14 @@ class TargetManagementAgreements extends Base
 					 'updatedAt' => $updatedAt,
 					 'createdByUserId' => $createdByUserId,
 					 'createdByUserCode' => $createdByUserCode,
-					 'createdByDisplayName' => $createdByDisplayName,
-					 'updatedByUserId' => $updatedByUserId,
-					 'updatedByUserCode' => $updatedByUserCode,
-					 'updatedByDisplayName' => $updatedByDisplayName,
-					 'displayOrder' => $displayOrder
-					 );
-	}
+                                         'createdByDisplayName' => $createdByDisplayName,
+                                         'updatedByUserId' => $updatedByUserId,
+                                         'updatedByUserCode' => $updatedByUserCode,
+                                         'updatedByDisplayName' => $updatedByDisplayName,
+                                         'position' => $position,
+                                         'displayOrder' => $displayOrder
+                                         );
+        }
 
 	private function fetchTargetAgreements($targetCode, $pdoTarget)
 	{
@@ -497,7 +575,7 @@ class TargetManagementAgreements extends Base
 											   . 'LEFT JOIN common.user creator ON a.createdByUserCode = creator.userCode '
 											   . 'LEFT JOIN common.user updater ON a.updatedByUserCode = updater.userCode '
 											   . 'WHERE a.targetCode = ? AND (a.isDeleted IS NULL OR a.isDeleted = 0) '
-											   . 'ORDER BY a.displayOrder ASC, a.updatedAt DESC, a.createdAt DESC, a.id DESC'
+											   . 'ORDER BY CASE WHEN a.position IS NULL THEN 1 ELSE 0 END ASC, a.position ASC, a.updatedAt DESC, a.createdAt DESC, a.id DESC'
 											   );
 		$stmt->execute(array($targetCode));
 		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

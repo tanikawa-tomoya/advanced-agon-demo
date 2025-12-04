@@ -1469,6 +1469,8 @@
 
       var actions = document.createElement('td');
       actions.className = 'target-product__actions target-detail__submission-actions-cell';
+      var actionsContainer = document.createElement('div');
+      actionsContainer.className = 'target-detail__submission-actions target-product__actions';
 
       var previewTarget = buildPreviewTarget(item);
       var contentCode = resolveContentCode(item);
@@ -1490,7 +1492,7 @@
           this.handlePreview(item, previewContext);
         });
       }
-      actions.appendChild(previewButton);
+      actionsContainer.appendChild(previewButton);
 
       var hasDownloadUrl = Boolean(item.downloadUrl);
       var downloadAttributes = null;
@@ -1510,7 +1512,7 @@
         hoverLabel: '資料をダウンロード',
         title: '資料をダウンロード'
       });
-      actions.appendChild(downloadButton);
+      actionsContainer.appendChild(downloadButton);
 
       if (this.canManage)
       {
@@ -1523,7 +1525,7 @@
           event.preventDefault();
           this.openEditModal(item);
         });
-        actions.appendChild(editButton);
+        actionsContainer.appendChild(editButton);
 
         var deleteButton = this.createRoundButton('delete', '削除', 'target-product__action target-product__delete', {
           hoverLabel: '商品を削除',
@@ -1534,9 +1536,10 @@
           event.preventDefault();
           this.handleDelete(item, deleteButton);
         });
-        actions.appendChild(deleteButton);
+        actionsContainer.appendChild(deleteButton);
       }
 
+      actions.appendChild(actionsContainer);
       row.appendChild(actions);
       return row;
     }

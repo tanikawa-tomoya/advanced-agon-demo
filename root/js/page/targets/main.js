@@ -31,6 +31,7 @@
       this.userSelectModalService = null;
       this._formModalTrigger = null;
       this.targetAlias = '';
+      this.agreementAlias = '';
       this.statusLabelConfig = {
         elementTag: 'span',
         baseClass: ['target-status', 'target-detail__badge'],
@@ -89,6 +90,7 @@
 
       this.initConfig();
       this.targetAlias = this.resolveTargetAlias();
+      this.agreementAlias = this.resolveAgreementAlias();
 
       // 1) service-app（正）だけを同期ロード
       const jsList = [
@@ -161,6 +163,7 @@
       await this._renderBreadcrumbs();
       this.cacheElements();
       await this.applyTargetAliasTexts();
+      this.applyAgreementAliasTexts();
       this.renderNewButton();
       await this.applyTargetActionVisibility();
       this.ui = {
@@ -211,6 +214,24 @@
       return alias || 'ターゲット';
     }
 
+    resolveAgreementAlias()
+    {
+      var alias = '';
+      var settings = (window.siteSettings || window.SiteSettings || {});
+      if (settings && typeof settings.agreementAlias === 'string')
+      {
+        alias = settings.agreementAlias;
+      }
+      if (!alias)
+      {
+        var body = document.body || {};
+        var ds = body.dataset || {};
+        alias = ds.agreementAlias || ds.agreementalias || '';
+      }
+      alias = String(alias || '').trim();
+      return alias || '規約';
+    }
+
     async applyTargetAliasTexts()
     {
       var alias = this.targetAlias || this.resolveTargetAlias();
@@ -255,6 +276,35 @@
       if (displayDesc)
       {
         displayDesc.textContent = detailLabel + 'に表示するセクションを切り替えます。';
+      }
+    }
+
+    applyAgreementAliasTexts()
+    {
+      var alias = this.agreementAlias || this.resolveAgreementAlias();
+      var root = this.root || document;
+      var agreementToggleInput = root.querySelector('input[name="displayAgreements"]');
+      var agreementToggle = (agreementToggleInput && agreementToggleInput.closest)
+        ? agreementToggleInput.closest('.targets__display-toggle')
+        : null;
+      if (!agreementToggle)
+      {
+        return;
+      }
+      var title = agreementToggle.querySelector('.targets__display-toggle-title');
+      if (title)
+      {
+        title.textContent = alias;
+      }
+      var desc = agreementToggle.querySelector('.targets__display-toggle-desc');
+      if (desc)
+      {
+        desc.textContent = alias + 'セクションの表示 / 非表示を切り替えます。';
+      }
+      var hidden = agreementToggle.querySelector('.visually-hidden');
+      if (hidden)
+      {
+        hidden.textContent = alias + 'の表示を切り替える';
       }
     }
 

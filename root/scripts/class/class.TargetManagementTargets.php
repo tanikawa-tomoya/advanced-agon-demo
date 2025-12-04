@@ -4427,7 +4427,7 @@ $pdo = $chatDependencies['pdo'];
 											   . 'LEFT JOIN common.user creator ON a.createdByUserCode = creator.userCode '
 											   . 'LEFT JOIN common.user updater ON a.updatedByUserCode = updater.userCode '
 											   . 'WHERE a.targetCode = ? AND (a.isDeleted IS NULL OR a.isDeleted = 0) '
-											   . 'ORDER BY a.displayOrder ASC, a.updatedAt DESC, a.createdAt DESC, a.id DESC'
+											   . 'ORDER BY CASE WHEN a.position IS NULL THEN 1 ELSE 0 END ASC, a.position ASC, a.updatedAt DESC, a.createdAt DESC, a.id DESC'
 											   );
 		$stmt->execute(array($targetCode));
 		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -4504,17 +4504,22 @@ $pdo = $chatDependencies['pdo'];
 		}
 
 		$updatedByDisplayName = isset($row['updatedByDisplayName']) ? $row['updatedByDisplayName'] : null;
-		if (($updatedByDisplayName === null || $updatedByDisplayName === '') && $updatedByUserCode !== null && $updatedByUserCode !== '') {
-			$userInfo = $this->getUserInfo($updatedByUserCode);
-			if ($userInfo != null && isset($userInfo['displayName'])) {
-				$updatedByDisplayName = $userInfo['displayName'];
-			}
-		}
+                if (($updatedByDisplayName === null || $updatedByDisplayName === '') && $updatedByUserCode !== null && $updatedByUserCode !== '') {
+                        $userInfo = $this->getUserInfo($updatedByUserCode);
+                        if ($userInfo != null && isset($userInfo['displayName'])) {
+                                $updatedByDisplayName = $userInfo['displayName'];
+                        }
+                }
 
-		$displayOrder = 0;
-		if (isset($row['displayOrder']) && $row['displayOrder'] !== null && $row['displayOrder'] !== '') {
-			$displayOrder = (int)$row['displayOrder'];
-		}
+                $position = null;
+                if (array_key_exists('position', $row) && $row['position'] !== null && $row['position'] !== '') {
+                        $position = (int)$row['position'];
+                }
+
+                $displayOrder = 0;
+                if (isset($row['displayOrder']) && $row['displayOrder'] !== null && $row['displayOrder'] !== '') {
+                        $displayOrder = (int)$row['displayOrder'];
+                }
 
 		return array(
 					 'agreementCode' => $agreementCode,
@@ -4527,10 +4532,11 @@ $pdo = $chatDependencies['pdo'];
 					 'updatedAt' => $updatedAt,
 					 'createdByUserId' => $createdByUserId,
 					 'createdByUserCode' => $createdByUserCode,
-					 'createdByDisplayName' => $createdByDisplayName,
-					 'updatedByUserId' => $updatedByUserId,
+                                         'createdByDisplayName' => $createdByDisplayName,
+                                         'updatedByUserId' => $updatedByUserId,
                                          'updatedByUserCode' => $updatedByUserCode,
                                          'updatedByDisplayName' => $updatedByDisplayName,
+                                         'position' => $position,
                                          'displayOrder' => $displayOrder
                                          );
         }
