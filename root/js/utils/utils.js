@@ -354,6 +354,10 @@
       {
         options.headers = overrides.headers;
       }
+      if (overrides.signal)
+      {
+        options.signal = overrides.signal;
+      }
       if (typeof overrides.beforeSend === 'function')
       {
         options.beforeSend = overrides.beforeSend;
@@ -398,6 +402,11 @@
       if (options.headers && typeof options.headers === 'object')
       {
         fetchOptions.headers = options.headers;
+      }
+
+      if (options.signal)
+      {
+        fetchOptions.signal = options.signal;
       }
 
       return window.fetch(options.url, fetchOptions).then(function (response)

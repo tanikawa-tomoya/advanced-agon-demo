@@ -166,27 +166,18 @@
     async requestAllUsers()
     {
       var cfg = this.service && this.service.config ? this.service.config : {};
-      var formData = new window.FormData();
-      formData.append('requestType', cfg.requestType || 'User');
-      formData.append('token', cfg.token || window.Utils.getApiToken());
-      formData.append('type', cfg.userListType || 'UserGetAll');
-      var response = await window.fetch(window.Utils.getApiEndpoint(), {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      if (!response.ok)
-      {
-        throw new Error('ユーザー情報の取得に失敗しました。');
-      }
       var json;
       try
       {
-        json = await response.json();
+        json = await window.Utils.requestApi(cfg.requestType || 'User', cfg.userListType || 'UserGetAll', {});
       }
       catch (error)
       {
-        throw new Error('サーバー応答を解析できませんでした。');
+        if (error && error.name === 'SyntaxError')
+        {
+          throw new Error('サーバー応答を解析できませんでした。');
+        }
+        throw new Error('ユーザー情報の取得に失敗しました。');
       }
       if (!json || json.status !== 'OK')
       {

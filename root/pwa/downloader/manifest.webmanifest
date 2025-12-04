@@ -1,0 +1,16 @@
+{
+  "name": "CASTORY 高速ダウンローダー",
+  "short_name": "Downloader",
+  "start_url": "/pwa/downloader/index.html",
+  "scope": "/pwa/downloader/",
+  "display": "standalone",
+  "background_color": "#0f1b2e",
+  "theme_color": "#0f1b2e",
+  "icons": [
+    {
+      "src": "/image/user-avatar.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -3874,61 +3874,21 @@
       {
         requestType = callOptions.requestType;
       }
-      var formData = new window.FormData();
-      var appendFormValue = function (data, prefix, value)
-      {
-        if (value == null)
-        {
-          return;
-        }
-        if (value instanceof window.Blob)
-        {
-          data.append(prefix, value);
-          return;
-        }
-        if (Array.isArray(value))
-        {
-          value.forEach(function (entry, index)
-          {
-            appendFormValue(data, prefix + '[' + index + ']', entry);
-          });
-          return;
-        }
-        if (typeof value === 'object')
-        {
-          Object.keys(value).forEach(function (key)
-          {
-            appendFormValue(data, prefix + '[' + key + ']', value[key]);
-          });
-          return;
-        }
-        data.append(prefix, value);
-      };
-      formData.append('requestType', requestType);
-      formData.append('token', this.config.apiToken);
-      formData.append('type', type);
-      Object.keys(params || {}).forEach(function (key)
-      {
-        appendFormValue(formData, key, params[key]);
-      });
 
-      var controller;
-      if (callOptions.signal instanceof AbortController)
+      var json;
+      try
       {
-        controller = callOptions.signal;
+        json = await window.Utils.requestApi(requestType, type, params || {}, { url: endpoint, signal: callOptions.signal instanceof AbortController ? callOptions.signal.signal : undefined });
       }
-
-      var response = await window.fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-        signal: controller ? controller.signal : undefined
-      });
-      if (!response.ok)
+      catch (err)
       {
-        throw new Error('API request failed: ' + response.status);
+        if (err && err.message && err.message.indexOf('status') >= 0)
+        {
+          var statusText = err.message.replace('Request failed with status ', '');
+          throw new Error('API request failed: ' + statusText);
+        }
+        throw err;
       }
-      var json = await response.json();
       if (!json || json.status !== 'OK')
       {
         throw new Error('API request failed');

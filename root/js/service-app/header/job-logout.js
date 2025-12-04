@@ -12,14 +12,25 @@
     handleLogout(options)
     {
       const cfg = options && options.logout ? options.logout : {};
-     return this.performLogoutRequest(cfg).catch(function () {
-        return null;
-      }).then(() => {
-        return this.clearSessionState();
-      }).finally(() => {
+      const finishLogout = () => {
         this._storeLogoutNoticeFlag();
         this.redirectAfterLogout(cfg);
-      });
+      };
+
+      return this.performLogoutRequest(cfg)
+        .catch(function ()
+        {
+          return null;
+        })
+        .then(() =>
+        {
+          return this.clearSessionState();
+        })
+        .then(() =>
+        {
+          return this.clearCaches();
+        })
+        .then(finishLogout, finishLogout);
     }
    
      redirectAfterLogout(options)
@@ -51,11 +62,11 @@
        }
      }
 
-     clearSessionState()
-     {
-       if (this.sessionInstance && typeof this.sessionInstance.setUser === 'function')
-       {
-         try
+    clearSessionState()
+    {
+      if (this.sessionInstance && typeof this.sessionInstance.setUser === 'function')
+      {
+        try
          {
            return Promise.resolve(this.sessionInstance.setUser(null)).catch(function () {
              return null;
@@ -75,73 +86,47 @@
            window.ServicesGeneral.session.clearStorage(null);
          }
          catch (_e) {}
-       }
-       return Promise.resolve();
-     }
-     
-     performLogoutRequest(options)
-     {
-       const cfg = this.resolveLogoutOptions(options || {});
-       const method = cfg.method || 'POST';
-       const endpoint = cfg.endpoint;
-       const payload = {
-         requestType: cfg.requestType,
-         type: cfg.type
-       };
-       if (typeof cfg.token === 'string' && cfg.token.length > 0)
-       {
-         payload.token = cfg.token;
-       }
-       if (cfg.params && typeof cfg.params === 'object')
-       {
-         Object.keys(cfg.params).forEach((key) =>
-                                         {
-                                           payload[key] = cfg.params[key];
-                                         });
-       }
+      }
+      return Promise.resolve();
+    }
 
-       const canUseFetch = typeof window.fetch === 'function' && typeof window.FormData === 'function';
-       if (canUseFetch)
-       {
-         const formData = new window.FormData();
-         Object.keys(payload).forEach((key) =>
+    clearCaches()
+    {
+      if (!window.caches || typeof window.caches.keys !== 'function')
+      {
+        return Promise.resolve();
+      }
+      try
+      {
+        return window.caches.keys().then(function (keys)
                                       {
-                                        if (typeof payload[key] === 'undefined' || payload[key] === null)
-                                        {
-                                          return;
-                                        }
-                                        formData.append(key, payload[key]);
-                                      });
-         const requestInit = {
-           method: method,
-           credentials: 'include',
-           body: formData,
-           cache: 'no-store'
-         };
-         return window.fetch(endpoint, requestInit).catch(function ()
-                                                     {
-                                                       return Promise.resolve();
-                                                     });
-       }
-
-       if (typeof $ === 'function' && typeof $.ajax === 'function')
-       {
-         return new Promise(function (resolve)
-                            {
-                              $.ajax({
-                                url: endpoint,
-                                method: method,
-                                data: payload,
-                                xhrFields: { withCredentials: true }
-                              }).always(function ()
-                                        {
-                                          resolve();
-                                        });
-                            });
-       }
-
-       return Promise.resolve();
-     }
+                                        return Promise.all(keys.map(function (name)
+                                                                    {
+                                                                      return window.caches.delete(name);
+                                                                    }));
+                                      }).catch(function ()
+                                                {
+                                                  return null;
+                                                });
+      }
+      catch (_err)
+      {
+        return Promise.resolve();
+      }
+    }
+     
+    performLogoutRequest(options)
+    {
+      const cfg = this.resolveLogoutOptions(options || {});
+      const params = cfg.params && typeof cfg.params === 'object' ? cfg.params : {};
+      const overrides =
+      {
+        url: cfg.endpoint,
+        type: cfg.method,
+        xhrFields: { withCredentials: true }
+      };
+      return window.Utils.requestApi(cfg.requestType, cfg.type, params, overrides);
+    }
 
     resolveLogoutOptions(raw)
     {

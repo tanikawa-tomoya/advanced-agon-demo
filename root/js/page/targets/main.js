@@ -964,27 +964,16 @@
       }
       var normalizedPayload = this._normalizeDisplayFlagsForRequest(typeKey, payload, options);
       var formData = new FormData();
-      if (api.requestType) formData.append('requestType', api.requestType);
-      if (api.token) formData.append('token', api.token);
-      formData.append('type', typeKey);
       this._appendFormData(formData, normalizedPayload);
 
-      var res = await fetch(api.endpoint || window.Utils.getApiEndpoint(), {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      if (!res.ok) {
-        var txt = '';
-        try { txt = await res.text(); } catch (e) {}
-        throw new Error(txt || ('HTTP ' + res.status));
-      }
-      var text = await res.text();
       var json = {};
       try {
-        json = text ? JSON.parse(text) : {};
+        json = await window.Utils.requestApi(api.requestType || 'TargetManagementTargets', typeKey, formData, { url: api.endpoint });
       } catch (err) {
-        throw new Error('Failed to parse response');
+        if (err && err.name === 'SyntaxError') {
+          throw new Error('Failed to parse response');
+        }
+        throw err;
       }
       if (json && json.status && json.status !== 'OK') {
         var reason = json.reason ? (' (' + json.reason + ')') : '';

@@ -138,9 +138,9 @@
         } catch (_) {}
       } else {
         try {
-          var url = this.config.endpoints.update(id);
-          var res = await fetch(url, { method: 'GET', headers: this._headers() });
-          if (res.ok) data = await res.json();
+          var requestType = (this.page && this.page.apiConfig && this.page.apiConfig.requestType) || 'TargetManagementTargets';
+          var type = (this.page && this.page.apiConfig && this.page.apiConfig.types && this.page.apiConfig.types.update) || 'TargetUpdate';
+          data = await window.Utils.requestApi(requestType, type, { targetCode: id }, { url: this.config && this.config.apiEndpoint });
         } catch (e) {}
       }
       return data;
@@ -153,15 +153,9 @@
         if (this.page && typeof this.page.callApi === 'function') {
           await this.page.callApi('delete', { targetCode: id });
         } else {
-          var res = await fetch(this.config.endpoints.destroy(id), {
-            method: 'DELETE',
-            headers: this._headers()
-          });
-          if (!res.ok) {
-            var t = '';
-            try { t = await res.text(); } catch(e){}
-            throw new Error(t || ('DELETE failed (' + res.status + ')'));
-          }
+          var requestType = (this.page && this.page.apiConfig && this.page.apiConfig.requestType) || 'TargetManagementTargets';
+          var type = (this.page && this.page.apiConfig && this.page.apiConfig.types && this.page.apiConfig.types.delete) || 'TargetDelete';
+          await window.Utils.requestApi(requestType, type, { targetCode: id }, { url: this.config && this.config.apiEndpoint });
         }
         if (this.ui.toast && this.ui.toast.success) {
           this.ui.toast.success(this.texts.deleted || '削除しました');

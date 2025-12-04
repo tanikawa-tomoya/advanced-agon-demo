@@ -92,30 +92,22 @@
         return this._normalizeResponse(legacy);
       }
 
-      var qs = [];
-      qs.push('page=' + encodeURIComponent(String(this.state.page)));
-      qs.push('pageSize=' + encodeURIComponent(String(this.state.pageSize)));
-      if (this.state.query) qs.push('q=' + encodeURIComponent(this.state.query));
-      if (this.state.sort && this.state.sort.key) {
-        qs.push('sort=' + encodeURIComponent(this.state.sort.key + ':' + this.state.sort.dir));
+      var type = (this.page && this.page.apiConfig && this.page.apiConfig.types && this.page.apiConfig.types.list) || 'TargetList';
+      var requestType = (this.page && this.page.apiConfig && this.page.apiConfig.requestType) || 'TargetManagementTargets';
+      var endpoint = (this.page && this.page.apiConfig && this.page.apiConfig.endpoint) || undefined;
+      var response;
+      try {
+        response = await window.Utils.requestApi(requestType, type, payload, { url: endpoint, signal: this._listController ? this._listController.signal : undefined });
+      } catch (err) {
+        if (err && err.name === 'SyntaxError') {
+          throw new Error('Failed to parse response');
+        }
+        var message = 'List fetch failed';
+        if (err && err.message) {
+          message += ' (' + err.message + ')';
+        }
+        throw new Error(message);
       }
-      for (var key in filters) {
-        if (!Object.prototype.hasOwnProperty.call(filters, key)) continue;
-        var val = filters[key];
-        if (val !== '' && val != null) qs.push('filter.' + encodeURIComponent(key) + '=' + encodeURIComponent(val));
-      }
-      var url = this.config.endpoints.list + (qs.length ? ('?' + qs.join('&')) : '');
-      var res = await fetch(url, {
-        method: 'GET',
-        headers: this._headers(),
-        signal: this._listController ? this._listController.signal : undefined
-      });
-      if (!res.ok) {
-        var t = '';
-        try { t = await res.text(); } catch(e){}
-        throw new Error(t || ('List fetch failed (' + res.status + ')'));
-      }
-      var response = await res.json();
       return this._normalizeResponse(response);
     }
 

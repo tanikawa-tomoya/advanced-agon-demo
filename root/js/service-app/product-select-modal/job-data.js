@@ -105,28 +105,18 @@
       {
         throw new Error('ターゲットが指定されていません。');
       }
-      var formData = new window.FormData();
-      formData.append('requestType', cfg.requestType || 'TargetManagementProducts');
-      formData.append('token', cfg.token || window.Utils.getApiToken());
-      formData.append('type', cfg.requestName || 'TargetProductList');
-      formData.append('targetCode', targetCode);
-      var response = await window.fetch(window.Utils.getApiEndpoint(), {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      if (!response.ok)
-      {
-        throw new Error('商品資料の取得に失敗しました。');
-      }
       var json;
       try
       {
-        json = await response.json();
+        json = await window.Utils.requestApi(cfg.requestType || 'TargetManagementProducts', cfg.requestName || 'TargetProductList', { targetCode: targetCode });
       }
       catch (error)
       {
-        throw new Error('サーバー応答を解析できませんでした。');
+        if (error && error.name === 'SyntaxError')
+        {
+          throw new Error('サーバー応答を解析できませんでした。');
+        }
+        throw new Error('商品資料の取得に失敗しました。');
       }
       if (!json || json.status !== 'OK')
       {

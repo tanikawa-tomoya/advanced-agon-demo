@@ -492,7 +492,7 @@
       if (!type) throw new Error('[AdminUsers.apiPost] Unknown action: ' + action);
 
       const fd = this._createApiFormData(type, action, params);
-      const payload = await this._sendApiRequest(fd);
+      const payload = await this._sendApiRequest(type, fd);
       this._ensureActiveSession(payload);
       return this._normalizeApiPayload(action, payload);
     }
@@ -503,9 +503,6 @@
         throw new Error('FormData is not supported in this environment');
       }
       const fd = new window.FormData();
-      fd.append('requestType', this.api.requestType);
-      fd.append('type', type);
-      fd.append('token', this.api.token || window.Utils.getApiToken());
       this._appendApiParams(fd, action, params);
       return fd;
     }
@@ -558,25 +555,16 @@
       });
     }
 
-    async _sendApiRequest(fd)
+    async _sendApiRequest(type, fd)
     {
-      const response = await window.fetch(this.api.endpoint, {
-        method: 'POST',
-        body: fd,
-        credentials: 'include',
-        cache: 'no-store'
-      });
-      if (!response.ok) {
-        throw new Error('HTTP ' + response.status);
-      }
-      const text = await response.text();
-      if (!text) {
-        return {};
-      }
       try {
-        return JSON.parse(text);
+        const payload = await window.Utils.requestApi(this.api.requestType, type, fd, { url: this.api.endpoint });
+        return payload || {};
       } catch (err) {
-        throw new Error('サーバーからの応答を解析できませんでした。');
+        if (err && err.name === 'SyntaxError') {
+          throw new Error('サーバーからの応答を解析できませんでした。');
+        }
+        throw err;
       }
     }
 

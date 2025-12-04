@@ -21,11 +21,10 @@
     var bootOverlay = showPageBootOverlay();
     loadUtilSync();
     await syncSiteSettings();
-    registerServiceWorker();
 
     var pageName = detectPageName();
     var className = kebabToPascal(pageName);
-    var base = '/js/page/' + pageName;
+    var base = resolvePageScriptBase(pageName);
     var loginGuardService = await initLoginGuardService();
     var loginGuard = loginGuardService.createGuard(pageName);
 
@@ -106,6 +105,17 @@
                 var tail = (path.split('/').pop() || '').replace(/\.html?$/i, '');
                 return tail || 'index';
         }
+
+        function resolvePageScriptBase(pageName)
+  {
+    var body = document.body || null;
+    var dataset = body && body.dataset ? body.dataset : {};
+    if (dataset.pageScriptBase)
+    {
+      return dataset.pageScriptBase;
+    }
+    return '/js/page/' + pageName;
+  }
   
 	function kebabToPascal(s)
   {
@@ -175,15 +185,6 @@
       return window.FooterConfig;
     }
     return {};
-  }
-
-  function registerServiceWorker()
-  {
-    if (!navigator.serviceWorker)
-    {
-      return;
-    }
-    navigator.serviceWorker.register('/service-worker.js').catch(function () {});
   }
 
   function showPageBootOverlay()
