@@ -31,8 +31,7 @@
         activeSlideId: null,
         activePageId: null,
         slidePageSelection: null,
-        activeEditItemId: null,
-        pwaDownloads: []
+        activeEditItemId: null
       };
 
       // サービス（header, toast, loading-overlay, help-modal など）
@@ -51,7 +50,6 @@
       this.imageModalService = null;
       this.pdfModalService = null;
       this.downloadModalService = null;
-      this.pwaDownloaderService = null;
       this.targetSelectModalService = null;
       this.userSelectModalService = null;
       this.slideModalService = null;
@@ -62,9 +60,6 @@
       this.contentsSelectModalService = null;
 
       this.contentsDataset = { usersContents: [], usersContentsProxy: [] };
-
-      this._pwaModalNode = null;
-      this._pwaDownloadsById = Object.create(null);
 
       this._uploadModalLastActive = null;
       this._uploadModalBodyClassManaged = false;
@@ -79,7 +74,6 @@
       this.uiConfig = {};
         this.selectorConfig = {};
         this.apiConfig = {};
-        this.fastDownloadConfig = {};
     }
 
     async boot()
@@ -1195,15 +1189,6 @@
         downloadUnavailable: 'ダウンロードできるファイルが見つかりません。',
         downloadModalTitle: 'ダウンロード',
         downloadModalSubtitle: 'ファイルの取得状況',
-        fastDownloadButtonLabel: '高速ダウンロード',
-        fastDownloadTitle: '高速ダウンロード',
-        fastDownloadSubtitle: 'コンテンツをまとめてダウンロードできます',
-        fastDownloadEmpty: 'ダウンロード可能なコンテンツが見つかりません。',
-        fastDownloadPreparing: '高速ダウンロードを開始します…',
-        fastDownloadComplete: '高速ダウンロードが完了しました',
-        fastDownloadQueued: '高速ダウンロードに追加しました',
-        fastDownloadPaused: 'ダウンロードを一時停止しました',
-        fastDownloadResume: 'ダウンロードを開始しました',
         editModalTitle: 'コンテンツ編集',
         editModalSummary: 'タイトル・説明・作成日を更新します。',
         editSaved: 'コンテンツを更新しました',
@@ -1287,7 +1272,6 @@
 
         // 更新・再取得
         refreshButton: '[data-cp-refresh]',
-        fastDownloadButton: '[data-cp-fast-download]',
 
         // リスト領域
         listContainer: '[data-cp="list"]',
@@ -1435,14 +1419,6 @@
         slideRequestType: 'ContentsSlide'
       });
 
-      var fastRequestType = dataset.fastDownloadRequestType || 'FastDownload';
-      var fastListType = dataset.fastDownloadListType || 'FastDownloadQueue';
-      var fastEnqueueType = dataset.fastDownloadEnqueueType || 'FastDownloadEnqueue';
-      this.fastDownloadConfig = Object.freeze({
-        requestType: fastRequestType,
-        listType: fastListType,
-        enqueueType: fastEnqueueType
-      });
     }
 
     renderUploaderButtons()
@@ -1464,39 +1440,6 @@
       for (var i = 0; i < configs.length; i += 1) {
         this._renderUploaderButton(svc, configs[i]);
       }
-    }
-
-    renderFastDownloadButton()
-    {
-      var service = this.buttonService;
-      var selectors = this.selectorConfig || {};
-      var selector = selectors.fastDownloadButton;
-      if (!service || typeof service.createActionButton !== 'function' || !selector) {
-        return;
-      }
-      var placeholder = document.querySelector(selector);
-      if (!placeholder || !placeholder.parentNode) {
-        return;
-      }
-      var label = (this.textConfig && this.textConfig.fastDownloadButtonLabel) || '高速ダウンロード';
-      var button = service.createActionButton('download', {
-        label: label,
-        ariaLabel: label,
-        hoverLabel: label,
-        baseClass: 'target-management__icon-button target-management__icon-button--ghost',
-        attributes: { 'data-cp-fast-download': '' }
-      });
-      if (!button) {
-        return;
-      }
-      if (placeholder.id) {
-        button.id = placeholder.id;
-      }
-      if (placeholder.name) {
-        button.name = placeholder.name;
-      }
-      button.setAttribute('type', 'button');
-      placeholder.parentNode.replaceChild(button, placeholder);
     }
 
     renderRefreshButton()
@@ -1653,7 +1596,6 @@
           { src: '/js/service-app/slide-modal/main.js' },
           { src: '/js/service-app/pdf-modal/main.js' },
           { src: '/js/service-app/download-modal/main.js' },
-          { src: '/js/service-app/pwa-downloader/main.js' },
           { src: '/js/service-app/contents-select-modal/main.js' },
           { src: '/js/service-app/user-select-modal/main.js' }
         ];
@@ -1702,13 +1644,6 @@
         title: this.textConfig.downloadModalTitle,
         subtitle: this.textConfig.downloadModalSubtitle
       });
-      this.pwaDownloaderService = new window.Services.PwaDownloader({
-        title: this.textConfig.fastDownloadTitle,
-        subtitle: this.textConfig.fastDownloadSubtitle,
-        onPlay: this.handlePwaPlay.bind(this),
-        onPause: this.handlePwaPause.bind(this),
-        onRemove: this.handlePwaRemove.bind(this)
-      });
       this.contentsSelectModalService = new window.Services.ContentsSelectModal({
         endpoint: this.apiConfig.endpoint,
         requestType: this.apiConfig.requestType,
@@ -1735,7 +1670,6 @@
         slideModal: this.slideModalService,
         pdfModal: this.pdfModalService,
         downloadModal: this.downloadModalService,
-        pwaDownloader: this.pwaDownloaderService,
         contentsSelectModal: this.contentsSelectModalService,
         userSelectModal: this.userSelectModalService
       };
@@ -1757,7 +1691,6 @@
         this.slideModalService.boot(),
         this.pdfModalService.boot(),
         this.downloadModalService.boot(),
-        this.pwaDownloaderService.boot(),
         this.contentsSelectModalService.boot(),
         this.userSelectModalService.boot()
       ]);
@@ -2064,18 +1997,6 @@
             if (!tab) return;
             await runTabJob(tab);
             $next.trigger('focus');
-          } catch (err) {
-            self.onError(err);
-          }
-        });
-
-      $(document)
-        .off('click.contents', selectors.fastDownloadButton)
-        .on('click.contents', selectors.fastDownloadButton, async function (e) {
-          e.preventDefault();
-          try {
-            var id = this && this.getAttribute ? this.getAttribute('data-id') : null;
-            await self.startFastDownload(id);
           } catch (err) {
             self.onError(err);
           }
@@ -2870,33 +2791,6 @@
         {
           message = this.textConfig.error;
         }
-        throw new Error(message);
-      }
-      if (Object.prototype.hasOwnProperty.call(response, 'result'))
-      {
-        return response.result;
-      }
-      return response;
-    }
-
-    async callFastDownloadApi(type, payload, overrides)
-    {
-      if (!(window.Utils && typeof window.Utils.requestApi === 'function'))
-      {
-        throw new Error('APIクライアントが初期化されていません。');
-      }
-      var config = this.fastDownloadConfig || {};
-      var requestType = config.requestType || (this.apiConfig && this.apiConfig.requestType) || 'FastDownload';
-      var response = await window.Utils.requestApi(requestType, type, payload || {}, overrides);
-      if (!response)
-      {
-        throw new Error(this.textConfig.error);
-      }
-      var statusRaw = typeof response.status === 'string' ? response.status : '';
-      var status = statusRaw.toUpperCase();
-      if (status && status !== 'OK')
-      {
-        var message = response.response || response.result || response.reason || this.textConfig.error;
         throw new Error(message);
       }
       if (Object.prototype.hasOwnProperty.call(response, 'result'))
@@ -5190,18 +5084,6 @@
         },
         disabled: !!(view.item && view.item.isProxyEncoding)
       });
-      var fastDownloadButtonHtml = this.buildActionButtonHtml('download', {
-        label: this.textConfig.fastDownloadButtonLabel,
-        hoverLabel: view.titleRaw + 'を高速ダウンロードに追加',
-        ariaLabel: view.titleRaw + 'を高速ダウンロードに追加',
-        baseClass: 'content-item__action table-action-button',
-        fallbackClass: 'content-item__action btn btn--ghost',
-        type: 'button',
-        dataset: {
-          cpFastDownload: 'true',
-          id: view.id
-        }
-      });
       var visibilityToggleHtml = this.buildVisibilityToggle(view);
       var downloadButtonHtml = this.buildActionButtonHtml('download', {
         label: 'DL',
@@ -5688,18 +5570,6 @@
         },
         disabled: !!(view.item && view.item.isProxyEncoding)
       });
-      var fastDownloadButtonHtml = this.buildActionButtonHtml('download', {
-        label: this.textConfig.fastDownloadButtonLabel,
-        hoverLabel: view.titleRaw + 'を高速ダウンロードに追加',
-        ariaLabel: view.titleRaw + 'を高速ダウンロードに追加',
-        baseClass: 'content-item__action table-action-button',
-        fallbackClass: 'content-item__action btn btn--ghost',
-        type: 'button',
-        dataset: {
-          cpFastDownload: 'true',
-          id: view.id
-        }
-      });
       var visibilityToggleHtml = this.buildVisibilityToggle(view);
       var downloadButtonHtml = this.buildActionButtonHtml('download', {
         label: 'DL',
@@ -5770,7 +5640,6 @@
             submitButtonHtml +
             usageButtonHtml +
             proxyButtonHtml +
-            fastDownloadButtonHtml +
             downloadButtonHtml +
             delegateButtonHtml +
             deleteButtonHtml +
@@ -6917,366 +6786,6 @@
           url: url
         }
       };
-    }
-
-    buildPwaDownloaderFiles(entries)
-    {
-      var list = Array.isArray(entries) ? entries : [];
-      var files = [];
-      for (var i = 0; i < list.length; i += 1)
-      {
-        var entry = list[i] || {};
-        var item = entry.item || entry;
-        if (!item)
-        {
-          continue;
-        }
-        var spec = entry.spec || null;
-        var id = item.id || ('content-' + i);
-        var totalBytes = (spec && typeof spec.totalBytes === 'number') ? spec.totalBytes : 0;
-        if (!totalBytes && typeof item.size === 'number')
-        {
-          totalBytes = item.size;
-        }
-        files.push({
-          id: String(id),
-          name: this.resolveDownloadFileName(item),
-          downloadedBytes: 0,
-          totalBytes: totalBytes,
-          status: 'pending',
-          progressPercent: 0
-        });
-      }
-      return files;
-    }
-
-    ensurePwaDownloaderModal()
-    {
-      var service = this.pwaDownloaderService || (this.services && this.services.pwaDownloader);
-      if (!service)
-      {
-        return null;
-      }
-      if (this._pwaModalNode)
-      {
-        service.updateFiles(this._pwaModalNode, this.mapPwaDownloadsToFiles());
-        return this._pwaModalNode;
-      }
-      this._pwaModalNode = service.show({
-        title: this.textConfig.fastDownloadTitle,
-        subtitle: this.textConfig.fastDownloadSubtitle,
-        files: this.mapPwaDownloadsToFiles()
-      });
-      return this._pwaModalNode;
-    }
-
-    updatePwaDownloaderFiles()
-    {
-      var service = this.pwaDownloaderService || (this.services && this.services.pwaDownloader);
-      if (!service || !this.state.pwaDownloads)
-      {
-        return;
-      }
-      var modal = this.ensurePwaDownloaderModal();
-      if (!modal)
-      {
-        return;
-      }
-      service.updateFiles(modal, this.mapPwaDownloadsToFiles());
-    }
-
-    rebuildPwaDownloadIndex()
-    {
-      this._pwaDownloadsById = Object.create(null);
-      var list = Array.isArray(this.state.pwaDownloads) ? this.state.pwaDownloads : [];
-      for (var i = 0; i < list.length; i += 1)
-      {
-        var entry = list[i];
-        if (!entry || !entry.id)
-        {
-          continue;
-        }
-        this._pwaDownloadsById[String(entry.id)] = entry;
-      }
-    }
-
-    mapPwaDownloadsToFiles()
-    {
-      var list = Array.isArray(this.state.pwaDownloads) ? this.state.pwaDownloads : [];
-      var mapped = [];
-      for (var i = 0; i < list.length; i += 1)
-      {
-        var item = list[i];
-        mapped.push({
-          id: item.id,
-          name: item.name,
-          downloadedBytes: Number(item.downloadedBytes) || 0,
-          totalBytes: Number(item.totalBytes) || 0,
-          status: item.status || '待機中',
-          progressPercent: (typeof item.progressPercent === 'number') ? item.progressPercent : 0
-        });
-      }
-      return mapped;
-    }
-
-    enqueuePwaDownloads(entries)
-    {
-      var list = Array.isArray(this.state.pwaDownloads) ? this.state.pwaDownloads.slice() : [];
-      var added = 0;
-      for (var i = 0; i < entries.length; i += 1)
-      {
-        var entry = entries[i] || {};
-        var item = entry.item || {};
-        var spec = entry.spec || null;
-        var id = item.id || ('content-' + i);
-        if (this._pwaDownloadsById[String(id)])
-        {
-          continue;
-        }
-        var totalBytes = (spec && typeof spec.totalBytes === 'number') ? spec.totalBytes : 0;
-        if (!totalBytes && typeof item.size === 'number')
-        {
-          totalBytes = item.size;
-        }
-        var queueEntry = {
-          id: String(id),
-          name: this.resolveDownloadFileName(item),
-          downloadedBytes: 0,
-          totalBytes: totalBytes,
-          status: '待機中',
-          progressPercent: 0,
-          spec: spec,
-          xhr: null
-        };
-        list.push(queueEntry);
-        this._pwaDownloadsById[String(queueEntry.id)] = queueEntry;
-        added += 1;
-      }
-      this.state.pwaDownloads = list;
-      return added;
-    }
-
-    handlePwaPlay(file)
-    {
-      if (!file || !file.id)
-      {
-        return;
-      }
-      var entry = this._pwaDownloadsById[String(file.id)];
-      if (!entry)
-      {
-        return;
-      }
-      if (this.textConfig.fastDownloadResume)
-      {
-        this.toast(this.textConfig.fastDownloadResume);
-      }
-      this.startPwaDownload(entry);
-    }
-
-    handlePwaPause(file)
-    {
-      if (!file || !file.id)
-      {
-        return;
-      }
-      var entry = this._pwaDownloadsById[String(file.id)];
-      if (!entry)
-      {
-        return;
-      }
-      if (entry.xhr && typeof entry.xhr.abort === 'function')
-      {
-        entry.xhr.abort();
-      }
-      entry.xhr = null;
-      entry.downloadedBytes = 0;
-      entry.progressPercent = 0;
-      entry.status = '一時停止中';
-      this.updatePwaDownloaderFiles();
-      if (this.textConfig.fastDownloadPaused)
-      {
-        this.toast(this.textConfig.fastDownloadPaused);
-      }
-    }
-
-    handlePwaRemove(fileId)
-    {
-      var id = fileId != null ? String(fileId) : '';
-      if (!id)
-      {
-        return;
-      }
-      var entry = this._pwaDownloadsById[id];
-      if (entry && entry.xhr && typeof entry.xhr.abort === 'function')
-      {
-        entry.xhr.abort();
-      }
-      var list = Array.isArray(this.state.pwaDownloads) ? this.state.pwaDownloads.slice() : [];
-      this.state.pwaDownloads = list.filter(function (item) { return item && String(item.id) !== id; });
-      this.rebuildPwaDownloadIndex();
-      this.updatePwaDownloaderFiles();
-    }
-
-    startPwaDownload(entry)
-    {
-      if (!entry || !entry.spec)
-      {
-        return;
-      }
-      var service = this.pwaDownloaderService || (this.services && this.services.pwaDownloader);
-      var modal = this.ensurePwaDownloaderModal();
-      if (!service || !modal)
-      {
-        return;
-      }
-
-      if (entry.xhr && typeof entry.xhr.abort === 'function')
-      {
-        entry.xhr.abort();
-      }
-
-      entry.status = 'ダウンロード中';
-      entry.downloadedBytes = 0;
-      entry.progressPercent = 0;
-      service.updateFile(modal, entry.id, {
-        status: entry.status,
-        downloadedBytes: 0,
-        totalBytes: entry.totalBytes || 0,
-        progressPercent: 0
-      });
-
-      var xhr = new XMLHttpRequest();
-      entry.xhr = xhr;
-      xhr.open(entry.spec.request.method || 'GET', entry.spec.request.url, true);
-      xhr.withCredentials = true;
-      xhr.responseType = 'blob';
-      var headers = (entry.spec.request && entry.spec.request.headers) || {};
-      var headerKeys = Object.keys(headers);
-      for (var i = 0; i < headerKeys.length; i += 1)
-      {
-        var key = headerKeys[i];
-        xhr.setRequestHeader(key, headers[key]);
-      }
-      var self = this;
-      xhr.onprogress = function (event)
-      {
-        var total = event && event.lengthComputable ? event.total : (entry.spec.totalBytes || 0);
-        var percent = total > 0 ? (event.loaded / total) * 100 : null;
-        entry.downloadedBytes = event && typeof event.loaded === 'number' ? event.loaded : 0;
-        entry.totalBytes = total;
-        entry.progressPercent = percent === null ? 0 : percent;
-        service.updateFile(modal, entry.id, {
-          downloadedBytes: entry.downloadedBytes,
-          totalBytes: entry.totalBytes,
-          progressPercent: entry.progressPercent,
-          status: entry.status
-        });
-      };
-      xhr.onerror = function ()
-      {
-        entry.status = 'エラー';
-        service.updateFile(modal, entry.id, { status: entry.status, progressPercent: 100 });
-        self.toast(self.textConfig.downloadFailed);
-      };
-      xhr.onabort = function ()
-      {
-        entry.status = '一時停止中';
-        entry.downloadedBytes = 0;
-        entry.progressPercent = 0;
-        service.updateFile(modal, entry.id, {
-          status: entry.status,
-          downloadedBytes: 0,
-          totalBytes: entry.totalBytes || 0,
-          progressPercent: 0
-        });
-      };
-      xhr.onload = function ()
-      {
-        if (xhr.status >= 200 && xhr.status < 300)
-        {
-          var blob = xhr.response;
-          var finalSize = blob && blob.size ? blob.size : (entry.totalBytes || entry.spec.totalBytes || 0);
-          entry.status = '完了';
-          entry.downloadedBytes = finalSize;
-          entry.totalBytes = finalSize;
-          entry.progressPercent = 100;
-          service.updateFile(modal, entry.id, {
-            status: entry.status,
-            downloadedBytes: finalSize,
-            totalBytes: finalSize,
-            progressPercent: 100
-          });
-          self.startBlobDownload(blob, entry.spec.fileName);
-          self.toast(self.textConfig.downloadReady);
-          return;
-        }
-        entry.status = 'エラー';
-        service.updateFile(modal, entry.id, { status: entry.status, progressPercent: 100 });
-        self.toast(self.textConfig.downloadFailed);
-      };
-      xhr.send(entry.spec.request.body || null);
-    }
-
-    async startFastDownload(targetId)
-    {
-      var ids = this.collectFastDownloadIds(targetId);
-      if (!ids.length)
-      {
-        this.toast(this.textConfig.fastDownloadEmpty || this.textConfig.downloadUnavailable);
-        return;
-      }
-
-      await this.enqueueFastDownload(ids);
-
-      if (this.textConfig.fastDownloadQueued)
-      {
-        this.toast(this.textConfig.fastDownloadQueued);
-      }
-
-      this.openPwaDownloaderApp();
-    }
-
-    collectFastDownloadIds(targetId)
-    {
-      var items = Array.isArray(this.state.items) ? this.state.items : [];
-      var ids = [];
-      for (var i = 0; i < items.length; i += 1)
-      {
-        var entryItem = items[i];
-        if (targetId && String(entryItem.id) !== String(targetId))
-        {
-          continue;
-        }
-        var spec = this.resolveDownloadSpec(entryItem);
-        if (!entryItem || !spec || entryItem.kind === 'youtube')
-        {
-          continue;
-        }
-        ids.push(entryItem.id);
-      }
-      return ids;
-    }
-
-    async enqueueFastDownload(ids)
-    {
-      var payload;
-      if (ids.length === 1)
-      {
-        payload = { content_id: ids[0] };
-      }
-      else
-      {
-        payload = { content_ids: ids };
-      }
-      var config = this.fastDownloadConfig || {};
-      var enqueueType = config.enqueueType || 'FastDownloadEnqueue';
-      await this.callFastDownloadApi(enqueueType, payload);
-    }
-
-    openPwaDownloaderApp()
-    {
-      window.open('/html/pwa-downloader.html', 'pwa-downloader');
     }
 
     async proxyItem(id)
