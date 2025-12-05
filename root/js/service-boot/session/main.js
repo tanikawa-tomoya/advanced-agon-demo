@@ -8,7 +8,8 @@
     {
       this.options = options && typeof options === 'object' ? Object.assign({}, options) : {};
       this.DEFAULTS = Object.freeze({
-        storageKey: 'advanced-session-user'
+        storageKey: 'advanced-session-user',
+        optionalPages: Object.freeze(['login', 'agon-index'])
       });
       this.config = null;
       this.jobs = {};
@@ -17,12 +18,14 @@
       this._user = null;
       this._pendingRefresh = null;
       this._bootReady = false;
+      this._optionalPages = [];
     }
 
     initConfig()
     {
       var globalConfig = (window.Services && window.Services.config && window.Services.config.session) || {};
       this.config = Object.assign({}, this.DEFAULTS, globalConfig, this.options);
+      this._optionalPages = this._normalizePageList(this.config.optionalPages);
       return this.config;
     }
 
@@ -194,6 +197,10 @@
     _handleForcedLogout(err)
     {
       this._assertBootReady();
+      if (this._isOptionalPage())
+      {
+        return;
+      }
       if (this._shouldForceLogoutRedirect(err))
       {
         this._storeLogoutNoticeFlag();
@@ -287,6 +294,53 @@
         }
         catch (_e) {}
       }
+    }
+
+    _isOptionalPage()
+    {
+      var resolved = this._resolvePageName();
+      return resolved && this._optionalPages.indexOf(resolved) !== -1;
+    }
+
+    _resolvePageName()
+    {
+      var body = document.body || null;
+      var dataset = body && body.dataset ? body.dataset : {};
+      var fromData = dataset.page || dataset.pageName || '';
+      var normalized = this._normalizePageName(fromData);
+      if (normalized)
+      {
+        return normalized;
+      }
+      return this._normalizePageName(this._resolvePageNameFromPath());
+    }
+
+    _resolvePageNameFromPath()
+    {
+      var path = (window.location && window.location.pathname) || '';
+      var normalized = path.replace(/\/+$/g, '').replace(/\.html?$/i, '');
+      var name = normalized.split('/').pop() || '';
+      return name;
+    }
+
+    _normalizePageList(value)
+    {
+      if (!Array.isArray(value))
+      {
+        return [];
+      }
+      return value.map(this._normalizePageName).filter(function (name) {
+        return !!name;
+      });
+    }
+
+    _normalizePageName(pageName)
+    {
+      if (typeof pageName !== 'string')
+      {
+        return '';
+      }
+      return pageName.replace(/^\/+|\/+$/g, '').replace(/\.html?$/i, '').trim().toLowerCase();
     }
 
     _isLoginPage()
