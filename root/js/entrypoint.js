@@ -23,6 +23,11 @@
     await syncSiteSettings();
 
     var pageName = detectPageName();
+    if (shouldRedirectToAgonIndex(pageName))
+    {
+      window.location.replace('/agon-index.html');
+      return;
+    }
     var className = kebabToPascal(pageName);
     var base = resolvePageScriptBase(pageName);
     var loginGuardService = await initLoginGuardService();
@@ -105,6 +110,18 @@
                 var tail = (path.split('/').pop() || '').replace(/\.html?$/i, '');
                 return tail || 'index';
         }
+
+  function shouldRedirectToAgonIndex(pageName)
+  {
+    if (pageName && pageName !== 'index')
+    {
+      return false;
+    }
+
+    var path = (window.location && window.location.pathname) || '';
+    var normalized = path.replace(/\/+$/, '').replace(/\.html?$/i, '');
+    return normalized === '' || normalized === '/' || normalized === '/index';
+  }
 
         function resolvePageScriptBase(pageName)
   {
