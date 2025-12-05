@@ -8,7 +8,7 @@
     {
       this.options = options && typeof options === 'object' ? Object.assign({}, options) : {};
       this.DEFAULTS = Object.freeze({
-        optionalPages: Object.freeze(['login']),
+        optionalPages: Object.freeze(['login', 'agon-index']),
         adminPrefix: 'admin-',
         redirectPath: '/login.html',
         sessionExpiredReasons: Object.freeze(['login_required', 'session_expired', 'unauthorized'])
