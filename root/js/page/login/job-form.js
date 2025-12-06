@@ -92,16 +92,30 @@
      // パスワード入力部の表示・非表示切り替え
      // 
      togglePassword(textConfig)
-	   {
-		   var $pass = $('#login-password, input[type="password"]').first();
-		   var el = $pass.get(0);
-		   var asText = (el.type === 'password');
-		   el.type = asText ? 'text' : 'password';
+           {
+                   var $pass = $('#login-password, input[type="password"]').first();
+                   var el = $pass.get(0);
+                   var asText = (el.type === 'password');
+                   var nextType = asText ? 'text' : 'password';
 
-		   var $toggle = $('#toggle-password, [data-action="toggle-password"]').first();
-		   $toggle.text(asText ? textConfig.toggleHide : textConfig.toggleShow)
-         .attr('aria-pressed', asText ? 'true' : 'false');       
-     }
+                   try
+                   {
+                     el.type = nextType;
+                   }
+                   catch (_err)
+                   {
+                     var $clone = $pass.clone();
+                     $clone.attr('type', nextType);
+                     $clone.val($pass.val());
+                     $pass.replaceWith($clone);
+                     $pass = $clone;
+                     el = $clone.get(0);
+                   }
+
+                   var $toggle = $('#toggle-password, [data-action="toggle-password"]').first();
+                   $toggle.text(asText ? textConfig.toggleHide : textConfig.toggleShow)
+        .attr('aria-pressed', asText ? 'true' : 'false');
+    }
      
      // 以下、private
 
