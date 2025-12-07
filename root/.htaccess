@@ -65,6 +65,12 @@ DirectoryIndex html/index.html
 RewriteEngine On
 RewriteBase /
 
+# ドメイン先頭ラベルに応じた section.css の出し分け
+RewriteCond %{REQUEST_URI} ^/css/section\.css$ [NC]
+RewriteCond %{HTTP_HOST} ^([^.]+)\.
+RewriteCond %{DOCUMENT_ROOT}/css/%1-section.css -f
+RewriteRule ^css/section\.css$ css/%1-section.css [L]
+
 # agon-demo.spinner2.tokyo: デフォルトを agon-index.html に変更
 RewriteCond %{HTTP_HOST} ^agon-demo\.spinner2\.tokyo$ [NC]
 RewriteRule ^$ html/agon-index.html [L]
